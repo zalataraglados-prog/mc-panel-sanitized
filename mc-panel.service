@@ -1,0 +1,13 @@
+[Unit]
+Description=Minecraft Web Panel
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/minecraft-server/web-panel
+ExecStart=/opt/minecraft-server/web-panel/venv/bin/python3 /opt/minecraft-server/web-panel/app.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
