@@ -1,3 +1,9 @@
+attention!!! this branch is only used as a storage of this version. demo-1 will continue change.this branch will stay still.
+
+
+
+
+
 # MC Panel Deploy (PoC)
 
 This branch only keeps the deploy tooling: a Python-based, opinionated bootstrapper that provisions a Minecraft server instance with Docker and systemd using the templates in `deploy/templates/`.
