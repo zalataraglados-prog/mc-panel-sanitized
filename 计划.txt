@@ -1,0 +1,49 @@
+your-repo/
+└── deploy/
+    ├── setup.py
+    ├── core/
+    │   ├── environment.py
+    │   ├── instance_namer.py
+    │   ├── instance_creator.py
+    │   ├── port_scanner.py
+    │   ├── config_model.py
+    │   ├── composer.py
+    │   ├── systemd_gen.py
+    │   └── deployer.py
+    ├── templates/
+    │   ├── docker-compose.yml.tpl
+    │   ├── minecraft.service.tpl
+    │   ├── mc-panel.service.tpl
+    │   └── config.json.tpl   # 可选，要不用也行
+    └── utils/
+        ├── logger.py
+        └── file_helper.py
+测试版：
+对话框，输出服务器实时日志，在前端的一角显示
+主要功能集成为按钮，如开服关服重启控制台输入命令，发送 RCON 命令（支持自定义指令）
+指标直接展现数字（也可以考虑实时折线图）在线人数 TPS(瞬时) MSPT Ping CPU / 内存 / 硬盘使用率
+交互式玩家列表，显示皮肤头像，名字，在线时长，位置坐标。点击可以执行操作（升级为管理员，踢出，传送，查看并编辑背包，交互方式同MC游戏内）
+可以以二维平面可缩放式地图宽恕查看服务器（实时更新，没有编辑功能，可以考虑的功能，不强求，地狱和末地在第一次有玩家进入后可查看）
+可以切换语言（中英文）
+可以自定义主题（深色浅色模式切换）
+在一个次要界面展示服务器规则（不是约定的规则，是游戏的设置）
+支持字符串的反向生成（用途已叙述）
+//① setup.py 是否无需任何参数？
+也就是所有交互都在运行过程中询问：
+python3 setup.py
+然后自动问你：
+请输入实例名称（可空）：
+是否接受自动端口？(Y/n)
+还是你想支持命令行参数？例如：
+python3 setup.py --name survival --auto//都支持
+② 是否需要 root 检查？
+因为要写
+/opt/mc-instances/
+systemd 服务文件
+如果不是 root，需要提示：
+请使用 sudo 运行部署器
+✔ 是否采用这个逻辑？//是
+③ MC 面板源码路径固定为：
+../web-panel
+是否正确？
+还是你希望 setup.py 接收“面板目录位置”？//可以自定义

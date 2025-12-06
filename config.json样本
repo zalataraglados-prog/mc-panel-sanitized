@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+
+  "instance": {
+    "name": "survival-2025",
+    "display_name": "生存主世界",
+    "description": "主力生存服，白名单制",
+    "tags": ["survival", "main"],
+    "created_at": "2025-12-06T12:00:00Z",
+    "updated_at": "2025-12-06T12:00:00Z",
+    "enabled": true
+  },
+
+  "paths": {
+    "instance_dir": "/opt/mc-instances/survival-2025",
+    "data_dir": "/opt/mc-instances/survival-2025/data",
+    "logs_dir": "/opt/mc-instances/survival-2025/logs",
+    "backups_dir": "/opt/mc-instances/survival-2025/backups",
+    "world_dir": "/opt/mc-instances/survival-2025/data/world",
+    "panel_dir": "/opt/mc-instances/survival-2025/panel"
+  },
+
+  "network": {
+    "bind_address": "0.0.0.0",
+    "host": "ztlearn.xyz",
+    "mc_port": 25565,
+    "panel_port": 15000,
+    "rcon_port": 25575,
+    "query_port": 25565,
+    "use_https": false
+  },
+
+  "minecraft": {
+    "engine": "paper",
+    "version": "1.16.5",
+    "world_name": "world",
+    "difficulty": "hard",
+    "game_mode": "survival",
+    "max_players": 20,
+    "online_mode": true,
+    "view_distance": 10,
+    "whitelist": false,
+    "allow_flight": false,
+    "level_type": "default",
+    "motd": "Zalatara Server",
+    "jvm": {
+      "memory": "4G",
+      "extra_args": "-XX:+UseG1GC"
+    },
+    "properties": {
+      "spawn-protection": 0,
+      "pvp": true
+    }
+  },
+
+  "panel": {
+    "enabled": true,
+    "port": 15000,
+    "public_url": "http://ztlearn.xyz:15000",
+    "secret_key": "",
+    "auth_enabled": false
+  },
+
+  "docker": {
+    "image": "itzg/minecraft-server",
+    "tag": "java16",
+    "restart_policy": "always",
+    "networks": ["default"],
+    "extra_env": {
+      "TZ": "Asia/Shanghai"
+    },
+    "volumes": {
+      "data": "./data:/data",
+      "logs": "./logs:/logs"
+    }
+  },
+
+  "deployment": {
+    "deployer_version": "0.1.0",
+    "git_repo": "https://github.com/xxx/mc-deployer",
+    "git_commit": "abcdef1234567890",
+    "installed_by": "root",
+    "installed_at": "2025-12-06T12:00:00Z",
+    "auto_update": {
+      "enabled": false,
+      "channel": "stable"
+    }
+  },
+
+  "security": {
+    "rcon_enabled": true,
+    "rcon_password": "changeme",
+    "api_key": "",
+    "allowed_ips": [],
+    "allow_remote_panel": true
+  },
+
+  "features": {
+    "enable_backups": false,
+    "backup_cron": "0 4 * * *",
+    "enable_metrics": false,
+    "allow_offline_start": true,
+    "auto_restart_on_crash": true
+  }
+}
