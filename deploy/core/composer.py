@@ -1,100 +1,72 @@
 import os
 from utils.logger import log_info, log_error
+from utils.file_helper import FileHelper
 
 
 class ComposeGenerator:
     """
-    docker-compose.yml 生成器
-
-    根据 config.json 生成实例独立的 compose 文件。
+    使用模板 docker-compose.yml.tpl 生成实例的 compose 文件
     """
 
-    def __init__(self, cfg, instance_dir: str, web_panel_path: str):
+    def __init__(self, cfg, instance_dir: str, web_panel_path: str, templates_dir="templates"):
         self.cfg = cfg
-        self.dir = instance_dir
+        self.instance_dir = instance_dir
         self.panel_path = web_panel_path
+        self.templates_dir = templates_dir
 
-    # ----------------------------------------------------------------------
-    # 辅助生成函数
-    # ----------------------------------------------------------------------
-
-    def _generate_env_block(self, env_dict: dict) -> str:
-        """把 dict 转换成 YAML 的 environment: 块"""
-        if not env_dict:
-            return ""
-
-        lines = []
-        for key, val in env_dict.items():
-            lines.append(f"      - {key}=\"{val}\"")
-        return "\n".join(lines)
-
-    def _generate_volumes_block(self, volumes_dict: dict) -> str:
-        """把 dict 转换成 YAML 的 volumes: 块"""
-        if not volumes_dict:
-            return ""
-
-        lines = []
-        for key, val in volumes_dict.items():
-            # 映射路径类似 "./data:/data"
-            lines.append(f"      - {val}")
-        return "\n".join(lines)
-
-    # ----------------------------------------------------------------------
-    # 主生成函数
-    # ----------------------------------------------------------------------
+    def _template_path(self):
+        """返回 compose 模板路径"""
+        return os.path.join(self.templates_dir, "docker-compose.yml.tpl")
 
     def generate(self):
-        """生成 docker-compose.yml 文件"""
+        """从模板渲染 docker-compose.yml"""
 
-        log_info("正在生成 docker-compose.yml ...")
+        log_info("正在使用模板生成 docker-compose.yml ...")
 
-        docker = self.cfg.data["docker"]
-        minecraft = self.cfg.data["minecraft"]
-        network = self.cfg.data["network"]
-        paths = self.cfg.data["paths"]
+        tpl_path = self._template_path()
 
-        env_extra = self._generate_env_block(docker.get("extra_env", {}))
-        vol_extra = self._generate_volumes_block(docker.get("volumes", {}))
+        if not os.path.exists(tpl_path):
+            log_error(f"模板文件不存在：{tpl_path}")
+            raise FileNotFoundError("docker-compose.yml.tpl 不存在")
 
-        compose_content = f"""
-version: '3'
+        template = FileHelper.load_file(tpl_path)
 
-services:
+        data = self.cfg.data
 
-  minecraft:
-    image: {docker["image"]}:{docker["tag"]}
-    container_name: {self.cfg.instance_name}-minecraft
-    restart: {docker["restart_policy"]}
-    ports:
-      - "{network["mc_port"]}:25565"
-      - "{network["rcon_port"]}:25575"
-    environment:
-      - EULA=TRUE
-      - VERSION="{minecraft["version"]}"
-      - MEMORY="{minecraft["jvm"]["memory"]}"
-{env_extra}
-    volumes:
-{vol_extra}
-    networks:
-      - default
+        # 构建渲染变量
+        vars = {
+            "INSTANCE_NAME": data["instance"]["name"],
+            "DOCKER_IMAGE": data["docker"]["image"],
+            "DOCKER_TAG": data["docker"]["tag"],
+            "RESTART_POLICY": data["docker"]["restart_policy"],
 
-  mc-panel:
-    build: {self.panel_path}
-    container_name: {self.cfg.instance_name}-panel
-    restart: always
-    ports:
-      - "{network["panel_port"]}:5000"
-    networks:
-      - default
+            "MC_PORT": data["network"]["mc_port"],
+            "RCON_PORT": data["network"]["rcon_port"],
+            "PANEL_PORT": data["network"]["panel_port"],
 
-networks:
-  default:
-    driver: bridge
-"""
+            "MC_VERSION": data["minecraft"]["version"],
+            "MC_MEMORY": data["minecraft"]["jvm"]["memory"],
 
-        compose_path = os.path.join(self.dir, "docker-compose.yml")
+            "PANEL_BUILD_PATH": self.panel_path
+        }
 
-        with open(compose_path, "w") as f:
-            f.write(compose_content)
+        # extra_env → ENV_BLOCK（模板要求换行格式）
+        env_block = ""
+        for k, v in data["docker"]["extra_env"].items():
+            env_block += f"      - {k}=\"{v}\"\n"
+        vars["ENV_BLOCK"] = env_block.rstrip()
 
-        log_info(f"docker-compose.yml 已生成：{compose_path}")
+        # volumes → VOLUME_BLOCK
+        vol_block = ""
+        for _, mapping in data["docker"]["volumes"].items():
+            vol_block += f"      - {mapping}\n"
+        vars["VOLUME_BLOCK"] = vol_block.rstrip()
+
+        # 渲染
+        output = FileHelper.render_template(template, vars)
+
+        # 写入文件
+        dest = os.path.join(self.instance_dir, "docker-compose.yml")
+        FileHelper.write_file(dest, output)
+
+        log_info(f"docker-compose.yml 已生成：{dest}")

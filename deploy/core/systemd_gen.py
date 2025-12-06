@@ -1,54 +1,64 @@
 import os
 from utils.logger import log_info, log_error
+from utils.file_helper import FileHelper
 
 
 class SystemdGenerator:
     """
-    为实例生成 systemd 服务文件：
-    - mc-<name>.service
-    - 控制 docker compose up/down
+    使用模板生成 systemd 服务文件：
+    - minecraft.service
+    - mc-panel.service
     """
 
-    def __init__(self, instance_name: str, instance_dir: str):
+    def __init__(self, instance_name: str, instance_dir: str, templates_dir="templates"):
         self.name = instance_name
         self.dir = instance_dir
+        self.templates_dir = templates_dir
 
+    # ----------------------------------------------------
+    # 获取模板路径
+    # ----------------------------------------------------
+    def _tpl_mc(self):
+        return os.path.join(self.templates_dir, "minecraft.service.tpl")
+
+    def _tpl_panel(self):
+        return os.path.join(self.templates_dir, "mc-panel.service.tpl")
+
+    # ----------------------------------------------------
+    # 渲染并写入 systemd 文件
+    # ----------------------------------------------------
+    def _render_and_write(self, tpl_path: str, dest_path: str, vars: dict):
+        if not os.path.exists(tpl_path):
+            log_error(f"模板文件不存在：{tpl_path}")
+            raise FileNotFoundError(tpl_path)
+
+        tpl = FileHelper.load_file(tpl_path)
+        content = FileHelper.render_template(tpl, vars)
+
+        FileHelper.write_file(dest_path, content)
+
+        log_info(f"Systemd 服务已生成：{dest_path}")
+
+    # ----------------------------------------------------
+    # 主生成函数
+    # ----------------------------------------------------
     def generate(self):
-        """生成 systemd 服务文件"""
+        log_info("正在生成 systemd 服务文件...")
 
-        log_info("正在生成 systemd 服务...")
+        # systemd 要求绝对路径
+        mc_service_path = f"/etc/systemd/system/mc-{self.name}.service"
+        panel_service_path = f"/etc/systemd/system/mc-{self.name}-panel.service"
 
-        service_name = f"mc-{self.name}.service"
-        service_path = f"/etc/systemd/system/{service_name}"
+        # 模板变量
+        vars = {
+            "INSTANCE_NAME": self.name,
+            "INSTANCE_DIR": self.dir
+        }
 
-        content = f"""
-[Unit]
-Description=Minecraft Instance {self.name}
-After=network.target docker.service
-Requires=docker.service
+        # Minecraft 服务
+        self._render_and_write(self._tpl_mc(), mc_service_path, vars)
 
-[Service]
-Type=oneshot
-RemainAfterExit=true
-WorkingDirectory={self.dir}
-ExecStart=/usr/bin/docker compose -p {self.name} up -d
-ExecStop=/usr/bin/docker compose -p {self.name} down
-TimeoutStartSec=0
+        # Panel 服务
+        self._render_and_write(self._tpl_panel(), panel_service_path, vars)
 
-[Install]
-WantedBy=multi-user.target
-"""
-
-        try:
-            with open(service_path, "w") as f:
-                f.write(content)
-        except PermissionError:
-            log_error("无法写入 systemd 服务文件，请确认以 root 身份运行。")
-            raise
-        except Exception as e:
-            log_error(f"写入 systemd 服务失败：{e}")
-            raise
-
-        log_info(f"systemd 服务已写入：{service_path}")
-
-        return service_path
+        return mc_service_path, panel_service_path
