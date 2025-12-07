@@ -70,7 +70,7 @@ services:
     environment:
       - EULA=TRUE
       - VERSION={minecraft["version"]}
-      - MEMORY="{minecraft["jvm"]["memory"]}"
+      - MEMORY={minecraft["jvm"]["memory"]}
 {env_extra}
     volumes:
 {vol_extra}
