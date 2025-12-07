@@ -189,30 +189,28 @@ class ConfigModel:
     # ----------------------------------------------------
     @staticmethod
     def auto_generate(instance_dir, instance_name=None, mc_port=25565, panel_port=15000):
-    """
-    对外统一入口：
-    - 自动生成 config.json
-    - 自动创建 ConfigModel 实例
-    """
+        """
+        对外统一入口：
+        - 自动生成 config.json
+        - 自动创建 ConfigModel 实例
+        """
 
-    # 如果 setup.py 传入实例名，则使用；否则默认用目录名
-    if instance_name is None:
-        instance_name = os.path.basename(instance_dir)
+        if instance_name is None:
+            instance_name = os.path.basename(instance_dir)
 
-    config_path = os.path.join(instance_dir, "config.json")
+        config_path = os.path.join(instance_dir, "config.json")
 
-    cfg = ConfigModel(config_path)
-    cfg.data = ConfigModel.generate_default(
-        instance_name=instance_name,
-        instance_dir=instance_dir,
-        mc_port=mc_port,
-        panel_port=panel_port,
-    )
+        cfg = ConfigModel(config_path)
+        cfg.data = ConfigModel.generate_default(
+            instance_name=instance_name,
+            instance_dir=instance_dir,
+            mc_port=mc_port,
+            panel_port=panel_port,
+        )
 
-    # ⭐⭐⭐ 关键修复：写入实例名（systemd 会用到）
-    cfg.data["instance"]["name"] = instance_name
+        # ⭐ 必须写入，否则 systemd 服务名会变成 Python 类名
+        cfg.data["instance"]["name"] = instance_name
 
-    cfg.save()
-
-    return cfg
+        cfg.save()
+        return cfg
 
