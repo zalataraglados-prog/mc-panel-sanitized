@@ -2,7 +2,7 @@ import os
 from utils.logger import log_info, log_error
 
 
-class ComposeGenerator:
+class Composer:
     """
     docker-compose.yml 生成器
 
