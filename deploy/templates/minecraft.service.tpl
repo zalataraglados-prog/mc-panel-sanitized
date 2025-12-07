@@ -7,8 +7,8 @@ Requires=docker.service
 Type=oneshot
 RemainAfterExit=true
 WorkingDirectory={{INSTANCE_DIR}}
-ExecStart=/usr/bin/docker compose -p {{INSTANCE_NAME}} up -d minecraft
-ExecStop=/usr/bin/docker compose -p {{INSTANCE_NAME}} stop minecraft
+ExecStart=/usr/local/lib/docker/cli-plugins/docker-compose -p {{INSTANCE_NAME}} up -d minecraft
+ExecStop=/usr/local/lib/docker/cli-plugins/docker-compose -p {{INSTANCE_NAME}} stop minecraft
 TimeoutStartSec=0
 
 [Install]
