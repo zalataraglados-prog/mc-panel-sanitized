@@ -50,8 +50,8 @@ def main():
     composer.generate()
 
     # 7. 生成 systemd 服务
-    systemd = SystemdGenerator(cfg_obj)
-    systemd.write()
+    systemd = SystemdGenerator(cfg_obj.instance_name, inst_dir)
+    systemd.generate()
 
     # 8. 部署（systemd + docker compose）
     dp = Deployer(cfg_obj)
