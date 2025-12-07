@@ -36,7 +36,7 @@ INSTALL_DIR="/opt/mc-panel-sanitized"
 
 if [ ! -d "$INSTALL_DIR" ]; then
     echo "[INFO] 克隆仓库中..."
-    git clone https://github.com/zalataraglados-prog/mc-panel-sanitized.git "$INSTALL_DIR"
+    git clone -b demo1 --single-branch https://github.com/zalataraglados-prog/mc-panel-sanitized.git "$INSTALL_DIR"
 else
     echo "[INFO] 仓库已存在，正在更新..."
     cd "$INSTALL_DIR"
