@@ -56,8 +56,7 @@ class Composer:
         env_extra = self._generate_env_block(docker.get("extra_env", {}))
         vol_extra = self._generate_volumes_block(docker.get("volumes", {}))
 
-        compose_content = f"""
-version: '3'
+        compose_content = f"""version: '3'
 
 services:
 
@@ -75,15 +74,6 @@ services:
 {env_extra}
     volumes:
 {vol_extra}
-    networks:
-      - default
-
-  mc-panel:
-    build: {self.panel_path}
-    container_name: {self.cfg.instance_name}-panel
-    restart: always
-    ports:
-      - "{network["panel_port"]}:5000"
     networks:
       - default
 
