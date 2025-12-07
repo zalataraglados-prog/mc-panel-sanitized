@@ -184,6 +184,7 @@ class ConfigModel:
     @property
     def instance_dir(self):
         return self.data["paths"]["instance_dir"]
+    
     # ----------------------------------------------------
     # 自动生成 config.json（供 setup.py 调用）
     # ----------------------------------------------------
@@ -213,4 +214,3 @@ class ConfigModel:
 
         cfg.save()
         return cfg
-
