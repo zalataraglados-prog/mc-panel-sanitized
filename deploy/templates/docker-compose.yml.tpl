@@ -17,16 +17,6 @@ services:
     networks:
       - default
 
-  mc-panel:
-    build:
-      context: /opt/mc-panel-sanitized/web-panel
-    container_name: {{INSTANCE_NAME}}-panel
-    restart: always
-    ports:
-      - "{{PANEL_PORT}}:5000"
-    networks:
-      - default
-
 networks:
   default:
     driver: bridge
