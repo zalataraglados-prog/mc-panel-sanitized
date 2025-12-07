@@ -187,8 +187,8 @@ class ConfigModel:
     # ----------------------------------------------------
     # 自动生成 config.json（供 setup.py 调用）
     # ----------------------------------------------------
-  @staticmethod
-def auto_generate(instance_dir, instance_name=None, mc_port=25565, panel_port=15000):
+    @staticmethod
+    def auto_generate(instance_dir, instance_name=None, mc_port=25565, panel_port=15000):
     """
     对外统一入口：
     - 自动生成 config.json
