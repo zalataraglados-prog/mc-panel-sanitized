@@ -1,5 +1,3 @@
-version: '3'
-
 services:
 
   minecraft:
@@ -20,7 +18,8 @@ services:
       - default
 
   mc-panel:
-    build: {{PANEL_BUILD_PATH}}
+    build:
+      context: /opt/mc-panel-sanitized/web-panel
     container_name: {{INSTANCE_NAME}}-panel
     restart: always
     ports:
