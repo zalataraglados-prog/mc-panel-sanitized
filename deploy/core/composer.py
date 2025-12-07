@@ -69,7 +69,7 @@ services:
       - "{network["rcon_port"]}:25575"
     environment:
       - EULA=TRUE
-      - VERSION="{minecraft["version"]}"
+      - VERSION={minecraft["version"]}
       - MEMORY="{minecraft["jvm"]["memory"]}"
 {env_extra}
     volumes:
