@@ -49,14 +49,15 @@ def main():
     )
     composer.generate()
 
-    # 7. 生成 systemd 服务（签名：instance_name, instance_dir）
+    # 7. 生成 systemd 服务
     systemd = SystemdGenerator(cfg_obj.instance_name, inst_dir)
     systemd.generate()
 
-    # 8. 部署（签名：cfg, instance_dir）
-    dp = Deployer(cfg_obj, inst_dir)
+    # 8. 部署（使用正确的参数）
+    dp = Deployer(cfg_obj.instance_name, inst_dir)
     print("[INFO] 开始部署实例...")
     dp.run()
+
 
 
 if __name__ == "__main__":
