@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.vscode/
+deploy-program/
+build/
+dist/
