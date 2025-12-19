@@ -43,10 +43,10 @@ fi
 # ─────────────────────────────
 # 进入部署器入口并立即执行
 # ─────────────────────────────
-cd "$INSTALL_DIR/deploy"
 
 echo "[INFO] 执行部署器..."
 
+cd /opt/mc-panel-sanitized
 python3 -m deploy.cli plan
 python3 -m deploy.cli apply
 
