@@ -1,18 +1,14 @@
 import os
+import sys
 from utils.logger import log_info, log_warn
 
 
 class InstanceNamer:
-    """
-    实例命名系统：
-    - 用户可自定义名称
-    - 留空自动生成 instance-XXX
-    - 检查并处理名称冲突
-    """
+    """Instance naming helper."""
 
     @staticmethod
     def sanitize(name: str) -> str:
-        """清洗实例名：只允许 a-z 0-9 - _"""
+        """Normalize instance name: allow a-z, 0-9, - and _."""
         safe = []
         for c in name.lower():
             if c.isalnum() or c in "-_":
@@ -23,7 +19,7 @@ class InstanceNamer:
 
     @staticmethod
     def auto_generate(base_path: str) -> str:
-        """自动生成 instance-001 / instance-002 / ..."""
+        """Generate instance-001 / instance-002 / ..."""
 
         n = 1
         while True:
@@ -35,11 +31,11 @@ class InstanceNamer:
 
     @staticmethod
     def handle_conflict(base_path: str, name: str) -> str:
-        """如果名字冲突，则在后面自动加序号"""
+        """If the name exists, append a suffix to avoid conflict."""
         if not os.path.exists(os.path.join(base_path, name)):
             return name
 
-        log_warn(f"实例名 '{name}' 已存在，将自动附加序号避免冲突。")
+        log_warn(f"Instance name '{name}' already exists, appending a suffix to avoid conflict.")
 
         n = 2
         while True:
@@ -50,32 +46,48 @@ class InstanceNamer:
             n += 1
 
     @staticmethod
+    def _read_input(prompt: str) -> str:
+        """Read user input; prefer interactive stdin, fallback to terminal device."""
+
+        if sys.stdin and sys.stdin.isatty():
+            try:
+                return input(prompt)
+            except EOFError:
+                return ""
+
+        tty_path = "CON" if os.name == "nt" else "/dev/tty"
+        try:
+            with open(tty_path, "r") as tty:
+                print(prompt, end="", flush=True)
+                return tty.readline()
+        except Exception:
+            log_warn("Unable to read user input; will auto-generate instance name.")
+            return ""
+
+    @staticmethod
     def ask_name(base_path: str) -> str:
         """
-        询问用户实例名：
-        - 留空 → 自动生成 ID
-        - 自定义 → 清洗 + 冲突检查
+        Ask for instance name:
+        - empty -> auto-generate ID
+        - custom -> sanitize + conflict check
         """
 
         print()
-        user_input = input("请输入实例名称（留空自动生成）： ").strip()
+        user_input = InstanceNamer._read_input("Please enter instance name (leave empty to auto-generate): ").strip()
 
-        # 自动生成
         if user_input == "":
+            log_info("No user input detected; auto-generating instance name.")
             name = InstanceNamer.auto_generate(base_path)
-            log_info(f"已自动生成实例名：{name}")
+            log_info(f"Auto-generated instance name: {name}")
             return name
 
-        # 用户自定义（清洗）
         clean = InstanceNamer.sanitize(user_input)
 
-        # 避免生成透明空值，例如全是非法字符
         if clean == "":
-            log_warn("输入的名称无有效字符，将自动生成实例ID。")
+            log_warn("Input contains no valid characters; auto-generating instance ID.")
             return InstanceNamer.auto_generate(base_path)
 
-        # 冲突处理
         final = InstanceNamer.handle_conflict(base_path, clean)
 
-        log_info(f"实例名确定为：{final}")
+        log_info(f"Instance name confirmed: {final}")
         return final
