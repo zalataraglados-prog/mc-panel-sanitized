@@ -184,6 +184,7 @@ class ConfigModel:
     @property
     def instance_dir(self):
         return self.data["paths"]["instance_dir"]
+
     # ----------------------------------------------------
     # 自动生成 config.json（供 setup.py 调用）
     # ----------------------------------------------------
@@ -195,7 +196,6 @@ class ConfigModel:
         - 自动创建 ConfigModel 实例
         """
 
-        # 如果 setup.py 传入实例名，则使用；否则默认用目录名
         if instance_name is None:
             instance_name = os.path.basename(instance_dir)
 
@@ -208,6 +208,9 @@ class ConfigModel:
             mc_port=mc_port,
             panel_port=panel_port,
         )
-        cfg.save()
 
+        # ⭐ 必须写入，否则 systemd 服务名会变成 Python 类名
+        cfg.data["instance"]["name"] = instance_name
+
+        cfg.save()
         return cfg
