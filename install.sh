@@ -46,7 +46,9 @@ fi
 cd "$INSTALL_DIR/deploy"
 
 echo "[INFO] 执行部署器..."
-python3 setup.py
+
+python3 -m deploy.cli plan
+python3 -m deploy.cli apply
 
 echo ""
 echo "======================================"
