@@ -1,6 +1,6 @@
 import os
 import shutil
-from utils.logger import log_info, log_error, log_warn
+from deploy.utils.logger import log_info, log_error, log_warn
 
 
 class EnvironmentChecker:

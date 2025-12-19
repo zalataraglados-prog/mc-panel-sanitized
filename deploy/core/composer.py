@@ -1,8 +1,8 @@
 import os
-from utils.logger import log_info, log_error
+from deploy.utils.logger import log_info, log_error
 
 
-class ComposeGenerator:
+class Composer:
     """
     docker-compose.yml 生成器
 
@@ -56,8 +56,7 @@ class ComposeGenerator:
         env_extra = self._generate_env_block(docker.get("extra_env", {}))
         vol_extra = self._generate_volumes_block(docker.get("volumes", {}))
 
-        compose_content = f"""
-version: '3'
+        compose_content = f"""version: '3'
 
 services:
 
@@ -70,20 +69,11 @@ services:
       - "{network["rcon_port"]}:25575"
     environment:
       - EULA=TRUE
-      - VERSION="{minecraft["version"]}"
-      - MEMORY="{minecraft["jvm"]["memory"]}"
+      - VERSION={minecraft["version"]}
+      - MEMORY={minecraft["jvm"]["memory"]}
 {env_extra}
     volumes:
 {vol_extra}
-    networks:
-      - default
-
-  mc-panel:
-    build: {self.panel_path}
-    container_name: {self.cfg.instance_name}-panel
-    restart: always
-    ports:
-      - "{network["panel_port"]}:5000"
     networks:
       - default
 

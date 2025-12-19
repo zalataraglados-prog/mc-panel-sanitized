@@ -1,5 +1,5 @@
 import socket
-from utils.logger import log_info, log_warn, log_error
+from deploy.utils.logger import log_info, log_warn, log_error
 
 class PortScanner:
     """

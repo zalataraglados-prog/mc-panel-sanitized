@@ -1,6 +1,6 @@
 import os
 import sys
-from utils.logger import log_info, log_warn
+from deploy.utils.logger import log_info, log_warn
 
 
 class InstanceNamer:

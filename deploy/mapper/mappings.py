@@ -1,0 +1,61 @@
+"""
+Canonical parameter → legacy ConfigModel field mapping.
+
+Left side:
+  Canonical parameter key used by Claims / Planner / Renderer.
+
+Right side:
+  Tuple path locating the target field inside legacy config dict.
+
+All mappings must be explicitly declared here.
+"""
+
+PARAMETER_MAPPINGS = {
+    # ─────────────────────────
+    # Instance
+    # ─────────────────────────
+    "instance.name": ("instance", "name"),
+    "instance.profile": ("instance", "profile"),
+
+    # ─────────────────────────
+    # Network
+    # ─────────────────────────
+    "network.mc_port": ("network", "mc_port"),
+    "network.rcon_port": ("network", "rcon_port"),
+    "network.query_port": ("network", "query_port"),
+
+    # ─────────────────────────
+    # Minecraft Core
+    # ─────────────────────────
+    "minecraft.version": ("minecraft", "version"),
+    "minecraft.type": ("minecraft", "type"),
+    "minecraft.max_players": ("minecraft", "max_players"),
+    "minecraft.motd": ("minecraft", "motd"),
+    "minecraft.online_mode": ("minecraft", "online_mode"),
+    "minecraft.difficulty": ("minecraft", "difficulty"),
+    "minecraft.gamemode": ("minecraft", "gamemode"),
+    "minecraft.view_distance": ("minecraft", "view_distance"),
+    "minecraft.simulation_distance": ("minecraft", "simulation_distance"),
+
+    # ─────────────────────────
+    # Docker / JVM
+    # ─────────────────────────
+    "docker.env.MEMORY": ("docker", "memory"),
+    "docker.env.TYPE": ("docker", "type"),
+    "docker.env.JVM_OPTS": ("docker", "jvm_opts"),
+    "docker.restart_policy": ("docker", "restart"),
+
+    # ─────────────────────────
+    # Security
+    # ─────────────────────────
+    "security.eula": ("security", "eula"),
+    "security.whitelist": ("security", "whitelist"),
+    "security.ops": ("security", "ops"),
+
+    # ─────────────────────────
+    # Features
+    # ─────────────────────────
+    "features.enable_rcon": ("features", "enable_rcon"),
+    "features.enable_query": ("features", "enable_query"),
+    "features.enable_panel": ("features", "enable_panel"),
+}

@@ -1,5 +1,3 @@
-version: '3'
-
 services:
 
   minecraft:
@@ -18,16 +16,7 @@ services:
 {{VOLUME_BLOCK}}
     networks:
       - default
-
-  mc-panel:
-    build: {{PANEL_BUILD_PATH}}
-    container_name: {{INSTANCE_NAME}}-panel
-    restart: always
-    ports:
-      - "{{PANEL_PORT}}:5000"
-    networks:
-      - default
-
+      
 networks:
   default:
     driver: bridge

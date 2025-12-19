@@ -14,6 +14,7 @@ import sys
 from deploy.claims_codec import Claims, decode_claims
 from deploy.context import InstanceContext
 from deploy.core.config_model import ConfigModel
+from deploy.core.environment import EnvironmentChecker
 from deploy.core.instance_namer import InstanceNamer
 from deploy.core.port_scanner import PortScanner
 from deploy.planner.planner import plan as plan_apply
@@ -106,8 +107,23 @@ def main():
     else:
         claims = load_claims_from_args(args)
 
+    # 2) Planner
+    apply_plan = plan_apply(claims)
+
+    # 3) Review
+    print_review(apply_plan)
+
+    if args.command == "plan":
+        return 0
+
+    # 0) Environment check (apply only)
+    env = EnvironmentChecker()
+    env.ensure_all()
+
     # 0) Instance context
-    base_path = "/opt/minecraft"
+    base_path = "/opt/mc-instances"
+    panel_src_dir = "/opt/mc-panel-sanitized/web-panel"
+
     namer = InstanceNamer()
     instance_name = namer.ask_name(base_path)
     if not instance_name:
@@ -127,23 +143,17 @@ def main():
         panel_port=panel_port,
     )
 
-    # 2) Planner
-    apply_plan = plan_apply(claims)
-
-    # 3) Review
-    print_review(apply_plan)
-
-    if args.command == "plan":
-        return 0
-
     # 4) Apply: generate config, map claims, execute
-    cfg = ConfigModel(path="")  # path unused in legacy executor
+    config_path = os.path.join(ctx.instance_dir, "config.json")
+    cfg = ConfigModel(path=config_path)
     cfg.data = ConfigModel.generate_default(
         ctx.instance_name,
         ctx.instance_dir,
         ctx.mc_port,
         ctx.panel_port,
     )
+    cfg.data.setdefault("panel", {})
+    cfg.data["panel"]["build_path"] = panel_src_dir
 
     legacy_config = map_claims_to_legacy_config(
         claims=claims,
@@ -151,6 +161,9 @@ def main():
         apply_plan=apply_plan,
     )
     cfg.data = legacy_config
+    cfg.data.setdefault("panel", {})
+    cfg.data["panel"]["build_path"] = panel_src_dir
+    cfg.save()
 
     executor = Executor(ctx=ctx)
 

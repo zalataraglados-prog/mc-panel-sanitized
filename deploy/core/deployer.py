@@ -1,5 +1,5 @@
 import os
-from utils.logger import log_info, log_error
+from deploy.utils.logger import log_info, log_error
 
 
 class Deployer:

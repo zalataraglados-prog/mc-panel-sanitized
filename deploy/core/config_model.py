@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import datetime
-from utils.logger import log_info, log_error
+from deploy.utils.logger import log_info, log_error
 class ConfigModel:
     """
     核心配置模型：

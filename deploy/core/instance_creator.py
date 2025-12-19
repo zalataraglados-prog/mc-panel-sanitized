@@ -1,5 +1,5 @@
 import os
-from utils.logger import log_info, log_error
+from deploy.utils.logger import log_info, log_error
 from core.port_scanner import PortScanner
 from core.config_model import ConfigModel
 
