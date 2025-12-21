@@ -8,6 +8,7 @@ from deploy.mapper.profiles import PROFILE_OVERRIDES
 @dataclass
 class PlanMessage:
     message: str
+    code: str | None = None
 
 
 @dataclass
@@ -39,6 +40,8 @@ def _validate_profile(profile: str) -> List[PlanMessage]:
 def _validate_params(params: dict) -> List[PlanMessage]:
     blocks = []
     for key in params.keys():
+        if key == "edition":
+            continue
         if key not in PARAMETER_MAPPINGS:
             blocks.append(PlanMessage(message=f"Unknown parameter: {key}"))
     return blocks
@@ -48,6 +51,8 @@ def _capabilities_from_params(params: dict, claims) -> List[CapabilityResult]:
     seen: Set[str] = set()
     results = []
     for key in params.keys():
+        if key == "edition":
+            continue
         if key not in PARAMETER_MAPPINGS:
             continue
         cap = claims.param_capability(key)
@@ -58,6 +63,23 @@ def _capabilities_from_params(params: dict, claims) -> List[CapabilityResult]:
     return results
 
 
+def _validate_edition_rules(params: dict) -> List[PlanMessage]:
+    blocks = []
+    edition = params.get("edition")
+    if edition != "bedrock":
+        return blocks
+
+    for key in ("docker.env.MEMORY", "minecraft.view_distance"):
+        if key in params:
+            blocks.append(
+                PlanMessage(
+                    code="bedrock_param_not_supported",
+                    message=f"{key} is not applicable to Bedrock Edition",
+                )
+            )
+    return blocks
+
+
 def plan(claims) -> ApplyPlan:
     """
     Produce an ApplyPlan from Claims.
@@ -66,6 +88,7 @@ def plan(claims) -> ApplyPlan:
     blocks = []
     blocks.extend(_validate_profile(claims.profile))
     blocks.extend(_validate_params(claims.params))
+    blocks.extend(_validate_edition_rules(claims.params))
 
     level = "block" if blocks else "allow"
     summary = PlanSummary(level=level)

@@ -57,11 +57,21 @@ read_tty() {
 cd "$INSTALL_DIR"
 
 echo ""
+echo "请选择 Minecraft 版本："
+echo "1) Java Edition（插件 / 大型服务器）"
+echo "2) Bedrock Edition（手机 / 主机 / Win10）"
+EDITION_CHOICE=$(read_tty "请输入 [1-2]：")
+
+case "$EDITION_CHOICE" in
+  2) EDITION="bedrock" ;;
+  *) EDITION="java" ;;
+esac
+
+echo ""
 echo "请选择配置档位："
 echo "1) beginner"
 echo "2) normal（默认）"
 echo "3) advanced"
-
 PROFILE_CHOICE=$(read_tty "请输入 [1-3]：")
 
 case "$PROFILE_CHOICE" in
@@ -77,6 +87,7 @@ echo ""
 echo "[INFO] 执行 plan（仅展示 Review）..."
 python3 -m deploy.cli plan \
   --profile "$PROFILE" \
+  --set edition="$EDITION" \
   --set docker.env.MEMORY="$MEMORY" \
   --set minecraft.view_distance="$VIEW_DISTANCE"
 
@@ -88,6 +99,7 @@ case "$CONFIRM" in
     echo "[INFO] 执行 apply..."
     python3 -m deploy.cli apply \
       --profile "$PROFILE" \
+      --set edition="$EDITION" \
       --set docker.env.MEMORY="$MEMORY" \
       --set minecraft.view_distance="$VIEW_DISTANCE"
     ;;
