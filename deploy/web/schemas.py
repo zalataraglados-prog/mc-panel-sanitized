@@ -18,11 +18,13 @@ class CapabilityReview(BaseModel):
 class ReviewMessage(BaseModel):
     code: str
     message: str
+    hint: Optional[str] = None
 
 
 class ReviewMeta(BaseModel):
     review_version: int = 1
     planner_version: Optional[str] = None
+    knowledge_base_version: Optional[str] = None
 
 
 class PlanResponse(BaseModel):

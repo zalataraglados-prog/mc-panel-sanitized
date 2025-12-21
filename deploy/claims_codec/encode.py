@@ -1,6 +1,8 @@
 import base64
 import json
 
+CLAIMS_SCHEMA_VERSION = 2
+
 
 def encode_claims(claims) -> str:
     """
@@ -17,7 +19,7 @@ def encode_claims(claims) -> str:
         raise ValueError("Invalid claims object")
 
     payload = {
-        "v": 1,
+        "v": CLAIMS_SCHEMA_VERSION,
         "profile": profile,
         "params": params or {},
     }

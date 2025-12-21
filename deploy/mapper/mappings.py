@@ -59,3 +59,15 @@ PARAMETER_MAPPINGS = {
     "features.enable_query": ("features", "enable_query"),
     "features.enable_panel": ("features", "enable_panel"),
 }
+
+# Planner-only parameter markers (not rendered into legacy config).
+PLUGIN_PARAM_PREFIXES = ("plugins.",)
+MOD_PARAM_PREFIXES = ("mods.",)
+
+
+def is_plugin_param(key: str) -> bool:
+    return any(key.startswith(prefix) for prefix in PLUGIN_PARAM_PREFIXES)
+
+
+def is_mod_param(key: str) -> bool:
+    return any(key.startswith(prefix) for prefix in MOD_PARAM_PREFIXES)

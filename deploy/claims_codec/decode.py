@@ -2,6 +2,8 @@ import base64
 import json
 from typing import Any, Dict
 
+CLAIMS_SCHEMA_VERSION = 2
+
 
 class Claims:
     """
@@ -25,7 +27,7 @@ def _add_padding(s: str) -> str:
 
 def decode_claims(s: str) -> Claims:
     """
-    Decode base64url(JSON) into Claims (v1).
+    Decode base64url(JSON) into Claims (v1/v2).
     """
 
     try:
@@ -37,7 +39,8 @@ def decode_claims(s: str) -> Claims:
     if not isinstance(data, dict):
         raise ValueError("Invalid claims payload")
 
-    if data.get("v") != 1:
+    version = data.get("v")
+    if version not in (1, CLAIMS_SCHEMA_VERSION):
         raise ValueError("Unsupported claims version")
 
     profile = data.get("profile")

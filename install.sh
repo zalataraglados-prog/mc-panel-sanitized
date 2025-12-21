@@ -92,6 +92,40 @@ case "$PROFILE_CHOICE" in
   *) PROFILE="normal" ;;
 esac
 
+echo ""
+echo "Select server stack:"
+echo "1) vanilla"
+echo "2) paper (recommended)"
+echo "3) fabric"
+echo "4) forge"
+echo "5) neoforge"
+STACK_CHOICE=$(read_tty "Enter [1-5]: " )
+
+case "$STACK_CHOICE" in
+  1) STACK_TYPE="vanilla" ;;
+  3) STACK_TYPE="fabric" ;;
+  4) STACK_TYPE="forge" ;;
+  5) STACK_TYPE="neoforge" ;;
+  *) STACK_TYPE="paper" ;;
+esac
+
+echo ""
+echo "Select Java runtime:"
+echo "1) auto (based on Minecraft version)"
+echo "2) 8"
+echo "3) 11"
+echo "4) 16"
+echo "5) 17"
+RUNTIME_CHOICE=$(read_tty "Enter [1-5]: " )
+
+case "$RUNTIME_CHOICE" in
+  2) RUNTIME_JAVA="8" ;;
+  3) RUNTIME_JAVA="11" ;;
+  4) RUNTIME_JAVA="16" ;;
+  5) RUNTIME_JAVA="17" ;;
+  *) RUNTIME_JAVA="auto" ;;
+esac
+
 MEMORY=$(read_tty "请输入分配内存（如 2G / 4G）：")
 VIEW_DISTANCE=$(read_tty "请输入 view-distance（推荐 6~10）：")
 
@@ -100,6 +134,8 @@ echo "[INFO] 执行 plan（仅展示 Review）..."
 python3 -m deploy.cli plan \
   --profile "$PROFILE" \
   --set edition="$EDITION" \
+  --set stack.type="$STACK_TYPE" \
+  --set runtime.java="$RUNTIME_JAVA" \
   --set docker.env.MEMORY="$MEMORY" \
   --set minecraft.view_distance="$VIEW_DISTANCE"
 
@@ -112,6 +148,8 @@ case "$CONFIRM" in
     python3 -m deploy.cli apply \
       --profile "$PROFILE" \
       --set edition="$EDITION" \
+      --set stack.type="$STACK_TYPE" \
+      --set runtime.java="$RUNTIME_JAVA" \
       --set docker.env.MEMORY="$MEMORY" \
       --set minecraft.view_distance="$VIEW_DISTANCE"
     ;;

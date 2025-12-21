@@ -3,7 +3,11 @@ def _message_to_dict(obj, *, default_code: str) -> dict:
     message = getattr(obj, "message", None)
     if message is None:
         message = str(obj)
-    return {"code": code, "message": message}
+    hint = getattr(obj, "hint", None)
+    payload = {"code": code, "message": message}
+    if hint:
+        payload["hint"] = hint
+    return payload
 
 
 def review_to_dict(apply_plan) -> dict:
@@ -36,5 +40,6 @@ def review_to_dict(apply_plan) -> dict:
         "meta": {
             "review_version": 1,
             "planner_version": getattr(apply_plan, "planner_version", None),
+            "knowledge_base_version": getattr(apply_plan, "knowledge_base_version", None),
         },
     }
