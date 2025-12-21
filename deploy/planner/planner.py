@@ -65,7 +65,7 @@ def _capabilities_from_params(params: dict, claims) -> List[CapabilityResult]:
 
 def _validate_edition_rules(params: dict) -> List[PlanMessage]:
     blocks = []
-    edition = params.get("edition")
+    edition = params.get("edition", "java")
     if edition != "bedrock":
         return blocks
 
@@ -74,7 +74,9 @@ def _validate_edition_rules(params: dict) -> List[PlanMessage]:
             blocks.append(
                 PlanMessage(
                     code="bedrock_param_not_supported",
-                    message=f"{key} is not applicable to Bedrock Edition",
+                    message=(
+                        f"Parameter '{key}' is not applicable to Bedrock Edition."
+                    ),
                 )
             )
     return blocks
