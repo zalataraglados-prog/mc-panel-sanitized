@@ -10,9 +10,10 @@ class Claims:
     Minimal CapabilityClaims implementation for codec consumers.
     """
 
-    def __init__(self, *, params: Dict[str, Any], profile: str):
+    def __init__(self, *, params: Dict[str, Any], profile: str, imported: bool = False):
         self.params = params
         self.profile = profile
+        self.imported_from_string = imported
 
     def param_capability(self, param_key: str) -> str:
         return param_key.split(".", 1)[0]
@@ -45,6 +46,9 @@ def decode_claims(s: str) -> Claims:
 
     profile = data.get("profile")
     params = data.get("params")
+    edition = data.get("edition")
+    stack_type = data.get("stack.type")
+    runtime_java = data.get("runtime.java")
 
     if not isinstance(profile, str):
         raise ValueError("Invalid profile in claims")
@@ -53,4 +57,11 @@ def decode_claims(s: str) -> Claims:
     if not isinstance(params, dict):
         raise ValueError("Invalid params in claims")
 
-    return Claims(profile=profile, params=params)
+    if edition is not None and "edition" not in params:
+        params["edition"] = edition
+    if stack_type is not None and "stack.type" not in params:
+        params["stack.type"] = stack_type
+    if runtime_java is not None and "runtime.java" not in params:
+        params["runtime.java"] = runtime_java
+
+    return Claims(profile=profile, params=params, imported=True)

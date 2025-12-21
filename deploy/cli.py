@@ -13,13 +13,14 @@ import sys
 
 from deploy.claims_codec import Claims, decode_claims
 from deploy.context import InstanceContext
-from deploy.core.config_model import ConfigModel
 from deploy.core.environment import EnvironmentChecker
 from deploy.core.instance_namer import InstanceNamer
 from deploy.core.port_scanner import PortScanner
 from deploy.planner.planner import plan as plan_apply
-from deploy.mapper.legacy_config_mapper import map_claims_to_legacy_config
 from deploy.executor.executor import Executor, ExecutorError
+from deploy.deployment.model import Deployment, DeploymentStatus
+from deploy.deployment.store import save_deployment
+from deploy.web.review_adapter import review_to_dict
 
 
 # ────────────────────────────────────────
@@ -37,9 +38,11 @@ def load_claims_from_args(args) -> Claims:
             key, value = kv.split("=", 1)
             params[key] = value
 
+    profile = args.profile or "normal"
     return Claims(
         params=params,
-        profile=args.profile,
+        profile=profile,
+        imported=False,
     )
 
 
@@ -48,10 +51,12 @@ def load_claims_from_args(args) -> Claims:
 # ────────────────────────────────────────
 
 
-def print_review(apply_plan):
+def print_review(apply_plan, claims: Claims | None = None):
     print("\n=== Apply Plan Review ===")
     print(f"Target: {apply_plan.target}")
     print(f"Level:  {apply_plan.summary.level}")
+    if claims and getattr(claims, "imported_from_string", False):
+        print("Source: imported claims")
     print()
 
     for result in apply_plan.capability_results:
@@ -86,7 +91,7 @@ def main():
         p.add_argument(
             "--profile",
             choices=("beginner", "normal", "advanced"),
-            default="normal",
+            default=None,
             help="Configuration profile",
         )
         p.add_argument(
@@ -103,18 +108,27 @@ def main():
 
     # 1) Load Claims
     if args.import_string:
+        if args.set or args.profile is not None:
+            raise SystemExit("--import-string cannot be combined with --set or --profile")
         claims = decode_claims(args.import_string)
     else:
         claims = load_claims_from_args(args)
 
     # 2) Planner
     apply_plan = plan_apply(claims)
+    if getattr(claims, "imported_from_string", False):
+        setattr(apply_plan, "imported_claims", True)
 
     # 3) Review
-    print_review(apply_plan)
+    print_review(apply_plan, claims=claims)
+    review_payload = review_to_dict(apply_plan)
 
     if args.command == "plan":
         return 0
+
+    if apply_plan.summary.level == "block":
+        print("Apply is blocked by planner review.")
+        return 1
 
     # 0) Environment check (apply only)
     env = EnvironmentChecker()
@@ -122,7 +136,6 @@ def main():
 
     # 0) Instance context
     base_path = "/opt/mc-instances"
-    panel_src_dir = "/opt/mc-panel-sanitized/web-panel"
 
     namer = InstanceNamer()
     instance_name = namer.ask_name(base_path)
@@ -143,43 +156,36 @@ def main():
         panel_port=panel_port,
     )
 
-    # 4) Apply: generate config, map claims, execute
-    config_path = os.path.join(ctx.instance_dir, "config.json")
-    cfg = ConfigModel(path=config_path)
-    cfg.data = ConfigModel.generate_default(
-        ctx.instance_name,
-        ctx.instance_dir,
-        ctx.mc_port,
-        ctx.panel_port,
+    # 4) Apply: execute via executor
+    deployment = Deployment(
+        claims={"profile": claims.profile, "params": claims.params},
+        plan_review=review_payload,
     )
-    cfg.data.setdefault("panel", {})
-    cfg.data["panel"]["build_path"] = panel_src_dir
+    deployment.set_status(DeploymentStatus.APPLYING, note="apply started")
+    save_deployment(deployment, os.path.join(ctx.instance_dir, "deployment.json"))
 
-    legacy_config = map_claims_to_legacy_config(
-        claims=claims,
-        base_config=cfg.data,
-        apply_plan=apply_plan,
-    )
-    cfg.data = legacy_config
-    cfg.data.setdefault("panel", {})
-    cfg.data["panel"]["build_path"] = panel_src_dir
-    cfg.save()
-
-    executor = Executor(ctx=ctx)
+    executor = Executor()
 
     try:
-        tx = executor.execute(
-            apply_plan=apply_plan,
-            cfg=cfg,
+        result = executor.apply(
+            context=ctx,
+            claims=claims,
+            plan_review=apply_plan,
         )
     except ExecutorError as e:
+        deployment.set_status(DeploymentStatus.FAILED, note=str(e))
+        save_deployment(deployment, os.path.join(ctx.instance_dir, "deployment.json"))
         print(f"\n❌ Deployment failed: {e}")
         return 1
 
+    deployment.set_status(DeploymentStatus.RUNNING, note="apply completed")
+    save_deployment(deployment, os.path.join(ctx.instance_dir, "deployment.json"))
+
     # 5) Execution result
     print("\n✅ Deployment succeeded")
-    print(f"Transaction ID: {tx.tx_id}")
-    print(f"Steps executed: {len(tx.steps)}")
+    print(f"Deployment ID: {deployment.deployment_id}")
+    print(f"Transaction ID: {result.tx.tx_id}")
+    print(f"Steps executed: {len(result.tx.steps)}")
     return 0
 
 

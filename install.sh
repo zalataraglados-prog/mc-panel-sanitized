@@ -54,6 +54,30 @@ read_tty() {
   echo "$var"
 }
 
+echo ""
+IMPORT_STRING=$(read_tty "Paste claims string (or press Enter to continue): ")
+if [ -n "$IMPORT_STRING" ]; then
+  echo ""
+  echo "[INFO] Running plan from imported claims..."
+  python3 -m deploy.cli plan \
+    --import-string "$IMPORT_STRING"
+
+  echo ""
+  CONFIRM=$(read_tty "Proceed to apply with imported claims? [y/N] ")
+  case "$CONFIRM" in
+    y|Y)
+      echo "[INFO] Executing apply from imported claims..."
+      python3 -m deploy.cli apply \
+        --import-string "$IMPORT_STRING"
+      ;;
+    *)
+      echo "[INFO] Deployment canceled."
+      exit 0
+      ;;
+  esac
+  exit 0
+fi
+
 cd "$INSTALL_DIR"
 
 echo ""

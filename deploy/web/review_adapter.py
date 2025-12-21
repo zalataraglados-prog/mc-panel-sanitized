@@ -41,5 +41,6 @@ def review_to_dict(apply_plan) -> dict:
             "review_version": 1,
             "planner_version": getattr(apply_plan, "planner_version", None),
             "knowledge_base_version": getattr(apply_plan, "knowledge_base_version", None),
+            "imported_claims": getattr(apply_plan, "imported_claims", None),
         },
     }

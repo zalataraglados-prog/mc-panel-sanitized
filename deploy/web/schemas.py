@@ -25,6 +25,7 @@ class ReviewMeta(BaseModel):
     review_version: int = 1
     planner_version: Optional[str] = None
     knowledge_base_version: Optional[str] = None
+    imported_claims: Optional[bool] = None
 
 
 class PlanResponse(BaseModel):
@@ -33,3 +34,16 @@ class PlanResponse(BaseModel):
     warnings: List[ReviewMessage]
     blocks: List[ReviewMessage]
     meta: ReviewMeta
+
+
+class DeploymentView(BaseModel):
+    id: str
+    status: str
+    claims: Dict[str, Any]
+    plan_review: Dict[str, Any]
+
+
+class DecisionResponse(BaseModel):
+    claims: Dict[str, Any]
+    review: PlanResponse
+    deployment: DeploymentView

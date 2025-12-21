@@ -18,11 +18,19 @@ def encode_claims(claims) -> str:
     else:
         raise ValueError("Invalid claims object")
 
+    params = params or {}
     payload = {
         "v": CLAIMS_SCHEMA_VERSION,
         "profile": profile,
-        "params": params or {},
+        "params": params,
     }
+
+    if "edition" in params:
+        payload["edition"] = params["edition"]
+    if "stack.type" in params:
+        payload["stack.type"] = params["stack.type"]
+    if "runtime.java" in params:
+        payload["runtime.java"] = params["runtime.java"]
 
     raw = json.dumps(payload, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
     token = base64.urlsafe_b64encode(raw).decode("ascii")
