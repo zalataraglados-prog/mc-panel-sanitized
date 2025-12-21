@@ -67,18 +67,6 @@ case "$EDITION_CHOICE" in
   *) EDITION="java" ;;
 esac
 
-if [ "$EDITION" = "bedrock" ]; then
-  echo "[INFO] 当前选择：Bedrock Edition"
-  echo ""
-  echo "很抱歉，当前版本的部署器仅支持 Minecraft Java Edition。"
-  echo "Bedrock Edition 的执行层尚未实现（Phase 6.2 以后）。"
-  echo ""
-  echo "你可以："
-  echo "- 使用 Java Edition 重新部署"
-  echo "- 或等待后续版本更新"
-  exit 0
-fi
-
 echo ""
 echo "请选择配置档位："
 echo "1) beginner"
