@@ -4,3 +4,4 @@ __pycache__/
 deploy-program/
 build/
 dist/
+local-misc/
