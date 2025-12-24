@@ -5,3 +5,5 @@ deploy-program/
 build/
 dist/
 local-misc/
+deploy/relay.txt
+deploy/relay_watch.ps1
