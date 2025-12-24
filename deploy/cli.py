@@ -73,6 +73,18 @@ def print_review(apply_plan, claims: Claims | None = None):
         for b in apply_plan.blocks:
             print(f"  [BLOCK] {b.message}")
 
+    if getattr(apply_plan, "recommendations", None):
+        print("\nRecommendations:")
+        for r in apply_plan.recommendations:
+            param = getattr(r, "param", None)
+            reason = getattr(r, "reason", None)
+            suggested = getattr(r, "suggested", None)
+            label = param or "parameter"
+            if suggested is not None:
+                print(f"  [REC] {label} -> {suggested}: {reason}")
+            else:
+                print(f"  [REC] {label}: {reason}")
+
     print()
 
 

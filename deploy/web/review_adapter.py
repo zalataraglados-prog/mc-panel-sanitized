@@ -5,6 +5,12 @@ def _message_to_dict(obj, *, default_code: str) -> dict:
         message = str(obj)
     hint = getattr(obj, "hint", None)
     payload = {"code": code, "message": message}
+    param = getattr(obj, "param", None)
+    taxonomy = getattr(obj, "taxonomy", None)
+    if param:
+        payload["param"] = param
+    if taxonomy:
+        payload["taxonomy"] = taxonomy
     if hint:
         payload["hint"] = hint
     return payload
@@ -31,12 +37,22 @@ def review_to_dict(apply_plan) -> dict:
     blocks = [
         _message_to_dict(b, default_code="BLOCK") for b in getattr(apply_plan, "blocks", [])
     ]
+    recommendations = []
+    for rec in getattr(apply_plan, "recommendations", []):
+        payload = {
+            "param": getattr(rec, "param", None),
+            "suggested": getattr(rec, "suggested", None),
+            "reason": getattr(rec, "reason", None),
+            "taxonomy": getattr(rec, "taxonomy", None),
+        }
+        recommendations.append(payload)
 
     return {
         "level": apply_plan.summary.level,
         "capabilities": capabilities,
         "warnings": warnings,
         "blocks": blocks,
+        "recommendations": recommendations,
         "meta": {
             "review_version": 1,
             "planner_version": getattr(apply_plan, "planner_version", None),

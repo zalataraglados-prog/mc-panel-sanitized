@@ -19,6 +19,15 @@ class ReviewMessage(BaseModel):
     code: str
     message: str
     hint: Optional[str] = None
+    param: Optional[str] = None
+    taxonomy: Optional[Dict[str, Any]] = None
+
+
+class Recommendation(BaseModel):
+    param: str
+    suggested: Optional[Any] = None
+    reason: Optional[str] = None
+    taxonomy: Optional[Dict[str, Any]] = None
 
 
 class ReviewMeta(BaseModel):
@@ -33,6 +42,7 @@ class PlanResponse(BaseModel):
     capabilities: List[CapabilityReview]
     warnings: List[ReviewMessage]
     blocks: List[ReviewMessage]
+    recommendations: List[Recommendation] = Field(default_factory=list)
     meta: ReviewMeta
 
 

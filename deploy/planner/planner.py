@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Set
+from typing import Any, Dict, List, Set
 
 from deploy.mapper.mappings import (
     PARAMETER_MAPPINGS,
@@ -13,6 +13,8 @@ from deploy.mapper.profiles import PROFILE_OVERRIDES
 class PlanMessage:
     message: str
     code: str | None = None
+    param: str | None = None
+    taxonomy: Dict[str, Any] | None = None
 
 
 @dataclass
@@ -27,12 +29,21 @@ class CapabilityResult:
 
 
 @dataclass
+class PlanRecommendation:
+    param: str
+    suggested: Any | None = None
+    reason: str | None = None
+    taxonomy: Dict[str, Any] | None = None
+
+
+@dataclass
 class ApplyPlan:
     target: str
     summary: PlanSummary
     capability_results: List[CapabilityResult] = field(default_factory=list)
     warnings: List[PlanMessage] = field(default_factory=list)
     blocks: List[PlanMessage] = field(default_factory=list)
+    recommendations: List[PlanRecommendation] = field(default_factory=list)
 
 
 def _validate_profile(profile: str) -> List[PlanMessage]:
@@ -194,17 +205,211 @@ def _validate_runtime_rules(params: dict) -> List[PlanMessage]:
     return blocks
 
 
+def _normalize_value(value, default):
+    if isinstance(default, bool):
+        if isinstance(value, str):
+            if value.lower() == "true":
+                return True
+            if value.lower() == "false":
+                return False
+        return bool(value) if isinstance(value, bool) else value
+    if isinstance(default, int):
+        if isinstance(value, str) and value.isdigit():
+            return int(value)
+        return value
+    return value
+
+
+def _map_claim_key(param_key: str, catalog: dict) -> tuple[str, str] | None:
+    server_entries = catalog.get("server_properties", {}).get("entries", {})
+    gamerule_entries = catalog.get("gamerule", {}).get("entries", {})
+
+    if param_key in server_entries:
+        return param_key, "server_properties"
+    if param_key in gamerule_entries:
+        return param_key, "gamerule"
+
+    # Canonical mapping to server.properties keys
+    if param_key.startswith("minecraft."):
+        suffix = param_key.split(".", 1)[1]
+        candidate = suffix.replace("_", "-")
+        if candidate in server_entries:
+            return candidate, "server_properties"
+    if param_key.startswith("features."):
+        suffix = param_key.split(".", 1)[1]
+        candidate = suffix.replace("_", "-")
+        if candidate in server_entries:
+            return candidate, "server_properties"
+    if param_key.startswith("security."):
+        suffix = param_key.split(".", 1)[1]
+        candidate = suffix.replace("_", "-")
+        if candidate in server_entries:
+            return candidate, "server_properties"
+    if param_key.startswith("network."):
+        suffix = param_key.split(".", 1)[1]
+        mapping = {
+            "mc_port": "server-port",
+            "query_port": "query.port",
+            "rcon_port": "rcon.port",
+        }
+        candidate = mapping.get(suffix)
+        if candidate and candidate in server_entries:
+            return candidate, "server_properties"
+
+    return None
+
+
+def _evaluate_taxonomy(claims) -> tuple[List[PlanMessage], List[PlanMessage], List[PlanRecommendation]]:
+    catalog = getattr(claims, "catalog", None)
+    taxonomy = getattr(claims, "taxonomy", None)
+    if not isinstance(catalog, dict) or not isinstance(taxonomy, dict):
+        return [], [], []
+
+    warnings: List[PlanMessage] = []
+    blocks: List[PlanMessage] = []
+    recommendations: List[PlanRecommendation] = []
+
+    params = claims.params or {}
+    server_entries = catalog.get("server_properties", {}).get("entries", {})
+    gamerule_entries = catalog.get("gamerule", {}).get("entries", {})
+    tax_server = taxonomy.get("server_properties", {}).get("entries", {})
+    tax_gamerule = taxonomy.get("gamerule", {}).get("entries", {})
+
+    contexts = []
+    for key, value in params.items():
+        mapped = _map_claim_key(key, catalog)
+        if not mapped:
+            continue
+        catalog_key, section = mapped
+        if section == "server_properties":
+            default = server_entries.get(catalog_key, {}).get("default")
+            tax = tax_server.get(catalog_key)
+        else:
+            default = gamerule_entries.get(catalog_key, {}).get("default")
+            tax = tax_gamerule.get(catalog_key)
+
+        if not isinstance(tax, dict):
+            continue
+
+        contexts.append(
+            {
+                "claim_key": key,
+                "catalog_key": catalog_key,
+                "section": section,
+                "value": value,
+                "default": default,
+                "taxonomy": tax,
+            }
+        )
+
+    # Group by category for warning thresholds
+    category_counts: Dict[str, int] = {}
+    for ctx in contexts:
+        cat = ctx["taxonomy"].get("category")
+        if not cat:
+            continue
+        default = ctx["default"]
+        value = _normalize_value(ctx["value"], default)
+        changed = value != default
+        if not changed:
+            continue
+        category_counts[cat] = category_counts.get(cat, 0) + 1
+
+    for cat, count in category_counts.items():
+        if count >= 3 or (cat == "performance" and count >= 2):
+            warnings.append(
+                PlanMessage(
+                    code="category_heavy",
+                    message=f"Multiple {cat} parameters adjusted; review combined impact.",
+                    taxonomy={"category": cat},
+                )
+            )
+
+    edition = params.get("edition", "java")
+
+    for ctx in contexts:
+        tax = ctx["taxonomy"]
+        risk = tax.get("risk")
+        sensitivity = tax.get("sensitivity")
+        scope = tax.get("scope")
+
+        default = ctx["default"]
+        value = _normalize_value(ctx["value"], default)
+        changed = value != default
+
+        if scope == "player" and ctx["section"] != "gamerule":
+            blocks.append(
+                PlanMessage(
+                    code="scope_conflict",
+                    message=f"Player-scope parameter '{ctx['catalog_key']}' must be set via gamerule.",
+                    param=ctx["catalog_key"],
+                    taxonomy=tax,
+                )
+            )
+
+        if scope == "world" and edition == "bedrock":
+            blocks.append(
+                PlanMessage(
+                    code="scope_conflict",
+                    message=f"World-scope parameter '{ctx['catalog_key']}' is not applicable to Bedrock Edition.",
+                    param=ctx["catalog_key"],
+                    taxonomy=tax,
+                )
+            )
+
+        if not changed:
+            continue
+
+        if risk == "high":
+            warnings.append(
+                PlanMessage(
+                    code="high_risk_parameter",
+                    message=f"High-risk parameter '{ctx['catalog_key']}' deviates from default.",
+                    param=ctx["catalog_key"],
+                    taxonomy=tax,
+                )
+            )
+            if tax.get("category") == "performance":
+                recommendations.append(
+                    PlanRecommendation(
+                        param=ctx["catalog_key"],
+                        suggested=default,
+                        reason="High performance impact; consider default value.",
+                        taxonomy=tax,
+                    )
+                )
+
+        if sensitivity == "novice":
+            warnings.append(
+                PlanMessage(
+                    code="novice_override",
+                    message=f"Novice-sensitive parameter '{ctx['catalog_key']}' was explicitly set.",
+                    param=ctx["catalog_key"],
+                    taxonomy=tax,
+                )
+            )
+
+    return warnings, blocks, recommendations
+
+
 def plan(claims) -> ApplyPlan:
     """
     Produce an ApplyPlan from Claims.
     """
 
-    blocks = []
+    blocks: List[PlanMessage] = []
+    warnings: List[PlanMessage] = []
+    recommendations: List[PlanRecommendation] = []
     blocks.extend(_validate_profile(claims.profile))
     blocks.extend(_validate_params(claims.params))
     blocks.extend(_validate_edition_rules(claims.params))
     blocks.extend(_validate_stack_rules(claims.params))
     blocks.extend(_validate_runtime_rules(claims.params))
+
+    tax_warnings, tax_blocks, tax_recs = _evaluate_taxonomy(claims)
+    warnings.extend(tax_warnings)
+    blocks.extend(tax_blocks)
+    recommendations.extend(tax_recs)
 
     level = "block" if blocks else "allow"
     summary = PlanSummary(level=level)
@@ -214,6 +419,7 @@ def plan(claims) -> ApplyPlan:
         target="instance",
         summary=summary,
         capability_results=capability_results,
-        warnings=[],
+        warnings=warnings,
         blocks=blocks,
+        recommendations=recommendations,
     )
