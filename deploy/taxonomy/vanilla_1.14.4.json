@@ -271,5 +271,10 @@
   },
   "gamerule": {
     "entries": {}
+  },
+  "taxonomy_status": {
+    "state": "frozen",
+    "phase": "8",
+    "notes": "Taxonomy v0 for vanilla 1.14.4"
   }
 }

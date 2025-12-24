@@ -372,6 +372,324 @@
     }
   },
   "gamerule": {
-    "entries": {}
+    "entries": {
+      "announceAdvancements": {
+        "category": "gameplay",
+        "risk": "low",
+        "sensitivity": "novice",
+        "scope": "player"
+      },
+      "blockExplosionDropDecay": {
+        "category": "performance",
+        "risk": "medium",
+        "sensitivity": "advanced",
+        "scope": "world"
+      },
+      "commandBlockOutput": {
+        "category": "security",
+        "risk": "medium",
+        "sensitivity": "advanced",
+        "scope": "server"
+      },
+      "commandModificationBlockLimit": {
+        "category": "security",
+        "risk": "medium",
+        "sensitivity": "advanced",
+        "scope": "server"
+      },
+      "disableElytraMovementCheck": {
+        "category": "gameplay",
+        "risk": "medium",
+        "sensitivity": "advanced",
+        "scope": "player"
+      },
+      "disablePlayerMovementCheck": {
+        "category": "security",
+        "risk": "medium",
+        "sensitivity": "advanced",
+        "scope": "player"
+      },
+      "disableRaids": {
+        "category": "world",
+        "risk": "medium",
+        "sensitivity": "novice",
+        "scope": "world"
+      },
+      "doDaylightCycle": {
+        "category": "world",
+        "risk": "medium",
+        "sensitivity": "novice",
+        "scope": "world"
+      },
+      "doEntityDrops": {
+        "category": "gameplay",
+        "risk": "medium",
+        "sensitivity": "novice",
+        "scope": "world"
+      },
+      "doFireTick": {
+        "category": "world",
+        "risk": "medium",
+        "sensitivity": "novice",
+        "scope": "world"
+      },
+      "doImmediateRespawn": {
+        "category": "gameplay",
+        "risk": "low",
+        "sensitivity": "novice",
+        "scope": "player"
+      },
+      "doInsomnia": {
+        "category": "gameplay",
+        "risk": "low",
+        "sensitivity": "novice",
+        "scope": "world"
+      },
+      "doLimitedCrafting": {
+        "category": "gameplay",
+        "risk": "medium",
+        "sensitivity": "advanced",
+        "scope": "player"
+      },
+      "doMobLoot": {
+        "category": "gameplay",
+        "risk": "medium",
+        "sensitivity": "novice",
+        "scope": "world"
+      },
+      "doMobSpawning": {
+        "category": "world",
+        "risk": "high",
+        "sensitivity": "novice",
+        "scope": "world"
+      },
+      "doPatrolSpawning": {
+        "category": "world",
+        "risk": "medium",
+        "sensitivity": "novice",
+        "scope": "world"
+      },
+      "doTileDrops": {
+        "category": "gameplay",
+        "risk": "medium",
+        "sensitivity": "novice",
+        "scope": "world"
+      },
+      "doTraderSpawning": {
+        "category": "world",
+        "risk": "low",
+        "sensitivity": "novice",
+        "scope": "world"
+      },
+      "doVinesSpread": {
+        "category": "world",
+        "risk": "low",
+        "sensitivity": "novice",
+        "scope": "world"
+      },
+      "doWardenSpawning": {
+        "category": "world",
+        "risk": "medium",
+        "sensitivity": "novice",
+        "scope": "world"
+      },
+      "doWeatherCycle": {
+        "category": "world",
+        "risk": "medium",
+        "sensitivity": "novice",
+        "scope": "world"
+      },
+      "drowningDamage": {
+        "category": "gameplay",
+        "risk": "low",
+        "sensitivity": "novice",
+        "scope": "player"
+      },
+      "enderPearlsVanishOnDeath": {
+        "category": "gameplay",
+        "risk": "low",
+        "sensitivity": "novice",
+        "scope": "player"
+      },
+      "fallDamage": {
+        "category": "gameplay",
+        "risk": "low",
+        "sensitivity": "novice",
+        "scope": "player"
+      },
+      "fireDamage": {
+        "category": "gameplay",
+        "risk": "low",
+        "sensitivity": "novice",
+        "scope": "player"
+      },
+      "forgiveDeadPlayers": {
+        "category": "gameplay",
+        "risk": "low",
+        "sensitivity": "advanced",
+        "scope": "player"
+      },
+      "freezeDamage": {
+        "category": "gameplay",
+        "risk": "low",
+        "sensitivity": "novice",
+        "scope": "player"
+      },
+      "globalSoundEvents": {
+        "category": "gameplay",
+        "risk": "low",
+        "sensitivity": "advanced",
+        "scope": "world"
+      },
+      "keepInventory": {
+        "category": "gameplay",
+        "risk": "high",
+        "sensitivity": "novice",
+        "scope": "player"
+      },
+      "lavaSourceConversion": {
+        "category": "world",
+        "risk": "low",
+        "sensitivity": "advanced",
+        "scope": "world"
+      },
+      "logAdminCommands": {
+        "category": "security",
+        "risk": "medium",
+        "sensitivity": "advanced",
+        "scope": "server"
+      },
+      "maxCommandChainLength": {
+        "category": "security",
+        "risk": "medium",
+        "sensitivity": "advanced",
+        "scope": "server"
+      },
+      "maxCommandForkCount": {
+        "category": "security",
+        "risk": "medium",
+        "sensitivity": "advanced",
+        "scope": "server"
+      },
+      "maxEntityCramming": {
+        "category": "performance",
+        "risk": "medium",
+        "sensitivity": "advanced",
+        "scope": "world"
+      },
+      "mobExplosionDropDecay": {
+        "category": "performance",
+        "risk": "medium",
+        "sensitivity": "advanced",
+        "scope": "world"
+      },
+      "mobGriefing": {
+        "category": "world",
+        "risk": "high",
+        "sensitivity": "novice",
+        "scope": "world"
+      },
+      "naturalRegeneration": {
+        "category": "gameplay",
+        "risk": "medium",
+        "sensitivity": "novice",
+        "scope": "player"
+      },
+      "playersNetherPortalCreativeDelay": {
+        "category": "gameplay",
+        "risk": "low",
+        "sensitivity": "advanced",
+        "scope": "player"
+      },
+      "playersNetherPortalDefaultDelay": {
+        "category": "gameplay",
+        "risk": "low",
+        "sensitivity": "advanced",
+        "scope": "player"
+      },
+      "playersSleepingPercentage": {
+        "category": "gameplay",
+        "risk": "low",
+        "sensitivity": "novice",
+        "scope": "world"
+      },
+      "projectilesCanBreakBlocks": {
+        "category": "gameplay",
+        "risk": "medium",
+        "sensitivity": "advanced",
+        "scope": "world"
+      },
+      "randomTickSpeed": {
+        "category": "performance",
+        "risk": "high",
+        "sensitivity": "advanced",
+        "scope": "world"
+      },
+      "reducedDebugInfo": {
+        "category": "security",
+        "risk": "low",
+        "sensitivity": "novice",
+        "scope": "player"
+      },
+      "sendCommandFeedback": {
+        "category": "security",
+        "risk": "medium",
+        "sensitivity": "advanced",
+        "scope": "server"
+      },
+      "showDeathMessages": {
+        "category": "gameplay",
+        "risk": "low",
+        "sensitivity": "novice",
+        "scope": "player"
+      },
+      "snowAccumulationHeight": {
+        "category": "world",
+        "risk": "low",
+        "sensitivity": "advanced",
+        "scope": "world"
+      },
+      "spawnChunkRadius": {
+        "category": "performance",
+        "risk": "high",
+        "sensitivity": "advanced",
+        "scope": "world"
+      },
+      "spawnRadius": {
+        "category": "world",
+        "risk": "medium",
+        "sensitivity": "novice",
+        "scope": "world"
+      },
+      "spectatorsGenerateChunks": {
+        "category": "performance",
+        "risk": "medium",
+        "sensitivity": "advanced",
+        "scope": "world"
+      },
+      "tntExplosionDropDecay": {
+        "category": "performance",
+        "risk": "medium",
+        "sensitivity": "advanced",
+        "scope": "world"
+      },
+      "universalAnger": {
+        "category": "gameplay",
+        "risk": "medium",
+        "sensitivity": "advanced",
+        "scope": "world"
+      },
+      "waterSourceConversion": {
+        "category": "world",
+        "risk": "low",
+        "sensitivity": "advanced",
+        "scope": "world"
+      }
+    }
+  },
+  "taxonomy_status": {
+    "state": "frozen",
+    "phase": "8",
+    "notes": "Taxonomy v0 for vanilla 1.21.4"
   }
 }
