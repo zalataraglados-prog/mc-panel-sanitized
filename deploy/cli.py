@@ -71,7 +71,7 @@ def print_review(apply_plan, claims: Claims | None = None):
     if apply_plan.blocks:
         print("\nBlocked:")
         for b in apply_plan.blocks:
-            print(f"  ⛔ {b.message}")
+            print(f"  [BLOCK] {b.message}")
 
     print()
 
