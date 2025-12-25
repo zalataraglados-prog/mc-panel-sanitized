@@ -63,22 +63,17 @@ if [ -n "$IMPORT_STRING" ]; then
     --import-string "$IMPORT_STRING"
 
   echo ""
-  CONFIRM=$(read_tty "Proceed to apply with imported claims? [y/N] ")
-  case "$CONFIRM" in
-    y|Y)
-      echo "[INFO] Executing apply from imported claims..."
-      python3 -m deploy.cli apply \
-        --import-string "$IMPORT_STRING"
-      ;;
-    *)
-      echo "[INFO] Deployment canceled."
-      exit 0
-      ;;
-  esac
+  echo "[INFO] Review complete. Deployment is not executed in Phase 10."
   exit 0
 fi
 
 cd "$INSTALL_DIR"
+
+echo ""
+VERSION=$(read_tty "请输入 Minecraft 版本（如 1.21.4）：")
+if [ -z "$VERSION" ]; then
+  VERSION="1.21.4"
+fi
 
 echo ""
 echo "请选择 Minecraft 版本："
@@ -153,33 +148,31 @@ esac
 MEMORY=$(read_tty "请输入分配内存（如 2G / 4G）：")
 VIEW_DISTANCE=$(read_tty "请输入 view-distance（推荐 6~10）：")
 
-echo ""
-echo "[INFO] 执行 plan（仅展示 Review）..."
-python3 -m deploy.cli plan \
+PLAN_OUTPUT=$(python3 -m deploy.cli plan \
+  --version "$VERSION" \
   --profile "$PROFILE" \
   --set edition="$EDITION" \
   --set stack.type="$STACK_TYPE" \
   --set runtime.java="$RUNTIME_JAVA" \
   --set docker.env.MEMORY="$MEMORY" \
-  --set minecraft.view_distance="$VIEW_DISTANCE"
+  --set minecraft.view_distance="$VIEW_DISTANCE")
+echo "$PLAN_OUTPUT"
+LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
 
-echo ""
-CONFIRM=$(read_tty "是否确认使用以上配置部署？[y/N] ")
-
-case "$CONFIRM" in
-  y|Y)
-    echo "[INFO] 执行 apply..."
-    python3 -m deploy.cli apply \
-      --profile "$PROFILE" \
-      --set edition="$EDITION" \
-      --set stack.type="$STACK_TYPE" \
-      --set runtime.java="$RUNTIME_JAVA" \
-      --set docker.env.MEMORY="$MEMORY" \
-      --set minecraft.view_distance="$VIEW_DISTANCE"
+case "$LEVEL" in
+  block)
+    echo "[INFO] Review blocked. Deployment stopped."
+    exit 1
+    ;;
+  warn)
+    CONFIRM=$(read_tty "Review contains warnings. Continue? [y/N] ")
+    case "$CONFIRM" in
+      y|Y) echo "[INFO] Review accepted. Deployment remains disabled in Phase 10." ;;
+      *) echo "[INFO] Deployment canceled."; exit 0 ;;
+    esac
     ;;
   *)
-    echo "[INFO] 已取消部署。"
-    exit 0
+    echo "[INFO] Review passed. Deployment remains disabled in Phase 10."
     ;;
 esac
 

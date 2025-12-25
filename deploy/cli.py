@@ -16,6 +16,7 @@ from deploy.context import InstanceContext
 from deploy.core.environment import EnvironmentChecker
 from deploy.core.instance_namer import InstanceNamer
 from deploy.core.port_scanner import PortScanner
+from deploy.loader import load_rules
 from deploy.planner.planner import plan as plan_apply
 from deploy.executor.executor import Executor, ExecutorError
 from deploy.deployment.model import Deployment, DeploymentStatus
@@ -101,6 +102,16 @@ def main():
     for name in ("plan", "apply"):
         p = sub.add_parser(name)
         p.add_argument(
+            "--version",
+            default="1.21.4",
+            help="Minecraft version for rule lookup (default: 1.21.4)",
+        )
+        p.add_argument(
+            "--rules-base-url",
+            default=None,
+            help="Override rules repository base URL",
+        )
+        p.add_argument(
             "--profile",
             choices=("beginner", "normal", "advanced"),
             default=None,
@@ -127,6 +138,10 @@ def main():
         claims = load_claims_from_args(args)
 
     # 2) Planner
+    catalog, taxonomy = load_rules(args.version, base_url=args.rules_base_url)
+    setattr(claims, "catalog", catalog)
+    setattr(claims, "taxonomy", taxonomy)
+
     apply_plan = plan_apply(claims)
     if getattr(claims, "imported_from_string", False):
         setattr(apply_plan, "imported_claims", True)

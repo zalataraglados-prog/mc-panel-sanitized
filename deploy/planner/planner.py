@@ -411,7 +411,7 @@ def plan(claims) -> ApplyPlan:
     blocks.extend(tax_blocks)
     recommendations.extend(tax_recs)
 
-    level = "block" if blocks else "allow"
+    level = "block" if blocks else ("warn" if warnings else "allow")
     summary = PlanSummary(level=level)
     capability_results = _capabilities_from_params(claims.params, claims)
 
