@@ -133,7 +133,8 @@ def main():
     if args.import_string:
         if args.set or args.profile is not None:
             raise SystemExit("--import-string cannot be combined with --set or --profile")
-        claims = decode_claims(args.import_string)
+        params = decode_claims(args.import_string)
+        claims = Claims(params=params, profile="normal", imported=True)
     else:
         claims = load_claims_from_args(args)
 

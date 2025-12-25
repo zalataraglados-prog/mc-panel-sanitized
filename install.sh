@@ -63,6 +63,9 @@ if [ -n "$IMPORT_STRING" ]; then
     --import-string "$IMPORT_STRING"
 
   echo ""
+  echo "可复用配置串："
+  echo "$IMPORT_STRING"
+  echo ""
   echo "[INFO] Review complete. Deployment is not executed in Phase 10."
   exit 0
 fi

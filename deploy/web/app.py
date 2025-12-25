@@ -16,7 +16,8 @@ def plan_endpoint(payload: PlanRequest):
         if payload.import_string:
             if payload.params or payload.profile != "normal":
                 raise ValueError("import_string cannot be combined with params/profile")
-            claims = decode_claims(payload.import_string)
+            params = decode_claims(payload.import_string)
+            claims = Claims(params=params, profile="normal", imported=True)
         else:
             claims = Claims(params=payload.params, profile=payload.profile)
         apply_plan = plan_apply(claims)
@@ -33,7 +34,8 @@ def decision_endpoint(payload: PlanRequest):
         if payload.import_string:
             if payload.params or payload.profile != "normal":
                 raise ValueError("import_string cannot be combined with params/profile")
-            claims = decode_claims(payload.import_string)
+            params = decode_claims(payload.import_string)
+            claims = Claims(params=params, profile="normal", imported=True)
         else:
             claims = Claims(params=payload.params, profile=payload.profile)
 

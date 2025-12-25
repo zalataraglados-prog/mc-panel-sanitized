@@ -2,7 +2,7 @@ import base64
 import json
 from typing import Any, Dict
 
-CLAIMS_SCHEMA_VERSION = 2
+CLAIMS_SCHEMA_VERSION = 1
 
 
 class Claims:
@@ -26,9 +26,9 @@ def _add_padding(s: str) -> str:
     return s
 
 
-def decode_claims(s: str) -> Claims:
+def decode_claims(s: str) -> dict:
     """
-    Decode base64url(JSON) into Claims (v1/v2).
+    Decode base64url(JSON) into params (v1).
     """
 
     try:
@@ -41,27 +41,14 @@ def decode_claims(s: str) -> Claims:
         raise ValueError("Invalid claims payload")
 
     version = data.get("v")
-    if version not in (1, CLAIMS_SCHEMA_VERSION):
+    if version != CLAIMS_SCHEMA_VERSION:
         raise ValueError("Unsupported claims version")
 
-    profile = data.get("profile")
     params = data.get("params")
-    edition = data.get("edition")
-    stack_type = data.get("stack.type")
-    runtime_java = data.get("runtime.java")
 
-    if not isinstance(profile, str):
-        raise ValueError("Invalid profile in claims")
     if params is None:
         params = {}
     if not isinstance(params, dict):
         raise ValueError("Invalid params in claims")
 
-    if edition is not None and "edition" not in params:
-        params["edition"] = edition
-    if stack_type is not None and "stack.type" not in params:
-        params["stack.type"] = stack_type
-    if runtime_java is not None and "runtime.java" not in params:
-        params["runtime.java"] = runtime_java
-
-    return Claims(profile=profile, params=params, imported=True)
+    return params
