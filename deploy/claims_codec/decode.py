@@ -47,7 +47,7 @@ def decode_claims(s: str) -> dict:
     params = data.get("params")
 
     if params is None:
-        params = {}
+        raise ValueError("Invalid params in claims")
     if not isinstance(params, dict):
         raise ValueError("Invalid params in claims")
 

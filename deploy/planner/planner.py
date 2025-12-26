@@ -56,12 +56,14 @@ def _is_reserved_param(key: str) -> bool:
     return key in {"edition", "stack.type", "runtime.java"}
 
 
-def _validate_params(params: dict) -> List[PlanMessage]:
+def _validate_params(params: dict, catalog: dict | None = None) -> List[PlanMessage]:
     blocks = []
+    catalog = catalog or {}
     for key in params.keys():
         if _is_reserved_param(key) or is_plugin_param(key) or is_mod_param(key):
             continue
-        if key not in PARAMETER_MAPPINGS:
+        mapped = _map_claim_key(key, catalog)
+        if key not in PARAMETER_MAPPINGS and not mapped:
             blocks.append(PlanMessage(message=f"Unknown parameter: {key}"))
     return blocks
 
@@ -226,6 +228,9 @@ def _map_claim_key(param_key: str, catalog: dict) -> tuple[str, str] | None:
 
     if param_key in server_entries:
         return param_key, "server_properties"
+    alt_key = param_key.replace("_", "-")
+    if alt_key in server_entries:
+        return alt_key, "server_properties"
     if param_key in gamerule_entries:
         return param_key, "gamerule"
 
@@ -401,7 +406,7 @@ def plan(claims) -> ApplyPlan:
     warnings: List[PlanMessage] = []
     recommendations: List[PlanRecommendation] = []
     blocks.extend(_validate_profile(claims.profile))
-    blocks.extend(_validate_params(claims.params))
+    blocks.extend(_validate_params(claims.params, getattr(claims, "catalog", None)))
     blocks.extend(_validate_edition_rules(claims.params))
     blocks.extend(_validate_stack_rules(claims.params))
     blocks.extend(_validate_runtime_rules(claims.params))
