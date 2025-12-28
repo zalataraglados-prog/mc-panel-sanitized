@@ -15,6 +15,7 @@ import sys
 from deploy.claims_codec import Claims, decode_claims
 from deploy.executor.executor_planner import build_execution_plan
 from deploy.executor.host_inspector import HostInspector
+from deploy.executor.plan_executor import ExecutionPlanExecutor
 from deploy.loader import load_rules
 from deploy.planner.planner import plan as plan_apply
 from deploy.web.review_adapter import review_to_dict
@@ -143,6 +144,11 @@ def main():
                 action="store_true",
                 help="Execute deployment (not available in Phase 12.1)",
             )
+            p.add_argument(
+                "--confirm-warn",
+                action="store_true",
+                help="Confirm execution when review level is warn",
+            )
 
     args = parser.parse_args()
 
@@ -176,8 +182,9 @@ def main():
         return 1
 
     if args.apply:
-        print("Apply execution is not available in Phase 12.1.")
-        return 1
+        if apply_plan.summary.level == "warn" and not args.confirm_warn:
+            print("Apply requires --confirm-warn when review level is warn.")
+            return 1
 
     mode = "apply" if args.apply else "dry-run"
     inspector = HostInspector()
@@ -199,6 +206,22 @@ def main():
         mode=mode,
     )
     print_execution_plan(plan)
+
+    if not args.apply:
+        return 0
+
+    executor = ExecutionPlanExecutor(inspector=inspector)
+    result = executor.execute(plan)
+    if not result.ok:
+        print("Execution failed.")
+        for step in result.steps:
+            status = "OK" if step.ok else "FAIL"
+            print(f"- {step.name:24} {status} {step.details}")
+        return 1
+
+    print("Execution succeeded.")
+    for step in result.steps:
+        print(f"- {step.name:24} OK {step.details}")
     return 0
 
 

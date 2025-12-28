@@ -86,7 +86,8 @@ if [ -n "$IMPORT_STRING" ]; then
 
   python3 -m deploy.cli apply \
     --import-string "$IMPORT_STRING" \
-    --dry-run
+    --apply \
+    --confirm-warn
 
   echo ""
   echo "Reusable claims string:"
@@ -209,9 +210,10 @@ python3 -m deploy.cli apply \
   --set runtime.java="$RUNTIME_JAVA" \
   --set docker.env.MEMORY="$MEMORY" \
   --set minecraft.view_distance="$VIEW_DISTANCE" \
-  --dry-run
+  --apply \
+  --confirm-warn
 
 echo ""
 echo "======================================"
-echo "  Execution plan generated (dry-run)"
+echo "  Execution completed"
 echo "======================================"
