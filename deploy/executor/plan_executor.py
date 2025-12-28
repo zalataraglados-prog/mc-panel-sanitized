@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
@@ -19,6 +20,8 @@ class ExecutionStep:
 class ExecutionResult:
     ok: bool
     steps: List[ExecutionStep] = field(default_factory=list)
+    rollback_pending: bool = False
+    log_path: str | None = None
 
 
 class ExecutionPlanExecutor:
@@ -126,17 +129,52 @@ class ExecutionPlanExecutor:
 
     def execute(self, plan: ExecutionPlan) -> ExecutionResult:
         steps: List[ExecutionStep] = []
+        executed_actions: List[ExecutionStep] = []
 
         for pre in plan.preconditions:
             step = self._check_precondition(pre)
             steps.append(step)
             if pre.required and not step.ok:
-                return ExecutionResult(ok=False, steps=steps)
+                result = ExecutionResult(ok=False, steps=steps, rollback_pending=False)
+                result.log_path = self._write_log(plan, result)
+                return result
 
         for action in plan.actions:
             step = self._execute_action(action)
             steps.append(step)
+            executed_actions.append(step)
             if not step.ok:
-                return ExecutionResult(ok=False, steps=steps)
+                result = ExecutionResult(ok=False, steps=steps, rollback_pending=bool(executed_actions))
+                result.log_path = self._write_log(plan, result)
+                return result
 
-        return ExecutionResult(ok=True, steps=steps)
+        result = ExecutionResult(ok=True, steps=steps)
+        result.log_path = self._write_log(plan, result)
+        return result
+
+    def _write_log(self, plan: ExecutionPlan, result: ExecutionResult) -> str | None:
+        instance_dir = None
+        for action in plan.actions:
+            if action.type == "mkdir":
+                instance_dir = action.params.get("path")
+                break
+        if not instance_dir:
+            return None
+        try:
+            os.makedirs(instance_dir, exist_ok=True)
+            log_path = os.path.join(instance_dir, "execution_result.json")
+            payload = {
+                "ok": result.ok,
+                "rollback_pending": result.rollback_pending,
+                "steps": [
+                    {"name": step.name, "ok": step.ok, "details": step.details}
+                    for step in result.steps
+                ],
+                "plan": plan.to_dict(),
+            }
+            with open(log_path, "w", encoding="utf-8") as handle:
+                json.dump(payload, handle, indent=2, ensure_ascii=True)
+                handle.write("\n")
+            return log_path
+        except Exception:
+            return None

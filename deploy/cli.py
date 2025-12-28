@@ -118,6 +118,11 @@ def main():
             help="Override rules repository base URL",
         )
         p.add_argument(
+            "--rules-ref",
+            default=None,
+            help="Override rules repository ref (tag/commit/branch)",
+        )
+        p.add_argument(
             "--profile",
             choices=("beginner", "normal", "advanced"),
             default=None,
@@ -162,7 +167,11 @@ def main():
         claims = load_claims_from_args(args)
 
     # 2) Planner
-    catalog, taxonomy = load_rules(args.version, base_url=args.rules_base_url)
+    catalog, taxonomy = load_rules(
+        args.version,
+        base_url=args.rules_base_url,
+        rules_ref=args.rules_ref,
+    )
     setattr(claims, "catalog", catalog)
     setattr(claims, "taxonomy", taxonomy)
 
