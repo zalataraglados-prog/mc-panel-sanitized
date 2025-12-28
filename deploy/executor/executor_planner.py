@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import os
+import posixpath
 from typing import Any, Dict, List
 
 from deploy.capacity_guard import capacity_status, estimate_capacity
@@ -8,6 +11,9 @@ from deploy.executor.execution_plan import Action, ExecutionPlan, Precondition
 
 
 DEFAULT_BASE_DIR = "/opt/mc-instances"
+DEFAULT_MC_VERSION = "1.21.4"
+DEFAULT_DOCKER_IMAGE = "itzg/minecraft-server"
+DEFAULT_DOCKER_TAG = "latest"
 
 
 def _parse_int(value) -> int | None:
@@ -33,6 +39,65 @@ def _pick_server_port(params: dict) -> int | None:
 
 def _needs_docker(params: dict) -> bool:
     return any(key.startswith("docker.") for key in params.keys())
+
+
+def _stable_instance_name(params: dict) -> str:
+    payload = json.dumps(params, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:8]
+    return f"instance-{digest}"
+
+
+def _build_env_block(params: dict) -> str:
+    lines = []
+    for key, value in params.items():
+        if not key.startswith("docker.env."):
+            continue
+        env_key = key.split(".", 2)[2]
+        lines.append(f"      - {env_key}={value}")
+    return "\n".join(lines)
+
+
+def _build_volume_block(params: dict) -> str:
+    lines = []
+    for key, value in params.items():
+        if not key.startswith("docker.volume."):
+            continue
+        mount = f"{value}"
+        lines.append(f"      - {mount}")
+    if not lines:
+        lines = [
+            "      - ./data:/data",
+            "      - ./logs:/logs",
+        ]
+    return "\n".join(lines)
+
+
+def _build_template_context(params: dict, instance_name: str, instance_dir: str) -> Dict[str, Any]:
+    mc_port = _pick_server_port(params) or 25565
+    panel_port = _parse_int(params.get("panel.port")) or 15000
+    rcon_port = _parse_int(params.get("rcon.port")) or (mc_port + 10)
+    mc_version = params.get("minecraft.version", DEFAULT_MC_VERSION)
+    mc_memory = params.get("docker.env.MEMORY", "2G")
+    docker_image = params.get("docker.image", DEFAULT_DOCKER_IMAGE)
+    docker_tag = params.get("docker.tag", DEFAULT_DOCKER_TAG)
+
+    return {
+        "INSTANCE_NAME": instance_name,
+        "INSTANCE_DIR": instance_dir,
+        "MC_PORT": mc_port,
+        "PANEL_PORT": panel_port,
+        "RCON_PORT": rcon_port,
+        "MC_VERSION": mc_version,
+        "MC_MEMORY": mc_memory,
+        "DOCKER_IMAGE": docker_image,
+        "DOCKER_TAG": docker_tag,
+        "RESTART_POLICY": "always",
+        "ENV_BLOCK": _build_env_block(params),
+        "VOLUME_BLOCK": _build_volume_block(params),
+        "CREATED_AT": "1970-01-01T00:00:00Z",
+        "DEPLOYER_VERSION": "phase12",
+        "RCON_PASSWORD": "change-me",
+    }
 
 
 def build_execution_plan(
@@ -64,6 +129,7 @@ def build_execution_plan(
 
     if _needs_docker(params):
         preconditions.append(Precondition(type="docker_available", value="docker", required=True))
+        preconditions.append(Precondition(type="systemd_available", value="systemd", required=True))
 
     estimate = estimate_capacity(params)
     if estimate:
@@ -76,8 +142,47 @@ def build_execution_plan(
             )
         )
 
-    # Actions remain declarative in Phase 12.1.
-    actions: List[Action] = []
+    instance_name = _stable_instance_name(params)
+    instance_dir = posixpath.join(base_dir, instance_name)
+    context = _build_template_context(params, instance_name, instance_dir)
+
+    actions: List[Action] = [
+        Action(type="mkdir", params={"path": instance_dir}),
+        Action(type="mkdir", params={"path": posixpath.join(instance_dir, "data")}),
+        Action(type="mkdir", params={"path": posixpath.join(instance_dir, "logs")}),
+        Action(
+            type="write_file",
+            params={
+                "path": posixpath.join(instance_dir, "config.json"),
+                "template": "config.json.tpl",
+                "context": context,
+            },
+        ),
+        Action(
+            type="write_file",
+            params={
+                "path": posixpath.join(instance_dir, "docker-compose.yml"),
+                "template": "docker-compose.yml.tpl",
+                "context": context,
+            },
+        ),
+        Action(
+            type="write_file",
+            params={
+                "path": f"/etc/systemd/system/{instance_name}.service",
+                "template": "minecraft.service.tpl",
+                "context": context,
+            },
+        ),
+        Action(
+            type="write_file",
+            params={
+                "path": f"/etc/systemd/system/{instance_name}-panel.service",
+                "template": "mc-panel.service.tpl",
+                "context": context,
+            },
+        ),
+    ]
 
     plan = ExecutionPlan(
         mode=mode,

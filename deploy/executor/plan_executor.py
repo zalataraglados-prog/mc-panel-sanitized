@@ -83,11 +83,8 @@ class ExecutionPlanExecutor:
             content = params.get("content")
             template = params.get("template")
             if template and content is None:
-                return ExecutionStep(
-                    name="action:write_file",
-                    ok=False,
-                    details="template rendering not implemented",
-                )
+                context = params.get("context", {})
+                content = self._render_template(template, context)
             if path is None or content is None:
                 return ExecutionStep(
                     name="action:write_file",
@@ -114,6 +111,18 @@ class ExecutionPlanExecutor:
             ok=False,
             details="unsupported action type",
         )
+
+    def _render_template(self, template_name: str, context: Dict[str, Any]) -> str:
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "templates"))
+        template_path = os.path.join(base_dir, template_name)
+        if not os.path.exists(template_path):
+            raise RuntimeError(f"Template not found: {template_name}")
+        with open(template_path, "r", encoding="utf-8") as handle:
+            raw = handle.read()
+        rendered = raw
+        for key, value in context.items():
+            rendered = rendered.replace(f"{{{{{key}}}}}", str(value))
+        return rendered
 
     def execute(self, plan: ExecutionPlan) -> ExecutionResult:
         steps: List[ExecutionStep] = []
