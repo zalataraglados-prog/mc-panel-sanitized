@@ -3,7 +3,7 @@ import hashlib
 import json
 from typing import Any, Dict
 
-CLAIMS_SCHEMA_VERSION = 2
+CLAIMS_SCHEMA_VERSION = 3
 
 
 class Claims:
@@ -42,7 +42,7 @@ def decode_claims(s: str) -> dict:
         raise ValueError("Invalid claims payload")
 
     version = data.get("v")
-    if version not in (1, CLAIMS_SCHEMA_VERSION):
+    if version not in (1, 2, CLAIMS_SCHEMA_VERSION):
         raise ValueError("Unsupported claims version")
 
     params = data.get("params")
@@ -52,11 +52,18 @@ def decode_claims(s: str) -> dict:
     if not isinstance(params, dict):
         raise ValueError("Invalid params in claims")
 
-    if version == CLAIMS_SCHEMA_VERSION:
+    if version in (2, CLAIMS_SCHEMA_VERSION):
         checksum = data.get("checksum")
         if not isinstance(checksum, str):
             raise ValueError("Missing checksum in claims")
-        base_payload = {"v": CLAIMS_SCHEMA_VERSION, "params": params}
+        base_payload = {"v": version, "params": params}
+        if version == CLAIMS_SCHEMA_VERSION:
+            expected_len = data.get("len")
+            if not isinstance(expected_len, int):
+                raise ValueError("Missing length in claims")
+            raw = json.dumps(base_payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+            if len(raw) != expected_len:
+                raise ValueError("Invalid length in claims")
         raw = json.dumps(base_payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
         expected = hashlib.sha256(raw.encode("utf-8")).hexdigest()
         if checksum != expected:

@@ -17,6 +17,17 @@ This document defines non-negotiable UI constraints.
 - Recommendations with explanations.
 - Execution Plan (dry-run).
 
+## Required Controls
+
+- Toggle or prompt to confirm when Review is warn.
+- Explicit stop when Review is block.
+- Ability to copy/export Claims String (no auto apply).
+
+## Template Usage
+
+- Templates must be fetched from the official registry.
+- UI must show template source and parameters before apply.
+
 ## Interaction Rules
 
 - If Review is block, UI must stop execution.

@@ -126,3 +126,10 @@ def load_rules_bundle(
         "taxonomy": taxonomy,
         "usability": usability,
     }
+
+
+def load_templates_registry(*, base_url: str | None = None, rules_ref: str | None = None) -> dict:
+    base = base_url or os.environ.get("RULES_BASE_URL", DEFAULT_RULES_BASE)
+    base = _apply_rules_ref(base, rules_ref or os.environ.get("RULES_REF"))
+    templates_url = f"{base}/templates/registry.json"
+    return _fetch_optional_json(templates_url)
