@@ -1,0 +1,176 @@
+
+=== Apply Plan Review ===
+Target: instance
+Level:  warn
+
+- docker                         APPLIED
+- minecraft                      APPLIED
+
+Warnings:
+  [WARN] High-risk parameter 'view-distance' deviates from default.
+  [WARN] Novice-sensitive parameter 'view-distance' was explicitly set.
+
+Recommendations:
+  [REC] view-distance -> 10: Risky value deviates from default.
+  [REC] view-distance -> 10: High performance impact; consider default value.
+  [REC] docker.env.MEMORY -> 4.0: Increase memory or reduce players/view distance.
+
+=== Execution Plan (dry-run) ===
+{
+  "mode": "dry-run",
+  "review_level": "warn",
+  "preconditions": [
+    {
+      "type": "path_exists",
+      "value": "/opt/mc-instances",
+      "required": true
+    },
+    {
+      "type": "path_writable",
+      "value": "/opt/mc-instances",
+      "required": true
+    },
+    {
+      "type": "docker_available",
+      "value": "docker",
+      "required": true
+    },
+    {
+      "type": "systemd_available",
+      "value": "systemd",
+      "required": true
+    },
+    {
+      "type": "capacity_sufficient",
+      "value": {
+        "players": 20,
+        "memory_gb": 4.0,
+        "view_distance": 8,
+        "required_gb": 4.0
+      },
+      "required": true
+    }
+  ],
+  "actions": [
+    {
+      "type": "mkdir",
+      "params": {
+        "path": "/opt/mc-instances/instance-7c954801"
+      }
+    },
+    {
+      "type": "mkdir",
+      "params": {
+        "path": "/opt/mc-instances/instance-7c954801/data"
+      }
+    },
+    {
+      "type": "mkdir",
+      "params": {
+        "path": "/opt/mc-instances/instance-7c954801/logs"
+      }
+    },
+    {
+      "type": "write_file",
+      "params": {
+        "path": "/opt/mc-instances/instance-7c954801/config.json",
+        "template": "config.json.tpl",
+        "context": {
+          "INSTANCE_NAME": "instance-7c954801",
+          "INSTANCE_DIR": "/opt/mc-instances/instance-7c954801",
+          "MC_PORT": 25565,
+          "PANEL_PORT": 15000,
+          "RCON_PORT": 25575,
+          "MC_VERSION": "1.21.4",
+          "MC_MEMORY": "4G",
+          "DOCKER_IMAGE": "itzg/minecraft-server",
+          "DOCKER_TAG": "latest",
+          "RESTART_POLICY": "always",
+          "ENV_BLOCK": "      - MEMORY=4G",
+          "VOLUME_BLOCK": "      - ./data:/data\n      - ./logs:/logs",
+          "CREATED_AT": "1970-01-01T00:00:00Z",
+          "DEPLOYER_VERSION": "phase12",
+          "RCON_PASSWORD": "change-me"
+        }
+      }
+    },
+    {
+      "type": "write_file",
+      "params": {
+        "path": "/opt/mc-instances/instance-7c954801/docker-compose.yml",
+        "template": "docker-compose.yml.tpl",
+        "context": {
+          "INSTANCE_NAME": "instance-7c954801",
+          "INSTANCE_DIR": "/opt/mc-instances/instance-7c954801",
+          "MC_PORT": 25565,
+          "PANEL_PORT": 15000,
+          "RCON_PORT": 25575,
+          "MC_VERSION": "1.21.4",
+          "MC_MEMORY": "4G",
+          "DOCKER_IMAGE": "itzg/minecraft-server",
+          "DOCKER_TAG": "latest",
+          "RESTART_POLICY": "always",
+          "ENV_BLOCK": "      - MEMORY=4G",
+          "VOLUME_BLOCK": "      - ./data:/data\n      - ./logs:/logs",
+          "CREATED_AT": "1970-01-01T00:00:00Z",
+          "DEPLOYER_VERSION": "phase12",
+          "RCON_PASSWORD": "change-me"
+        }
+      }
+    },
+    {
+      "type": "write_file",
+      "params": {
+        "path": "/etc/systemd/system/instance-7c954801.service",
+        "template": "minecraft.service.tpl",
+        "context": {
+          "INSTANCE_NAME": "instance-7c954801",
+          "INSTANCE_DIR": "/opt/mc-instances/instance-7c954801",
+          "MC_PORT": 25565,
+          "PANEL_PORT": 15000,
+          "RCON_PORT": 25575,
+          "MC_VERSION": "1.21.4",
+          "MC_MEMORY": "4G",
+          "DOCKER_IMAGE": "itzg/minecraft-server",
+          "DOCKER_TAG": "latest",
+          "RESTART_POLICY": "always",
+          "ENV_BLOCK": "      - MEMORY=4G",
+          "VOLUME_BLOCK": "      - ./data:/data\n      - ./logs:/logs",
+          "CREATED_AT": "1970-01-01T00:00:00Z",
+          "DEPLOYER_VERSION": "phase12",
+          "RCON_PASSWORD": "change-me"
+        }
+      }
+    },
+    {
+      "type": "write_file",
+      "params": {
+        "path": "/etc/systemd/system/instance-7c954801-panel.service",
+        "template": "mc-panel.service.tpl",
+        "context": {
+          "INSTANCE_NAME": "instance-7c954801",
+          "INSTANCE_DIR": "/opt/mc-instances/instance-7c954801",
+          "MC_PORT": 25565,
+          "PANEL_PORT": 15000,
+          "RCON_PORT": 25575,
+          "MC_VERSION": "1.21.4",
+          "MC_MEMORY": "4G",
+          "DOCKER_IMAGE": "itzg/minecraft-server",
+          "DOCKER_TAG": "latest",
+          "RESTART_POLICY": "always",
+          "ENV_BLOCK": "      - MEMORY=4G",
+          "VOLUME_BLOCK": "      - ./data:/data\n      - ./logs:/logs",
+          "CREATED_AT": "1970-01-01T00:00:00Z",
+          "DEPLOYER_VERSION": "phase12",
+          "RCON_PASSWORD": "change-me"
+        }
+      }
+    }
+  ],
+  "meta": {
+    "plan_version": 1,
+    "generated_at": "2025-12-28T08:06:55.030240+00:00",
+    "deterministic_hash": "f1843a6df128395268114101605426830288860e31a0e47025b4115e5185184d"
+  }
+}
+
