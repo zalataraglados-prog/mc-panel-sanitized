@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, List
 
+from deploy.capacity_guard import capacity_status, estimate_capacity
 from deploy.executor.execution_plan import Action, ExecutionPlan, Precondition
 
 
@@ -63,6 +64,17 @@ def build_execution_plan(
 
     if _needs_docker(params):
         preconditions.append(Precondition(type="docker_available", value="docker", required=True))
+
+    estimate = estimate_capacity(params)
+    if estimate:
+        _, payload = capacity_status(estimate)
+        preconditions.append(
+            Precondition(
+                type="capacity_sufficient",
+                value=payload,
+                required=True,
+            )
+        )
 
     # Actions remain declarative in Phase 12.1.
     actions: List[Action] = []

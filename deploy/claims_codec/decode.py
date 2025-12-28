@@ -1,8 +1,9 @@
 import base64
+import hashlib
 import json
 from typing import Any, Dict
 
-CLAIMS_SCHEMA_VERSION = 1
+CLAIMS_SCHEMA_VERSION = 2
 
 
 class Claims:
@@ -41,7 +42,7 @@ def decode_claims(s: str) -> dict:
         raise ValueError("Invalid claims payload")
 
     version = data.get("v")
-    if version != CLAIMS_SCHEMA_VERSION:
+    if version not in (1, CLAIMS_SCHEMA_VERSION):
         raise ValueError("Unsupported claims version")
 
     params = data.get("params")
@@ -50,5 +51,15 @@ def decode_claims(s: str) -> dict:
         raise ValueError("Invalid params in claims")
     if not isinstance(params, dict):
         raise ValueError("Invalid params in claims")
+
+    if version == CLAIMS_SCHEMA_VERSION:
+        checksum = data.get("checksum")
+        if not isinstance(checksum, str):
+            raise ValueError("Missing checksum in claims")
+        base_payload = {"v": CLAIMS_SCHEMA_VERSION, "params": params}
+        raw = json.dumps(base_payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+        expected = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        if checksum != expected:
+            raise ValueError("Invalid checksum in claims")
 
     return params

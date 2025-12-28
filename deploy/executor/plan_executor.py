@@ -38,6 +38,23 @@ class ExecutionPlanExecutor:
             result = self.inspector.check_docker_available()
         elif check_type == "systemd_available":
             result = self.inspector.check_systemd_available()
+        elif check_type == "capacity_sufficient":
+            try:
+                memory = float(value.get("memory_gb"))
+                required = float(value.get("required_gb"))
+                ok = memory >= required and memory >= 2.0
+                details = f"memory_gb={memory} required_gb={required}"
+            except Exception:
+                return ExecutionStep(
+                    name="precondition:capacity_sufficient",
+                    ok=False,
+                    details="invalid capacity payload",
+                )
+            return ExecutionStep(
+                name="precondition:capacity_sufficient",
+                ok=ok,
+                details=details,
+            )
         else:
             return ExecutionStep(
                 name=f"precondition:{check_type}",

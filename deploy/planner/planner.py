@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Set
 
+from deploy.capacity_guard import capacity_status, estimate_capacity
 from deploy.mapper.mappings import (
     PARAMETER_MAPPINGS,
     is_mod_param,
@@ -53,7 +54,7 @@ def _validate_profile(profile: str) -> List[PlanMessage]:
 
 
 def _is_reserved_param(key: str) -> bool:
-    return key in {"edition", "stack.type", "runtime.java"}
+    return key in {"edition", "stack.type", "runtime.java", "deploy.expected_players"}
 
 
 def _validate_params(params: dict, catalog: dict | None = None) -> List[PlanMessage]:
@@ -332,6 +333,8 @@ def _evaluate_taxonomy(claims) -> tuple[List[PlanMessage], List[PlanMessage], Li
 
     edition = params.get("edition", "java")
 
+    profile = getattr(claims, "profile", "normal")
+
     for ctx in contexts:
         tax = ctx["taxonomy"]
         risk = tax.get("risk")
@@ -365,12 +368,22 @@ def _evaluate_taxonomy(claims) -> tuple[List[PlanMessage], List[PlanMessage], Li
         if not changed:
             continue
 
-        if risk == "high":
+        if risk in ("medium", "high"):
+            code = "high_risk_parameter" if risk == "high" else "medium_risk_parameter"
+            label = "High-risk" if risk == "high" else "Medium-risk"
             warnings.append(
                 PlanMessage(
-                    code="high_risk_parameter",
-                    message=f"High-risk parameter '{ctx['catalog_key']}' deviates from default.",
+                    code=code,
+                    message=f"{label} parameter '{ctx['catalog_key']}' deviates from default.",
                     param=ctx["catalog_key"],
+                    taxonomy=tax,
+                )
+            )
+            recommendations.append(
+                PlanRecommendation(
+                    param=ctx["catalog_key"],
+                    suggested=default,
+                    reason="Risky value deviates from default.",
                     taxonomy=tax,
                 )
             )
@@ -383,6 +396,16 @@ def _evaluate_taxonomy(claims) -> tuple[List[PlanMessage], List[PlanMessage], Li
                         taxonomy=tax,
                     )
                 )
+
+        if profile == "beginner" and sensitivity == "advanced":
+            recommendations.append(
+                PlanRecommendation(
+                    param=ctx["catalog_key"],
+                    suggested=default,
+                    reason="Beginner profile set advanced parameter; consider default.",
+                    taxonomy=tax,
+                )
+            )
 
         if sensitivity == "novice":
             warnings.append(
@@ -415,6 +438,34 @@ def plan(claims) -> ApplyPlan:
     warnings.extend(tax_warnings)
     blocks.extend(tax_blocks)
     recommendations.extend(tax_recs)
+
+    estimate = estimate_capacity(claims.params)
+    if estimate:
+        status, payload = capacity_status(estimate)
+        if status == "block":
+            blocks.append(
+                PlanMessage(
+                    code="capacity_block",
+                    message="Configured memory is insufficient for expected players.",
+                    taxonomy={"capacity": payload},
+                )
+            )
+        elif status == "warn":
+            warnings.append(
+                PlanMessage(
+                    code="capacity_warn",
+                    message="Configured memory may be insufficient for expected players.",
+                    taxonomy={"capacity": payload},
+                )
+            )
+        recommendations.append(
+            PlanRecommendation(
+                param="docker.env.MEMORY",
+                suggested=payload.get("required_gb"),
+                reason="Increase memory or reduce players/view distance.",
+                taxonomy={"capacity": payload},
+            )
+        )
 
     level = "block" if blocks else ("warn" if warnings else "allow")
     summary = PlanSummary(level=level)
