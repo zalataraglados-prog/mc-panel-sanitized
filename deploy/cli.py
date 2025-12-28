@@ -8,25 +8,16 @@ Commands:
 """
 
 import argparse
+import json
 import os
 import sys
 
 from deploy.claims_codec import Claims, decode_claims
-from deploy.context import InstanceContext
-from deploy.core.environment import EnvironmentChecker
-from deploy.core.instance_namer import InstanceNamer
-from deploy.core.port_scanner import PortScanner
+from deploy.executor.executor_planner import build_execution_plan
+from deploy.executor.host_inspector import HostInspector
 from deploy.loader import load_rules
 from deploy.planner.planner import plan as plan_apply
-from deploy.executor.executor import Executor, ExecutorError
-from deploy.deployment.model import Deployment, DeploymentStatus
-from deploy.deployment.store import save_deployment
 from deploy.web.review_adapter import review_to_dict
-
-
-# ────────────────────────────────────────
-# Claims construction
-# ────────────────────────────────────────
 
 
 def load_claims_from_args(args) -> Claims:
@@ -45,11 +36,6 @@ def load_claims_from_args(args) -> Claims:
         profile=profile,
         imported=False,
     )
-
-
-# ────────────────────────────────────────
-# Review output
-# ────────────────────────────────────────
 
 
 def print_review(apply_plan, claims: Claims | None = None):
@@ -89,9 +75,28 @@ def print_review(apply_plan, claims: Claims | None = None):
     print()
 
 
-# ────────────────────────────────────────
-# Main
-# ────────────────────────────────────────
+def print_execution_plan(plan) -> None:
+    payload = plan.to_dict()
+    print("=== Execution Plan (dry-run) ===")
+    print(json.dumps(payload, indent=2, ensure_ascii=True))
+    print()
+
+
+def _parse_port(value):
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return None
+
+
+def _resolve_server_port(params: dict) -> int | None:
+    for key in ("server-port", "minecraft.server_port", "network.mc_port"):
+        if key in params:
+            port = _parse_port(params.get(key))
+            if port is not None:
+                return port
+    return None
 
 
 def main():
@@ -126,6 +131,18 @@ def main():
             "--import-string",
             help="Import claims from base64url string",
         )
+        if name == "apply":
+            mode_group = p.add_mutually_exclusive_group()
+            mode_group.add_argument(
+                "--dry-run",
+                action="store_true",
+                help="Generate execution plan only (default)",
+            )
+            mode_group.add_argument(
+                "--apply",
+                action="store_true",
+                help="Execute deployment (not available in Phase 12.1)",
+            )
 
     args = parser.parse_args()
 
@@ -158,62 +175,30 @@ def main():
         print("Apply is blocked by planner review.")
         return 1
 
-    # 0) Environment check (apply only)
-    env = EnvironmentChecker()
-    env.ensure_all()
-
-    # 0) Instance context
-    base_path = "/opt/mc-instances"
-
-    namer = InstanceNamer()
-    instance_name = namer.ask_name(base_path)
-    if not instance_name:
-        instance_name = namer.auto_generate(base_path)
-
-    instance_dir = f"{base_path}/{instance_name}"
-    os.makedirs(instance_dir, exist_ok=True)
-
-    scanner = PortScanner()
-    mc_port = scanner.find_free()
-    panel_port = scanner.find_free(start_port=15000)
-
-    ctx = InstanceContext(
-        instance_name=instance_name,
-        instance_dir=instance_dir,
-        mc_port=mc_port,
-        panel_port=panel_port,
-    )
-
-    # 4) Apply: execute via executor
-    deployment = Deployment(
-        claims={"profile": claims.profile, "params": claims.params},
-        plan_review=review_payload,
-    )
-    deployment.set_status(DeploymentStatus.APPLYING, note="apply started")
-    save_deployment(deployment, os.path.join(ctx.instance_dir, "deployment.json"))
-
-    executor = Executor()
-
-    try:
-        result = executor.apply(
-            context=ctx,
-            claims=claims,
-            plan_review=apply_plan,
-        )
-    except ExecutorError as e:
-        deployment.set_status(DeploymentStatus.FAILED, note=str(e))
-        save_deployment(deployment, os.path.join(ctx.instance_dir, "deployment.json"))
-        print(f"\n❌ Deployment failed: {e}")
+    if args.apply:
+        print("Apply execution is not available in Phase 12.1.")
         return 1
 
-    deployment.set_status(DeploymentStatus.RUNNING, note="apply completed")
-    save_deployment(deployment, os.path.join(ctx.instance_dir, "deployment.json"))
+    mode = "apply" if args.apply else "dry-run"
+    inspector = HostInspector()
+    base_dir = os.environ.get("MC_PANEL_BASE_DIR", "/opt/mc-instances")
+    host_facts = [
+        inspector.check_path_exists(base_dir),
+        inspector.check_path_writable(base_dir),
+    ]
+    server_port = _resolve_server_port(claims.params)
+    if server_port is not None:
+        host_facts.append(inspector.check_port_free(server_port))
+    if any(key.startswith("docker.") for key in claims.params.keys()):
+        host_facts.append(inspector.check_docker_available())
 
-    # 5) Execution result
-    print("\n✅ Deployment succeeded")
-    print(f"Deployment ID: {deployment.deployment_id}")
-    print(f"Transaction ID: {result.tx.tx_id}")
-    print(f"Steps executed: {len(result.tx.steps)}")
+    plan = build_execution_plan(
+        claims=claims,
+        review=review_payload,
+        host_facts=host_facts,
+        mode=mode,
+    )
+    print_execution_plan(plan)
     return 0
 
 

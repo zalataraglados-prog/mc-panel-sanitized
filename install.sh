@@ -2,46 +2,50 @@
 set -e
 
 echo "======================================"
-echo "  Minecraft 多实例部署器 - 一键安装"
+echo "  Minecraft Multi-Instance Deployer"
 echo "======================================"
 
 # ------------------------------
-# 必须使用 root
+# Must run as root
 # ------------------------------
 if [ "$EUID" -ne 0 ]; then
-    echo "请使用 root 运行：sudo bash install.sh"
-    exit 1
+  echo "Please run as root: sudo bash install.sh"
+  exit 1
 fi
 
 # ------------------------------
-# 检查 git 是否存在
+# Check git
 # ------------------------------
 if ! command -v git &> /dev/null; then
-    echo "[INFO] 正在安装 git..."
-    apt update && apt install -y git
+  echo "[INFO] Installing git..."
+  apt update && apt install -y git
+fi
+
+if ! command -v curl &> /dev/null; then
+  echo "[WARN] curl not found; rule downloads may fail."
 fi
 
 INSTALL_DIR="/opt/mc-panel-sanitized"
 BRANCH="demon1.1"
 
 # ------------------------------
-# 克隆 / 更新 demon1.1 分支
+# Clone / update demon1.1 branch
 # ------------------------------
 if [ ! -d "$INSTALL_DIR" ]; then
-    echo "[INFO] 正在克隆仓库（$BRANCH 分支）..."
-    git clone -b "$BRANCH" --single-branch \
-        https://github.com/zalataraglados-prog/mc-panel-sanitized.git \
-        "$INSTALL_DIR"
+  echo "[INFO] Cloning repo ($BRANCH)..."
+  git clone -b "$BRANCH" --single-branch \
+    https://github.com/zalataraglados-prog/mc-panel-sanitized.git \
+    "$INSTALL_DIR"
 else
-    echo "[INFO] 仓库已存在，正在更新（$BRANCH 分支）..."
-    cd "$INSTALL_DIR"
-    git fetch
-    git checkout "$BRANCH"
-    git pull
+  echo "[INFO] Repo exists, updating ($BRANCH)..."
+  cd "$INSTALL_DIR"
+  git fetch
+  git checkout "$BRANCH"
+  git pull
 fi
 
 # ------------------------------
-# 交互式 Claims 构建
+# Interactive Claims builder
 # ------------------------------
 read_tty() {
   local prompt="$1"
@@ -59,30 +63,52 @@ IMPORT_STRING=$(read_tty "Paste claims string (or press Enter to continue): ")
 if [ -n "$IMPORT_STRING" ]; then
   echo ""
   echo "[INFO] Running plan from imported claims..."
-  python3 -m deploy.cli plan \
-    --import-string "$IMPORT_STRING"
+  PLAN_OUTPUT=$(python3 -m deploy.cli plan \
+    --import-string "$IMPORT_STRING")
+  echo "$PLAN_OUTPUT"
+  LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
+  case "$LEVEL" in
+    block)
+      echo "[INFO] Review blocked. Execution plan not generated."
+      exit 1
+      ;;
+    warn)
+      CONFIRM=$(read_tty "Review contains warnings. Continue? [y/N] ")
+      case "$CONFIRM" in
+        y|Y) echo "[INFO] Warnings accepted. Generating execution plan..." ;;
+        *) echo "[INFO] Operation canceled."; exit 0 ;;
+      esac
+      ;;
+    *)
+      echo "[INFO] Review passed. Generating execution plan..."
+      ;;
+  esac
+
+  python3 -m deploy.cli apply \
+    --import-string "$IMPORT_STRING" \
+    --dry-run
 
   echo ""
-  echo "可复用配置串："
+  echo "Reusable claims string:"
   echo "$IMPORT_STRING"
   echo ""
-  echo "[INFO] Review complete. Deployment is not executed in Phase 10."
+  echo "[INFO] Execution plan complete (dry-run only)."
   exit 0
 fi
 
 cd "$INSTALL_DIR"
 
 echo ""
-VERSION=$(read_tty "请输入 Minecraft 版本（如 1.21.4）：")
+VERSION=$(read_tty "Minecraft version (e.g. 1.21.4): ")
 if [ -z "$VERSION" ]; then
   VERSION="1.21.4"
 fi
 
 echo ""
-echo "请选择 Minecraft 版本："
-echo "1) Java Edition（插件 / 大型服务器）"
-echo "2) Bedrock Edition（手机 / 主机 / Win10）"
-EDITION_CHOICE=$(read_tty "请输入 [1-2]：")
+echo "Select Minecraft edition:"
+echo "1) Java Edition"
+echo "2) Bedrock Edition"
+EDITION_CHOICE=$(read_tty "Enter [1-2]: ")
 
 case "$EDITION_CHOICE" in
   2) EDITION="bedrock" ;;
@@ -90,23 +116,19 @@ case "$EDITION_CHOICE" in
 esac
 
 if [ "$EDITION" = "bedrock" ]; then
-  echo "[INFO] 当前选择：Bedrock Edition"
+  echo "[INFO] Selected: Bedrock Edition"
   echo ""
-  echo "很抱歉，当前版本的部署器仅支持 Minecraft Java Edition。"
-  echo "Bedrock Edition 的执行层尚未实现（Phase 6.2 以后）。"
-  echo ""
-  echo "你可以："
-  echo "- 使用 Java Edition 重新部署"
-  echo "- 或等待后续版本更新"
+  echo "Sorry, this deployer currently supports Java Edition only."
+  echo "Bedrock execution is not implemented yet."
   exit 0
 fi
 
 echo ""
-echo "请选择配置档位："
+echo "Select profile:"
 echo "1) beginner"
-echo "2) normal（默认）"
+echo "2) normal (default)"
 echo "3) advanced"
-PROFILE_CHOICE=$(read_tty "请输入 [1-3]：")
+PROFILE_CHOICE=$(read_tty "Enter [1-3]: ")
 
 case "$PROFILE_CHOICE" in
   1) PROFILE="beginner" ;;
@@ -148,8 +170,8 @@ case "$RUNTIME_CHOICE" in
   *) RUNTIME_JAVA="auto" ;;
 esac
 
-MEMORY=$(read_tty "请输入分配内存（如 2G / 4G）：")
-VIEW_DISTANCE=$(read_tty "请输入 view-distance（推荐 6~10）：")
+MEMORY=$(read_tty "Memory (e.g. 2G / 4G): ")
+VIEW_DISTANCE=$(read_tty "View distance (recommend 6~10): ")
 
 PLAN_OUTPUT=$(python3 -m deploy.cli plan \
   --version "$VERSION" \
@@ -164,22 +186,32 @@ LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
 
 case "$LEVEL" in
   block)
-    echo "[INFO] Review blocked. Deployment stopped."
+    echo "[INFO] Review blocked. Execution plan not generated."
     exit 1
     ;;
   warn)
     CONFIRM=$(read_tty "Review contains warnings. Continue? [y/N] ")
     case "$CONFIRM" in
-      y|Y) echo "[INFO] Review accepted. Deployment remains disabled in Phase 10." ;;
+      y|Y) echo "[INFO] Warnings accepted. Generating execution plan..." ;;
       *) echo "[INFO] Deployment canceled."; exit 0 ;;
     esac
     ;;
   *)
-    echo "[INFO] Review passed. Deployment remains disabled in Phase 10."
+    echo "[INFO] Review passed. Generating execution plan..."
     ;;
 esac
 
+python3 -m deploy.cli apply \
+  --version "$VERSION" \
+  --profile "$PROFILE" \
+  --set edition="$EDITION" \
+  --set stack.type="$STACK_TYPE" \
+  --set runtime.java="$RUNTIME_JAVA" \
+  --set docker.env.MEMORY="$MEMORY" \
+  --set minecraft.view_distance="$VIEW_DISTANCE" \
+  --dry-run
+
 echo ""
 echo "======================================"
-echo "  部署流程已完成"
+echo "  Execution plan generated (dry-run)"
 echo "======================================"
