@@ -60,41 +60,6 @@ read_tty() {
 
 echo ""
 IMPORT_STRING=$(read_tty "Paste claims string (or press Enter to continue): ")
-if [ -n "$IMPORT_STRING" ]; then
-  echo ""
-  echo "[INFO] Running plan from imported claims..."
-  PLAN_OUTPUT=$(python3 -m deploy.cli plan \
-    --import-string "$IMPORT_STRING")
-  echo "$PLAN_OUTPUT"
-  LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
-  case "$LEVEL" in
-    block)
-      echo "[INFO] Review blocked. Execution plan not generated."
-      exit 1
-      ;;
-    warn)
-      CONFIRM=$(read_tty "Review contains warnings. Continue? [y/N] ")
-      case "$CONFIRM" in
-        y|Y) echo "[INFO] Warnings accepted. Generating execution plan..." ;;
-        *) echo "[INFO] Operation canceled."; exit 0 ;;
-      esac
-      ;;
-    *)
-      echo "[INFO] Review passed. Generating execution plan..."
-      ;;
-  esac
-
-  python3 -m deploy.cli apply \
-    --import-string "$IMPORT_STRING" \
-    --dry-run
-
-  echo ""
-  echo "Reusable claims string:"
-  echo "$IMPORT_STRING"
-  echo ""
-  echo "[INFO] Execution plan complete (dry-run only)."
-  exit 0
-fi
 
 cd "$INSTALL_DIR"
 
@@ -136,51 +101,158 @@ case "$PROFILE_CHOICE" in
   *) PROFILE="normal" ;;
 esac
 
+PARAMS_JSON="/tmp/claims_params.json"
+
+python3 - <<'PY'
+import json
+import os
+path = os.environ.get("PARAMS_JSON")
+with open(path, "w", encoding="utf-8") as handle:
+    json.dump({}, handle)
+PY
+
+if [ -n "$IMPORT_STRING" ]; then
+  python3 - <<'PY'
+import json
+import os
+from deploy.claims_codec.decode import decode_claims
+params = decode_claims(os.environ["IMPORT_STRING"])
+with open(os.environ["PARAMS_JSON"], "w", encoding="utf-8") as handle:
+    json.dump(params, handle)
+PY
+fi
+
+get_param() {
+  local key="$1"
+  python3 - <<'PY'
+import json
+import os
+key = os.environ["PARAM_KEY"]
+with open(os.environ["PARAMS_JSON"], "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+print(data.get(key, ""))
+PY
+}
+
+set_param() {
+  local key="$1"
+  local value="$2"
+  python3 - <<'PY'
+import json
+import os
+key = os.environ["PARAM_KEY"]
+value = os.environ["PARAM_VALUE"]
+with open(os.environ["PARAMS_JSON"], "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+data[key] = value
+with open(os.environ["PARAMS_JSON"], "w", encoding="utf-8") as handle:
+    json.dump(data, handle)
+PY
+}
+
 echo ""
-echo "Select server stack:"
-echo "1) vanilla"
-echo "2) paper (recommended)"
-echo "3) fabric"
-echo "4) forge"
-echo "5) neoforge"
-STACK_CHOICE=$(read_tty "Enter [1-5]: " )
+OVERRIDE_JAVA=$(read_tty "Override Java runtime? [y/N] ")
+if [ "$OVERRIDE_JAVA" = "y" ] || [ "$OVERRIDE_JAVA" = "Y" ]; then
+  echo ""
+  echo "Select Java runtime:"
+  echo "1) auto (based on Minecraft version)"
+  echo "2) 8"
+  echo "3) 11"
+  echo "4) 16"
+  echo "5) 17"
+  RUNTIME_CHOICE=$(read_tty "Enter [1-5]: " )
+  case "$RUNTIME_CHOICE" in
+    2) RUNTIME_JAVA="8" ;;
+    3) RUNTIME_JAVA="11" ;;
+    4) RUNTIME_JAVA="16" ;;
+    5) RUNTIME_JAVA="17" ;;
+    *) RUNTIME_JAVA="auto" ;;
+  esac
+  PARAM_KEY="runtime.java" PARAM_VALUE="$RUNTIME_JAVA" set_param "runtime.java" "$RUNTIME_JAVA"
+fi
 
-case "$STACK_CHOICE" in
-  1) STACK_TYPE="vanilla" ;;
-  3) STACK_TYPE="fabric" ;;
-  4) STACK_TYPE="forge" ;;
-  5) STACK_TYPE="neoforge" ;;
-  *) STACK_TYPE="paper" ;;
-esac
+MEMORY_EXISTS=$(PARAM_KEY="docker.env.MEMORY" get_param "docker.env.MEMORY")
+if [ -z "$MEMORY_EXISTS" ]; then
+  MEMORY=$(read_tty "Memory (e.g. 2G / 4G): ")
+  if [ -n "$MEMORY" ]; then
+    PARAM_KEY="docker.env.MEMORY" PARAM_VALUE="$MEMORY" set_param "docker.env.MEMORY" "$MEMORY"
+  fi
+fi
+
+EXPECTED_PLAYERS=$(PARAM_KEY="deploy.expected_players" get_param "deploy.expected_players")
+if [ -z "$EXPECTED_PLAYERS" ]; then
+  EXPECTED_PLAYERS=$(read_tty "Expected players (optional): ")
+  if [ -n "$EXPECTED_PLAYERS" ]; then
+    PARAM_KEY="deploy.expected_players" PARAM_VALUE="$EXPECTED_PLAYERS" set_param "deploy.expected_players" "$EXPECTED_PLAYERS"
+  fi
+fi
+
+if [ -z "$IMPORT_STRING" ]; then
+  PARAM_KEY="edition" PARAM_VALUE="$EDITION" set_param "edition" "$EDITION"
+  PARAM_KEY="stack.type" PARAM_VALUE="paper" set_param "stack.type" "paper"
+fi
 
 echo ""
-echo "Select Java runtime:"
-echo "1) auto (based on Minecraft version)"
-echo "2) 8"
-echo "3) 11"
-echo "4) 16"
-echo "5) 17"
-RUNTIME_CHOICE=$(read_tty "Enter [1-5]: " )
+echo "[INFO] Loading parameters from catalog for prompting..."
+python3 - <<'PY'
+import json
+import os
+from deploy.loader import load_rules_bundle
 
-case "$RUNTIME_CHOICE" in
-  2) RUNTIME_JAVA="8" ;;
-  3) RUNTIME_JAVA="11" ;;
-  4) RUNTIME_JAVA="16" ;;
-  5) RUNTIME_JAVA="17" ;;
-  *) RUNTIME_JAVA="auto" ;;
-esac
+version = os.environ["VERSION"]
+base_url = os.environ.get("RULES_BASE_URL")
+rules_ref = os.environ.get("RULES_REF")
 
-MEMORY=$(read_tty "Memory (e.g. 2G / 4G): ")
-VIEW_DISTANCE=$(read_tty "View distance (recommend 6~10): ")
+bundle = load_rules_bundle(version, base_url=base_url, rules_ref=rules_ref)
+catalog = bundle["catalog"]
+usability = bundle.get("usability", {})
 
+def pick_default(section, key, catalog_default):
+    entry = usability.get(section, {}).get("entries", {}).get(key, {})
+    usage = entry.get("usability", {})
+    hint = usage.get("default_hint")
+    return hint if hint is not None else catalog_default
+
+for section in ("server_properties", "gamerule"):
+    entries = catalog.get(section, {}).get("entries", {})
+    for key, meta in entries.items():
+        default = meta.get("default")
+        hint = pick_default(section, key, default)
+        print(f\"{key}\\t{'' if hint is None else hint}\")
+PY > /tmp/param_keys.txt
+
+while IFS=$'\t' read -r key default_hint; do
+  existing=$(PARAM_KEY="$key" get_param "$key")
+  if [ -n "$existing" ]; then
+    continue
+  fi
+  if [ -n "$default_hint" ]; then
+    prompt="Set ${key} [default: ${default_hint}]: "
+  else
+    prompt="Set ${key} (optional): "
+  fi
+  value=$(read_tty "$prompt")
+  if [ -n "$value" ]; then
+    PARAM_KEY="$key" PARAM_VALUE="$value" set_param "$key" "$value"
+  fi
+done < /tmp/param_keys.txt
+
+CLAIMS_STRING=$(python3 - <<'PY'
+import json
+import os
+from deploy.claims_codec.encode import encode_claims
+with open(os.environ["PARAMS_JSON"], "r", encoding="utf-8") as handle:
+    params = json.load(handle)
+print(encode_claims(params))
+PY
+)
+
+echo ""
+echo "[INFO] Running plan..."
 PLAN_OUTPUT=$(python3 -m deploy.cli plan \
   --version "$VERSION" \
   --profile "$PROFILE" \
-  --set edition="$EDITION" \
-  --set stack.type="$STACK_TYPE" \
-  --set runtime.java="$RUNTIME_JAVA" \
-  --set docker.env.MEMORY="$MEMORY" \
-  --set minecraft.view_distance="$VIEW_DISTANCE")
+  --import-string "$CLAIMS_STRING")
 echo "$PLAN_OUTPUT"
 LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
 
@@ -193,7 +265,7 @@ case "$LEVEL" in
     CONFIRM=$(read_tty "Review contains warnings. Continue? [y/N] ")
     case "$CONFIRM" in
       y|Y) echo "[INFO] Warnings accepted. Generating execution plan..." ;;
-      *) echo "[INFO] Deployment canceled."; exit 0 ;;
+      *) echo "[INFO] Operation canceled."; exit 0 ;;
     esac
     ;;
   *)
@@ -204,14 +276,12 @@ esac
 python3 -m deploy.cli apply \
   --version "$VERSION" \
   --profile "$PROFILE" \
-  --set edition="$EDITION" \
-  --set stack.type="$STACK_TYPE" \
-  --set runtime.java="$RUNTIME_JAVA" \
-  --set docker.env.MEMORY="$MEMORY" \
-  --set minecraft.view_distance="$VIEW_DISTANCE" \
+  --import-string "$CLAIMS_STRING" \
   --dry-run
 
 echo ""
-echo "======================================"
-echo "  Execution plan generated (dry-run)"
-echo "======================================"
+echo "Reusable claims string:"
+echo "$CLAIMS_STRING"
+echo ""
+echo "[INFO] Execution plan complete (dry-run only)."
+exit 0

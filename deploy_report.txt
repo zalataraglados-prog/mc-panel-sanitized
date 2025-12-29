@@ -1,4 +1,3 @@
-
 === Apply Plan Review ===
 Target: instance
 Level:  warn
