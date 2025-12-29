@@ -218,10 +218,21 @@ for section in ("server_properties", "gamerule"):
     for key, meta in entries.items():
         default = meta.get("default")
         hint = pick_default(section, key, default)
-        print(f\"{key}\\t{'' if hint is None else hint}\")
+        entry = usability.get(section, {}).get("entries", {}).get(key, {})
+        usage = entry.get("usability", {})
+        rec_range = usage.get("recommended_range", {})
+        min_val = rec_range.get("min")
+        max_val = rec_range.get("max")
+        if isinstance(default, bool):
+            dtype = "bool"
+        elif isinstance(default, int):
+            dtype = "int"
+        else:
+            dtype = "string"
+        print(f\"{key}\\t{'' if hint is None else hint}\\t{dtype}\\t{'' if min_val is None else min_val}\\t{'' if max_val is None else max_val}\")
 PY > /tmp/param_keys.txt
 
-while IFS=$'\t' read -r key default_hint; do
+while IFS=$'\t' read -r key default_hint dtype min_val max_val; do
   existing=$(PARAM_KEY="$key" get_param "$key")
   if [ -n "$existing" ]; then
     continue
@@ -232,9 +243,32 @@ while IFS=$'\t' read -r key default_hint; do
     prompt="Set ${key} (optional): "
   fi
   value=$(read_tty "$prompt")
-  if [ -n "$value" ]; then
-    PARAM_KEY="$key" PARAM_VALUE="$value" set_param "$key" "$value"
+  if [ -z "$value" ]; then
+    continue
   fi
+  if [ "$dtype" = "bool" ]; then
+    case "$value" in
+      true|false|TRUE|FALSE|1|0) : ;;
+      *) echo "[WARN] Invalid boolean for ${key}, skipping."; continue ;;
+    esac
+  elif [ "$dtype" = "int" ]; then
+    case "$value" in
+      ''|*[!0-9]*) echo "[WARN] Invalid integer for ${key}, skipping."; continue ;;
+    esac
+    if [ -n "$min_val" ]; then
+      if [ "$value" -lt "$min_val" ]; then
+        echo "[WARN] ${key} below recommended min (${min_val}), skipping."
+        continue
+      fi
+    fi
+    if [ -n "$max_val" ]; then
+      if [ "$value" -gt "$max_val" ]; then
+        echo "[WARN] ${key} above recommended max (${max_val}), skipping."
+        continue
+      fi
+    fi
+  fi
+  PARAM_KEY="$key" PARAM_VALUE="$value" set_param "$key" "$value"
 done < /tmp/param_keys.txt
 
 CLAIMS_STRING=$(python3 - <<'PY'
