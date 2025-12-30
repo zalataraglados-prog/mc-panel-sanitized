@@ -208,6 +208,113 @@ def _validate_runtime_rules(params: dict) -> List[PlanMessage]:
     return blocks
 
 
+def _parse_int(value) -> int | None:
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return None
+
+
+def _parse_bool(value) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        lowered = value.lower()
+        if lowered in ("true", "1"):
+            return True
+        if lowered in ("false", "0"):
+            return False
+    return None
+
+
+def _validate_param_ranges(params: dict, catalog: dict | None, usability: dict | None) -> List[PlanMessage]:
+    if not isinstance(catalog, dict) or not isinstance(usability, dict):
+        return []
+
+    blocks: List[PlanMessage] = []
+
+    server_entries = catalog.get("server_properties", {}).get("entries", {})
+    gamerule_entries = catalog.get("gamerule", {}).get("entries", {})
+    usab_server = usability.get("server_properties", {}).get("entries", {})
+    usab_gamerule = usability.get("gamerule", {}).get("entries", {})
+
+    for key, value in params.items():
+        mapped = _map_claim_key(key, catalog)
+        if not mapped:
+            continue
+        catalog_key, section = mapped
+        if section == "server_properties":
+            default = server_entries.get(catalog_key, {}).get("default")
+            usage = usab_server.get(catalog_key, {}).get("usability", {})
+        else:
+            default = gamerule_entries.get(catalog_key, {}).get("default")
+            usage = usab_gamerule.get(catalog_key, {}).get("usability", {})
+
+        if isinstance(default, bool):
+            parsed = _parse_bool(value)
+            if parsed is None:
+                blocks.append(
+                    PlanMessage(
+                        code="type_invalid",
+                        message=f"Invalid boolean value for '{catalog_key}'.",
+                        param=catalog_key,
+                    )
+                )
+                continue
+            numeric_value = None
+        elif isinstance(default, int):
+            parsed_int = _parse_int(value)
+            if parsed_int is None:
+                blocks.append(
+                    PlanMessage(
+                        code="type_invalid",
+                        message=f"Invalid integer value for '{catalog_key}'.",
+                        param=catalog_key,
+                    )
+                )
+                continue
+            numeric_value = parsed_int
+        else:
+            numeric_value = None
+
+        rec_range = usage.get("recommended_range") or {}
+        min_val = rec_range.get("min")
+        max_val = rec_range.get("max")
+        step_val = rec_range.get("step")
+
+        if numeric_value is None:
+            continue
+
+        if isinstance(min_val, int) and numeric_value < min_val:
+            blocks.append(
+                PlanMessage(
+                    code="range_violation",
+                    message=f"Value for '{catalog_key}' below recommended minimum ({min_val}).",
+                    param=catalog_key,
+                )
+            )
+        if isinstance(max_val, int) and numeric_value > max_val:
+            blocks.append(
+                PlanMessage(
+                    code="range_violation",
+                    message=f"Value for '{catalog_key}' above recommended maximum ({max_val}).",
+                    param=catalog_key,
+                )
+            )
+        if isinstance(step_val, int) and isinstance(min_val, int):
+            if (numeric_value - min_val) % step_val != 0:
+                blocks.append(
+                    PlanMessage(
+                        code="range_violation",
+                        message=f"Value for '{catalog_key}' does not align with step {step_val}.",
+                        param=catalog_key,
+                    )
+                )
+
+    return blocks
+
+
 def _normalize_value(value, default):
     if isinstance(default, bool):
         if isinstance(value, str):
@@ -433,6 +540,13 @@ def plan(claims) -> ApplyPlan:
     blocks.extend(_validate_edition_rules(claims.params))
     blocks.extend(_validate_stack_rules(claims.params))
     blocks.extend(_validate_runtime_rules(claims.params))
+    blocks.extend(
+        _validate_param_ranges(
+            claims.params,
+            getattr(claims, "catalog", None),
+            getattr(claims, "usability", None),
+        )
+    )
 
     tax_warnings, tax_blocks, tax_recs = _evaluate_taxonomy(claims)
     warnings.extend(tax_warnings)

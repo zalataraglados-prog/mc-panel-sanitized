@@ -16,7 +16,7 @@ from deploy.claims_codec import Claims, decode_claims
 from deploy.executor.executor_planner import build_execution_plan
 from deploy.executor.host_inspector import HostInspector
 from deploy.executor.plan_executor import ExecutionPlanExecutor
-from deploy.loader import load_rules
+from deploy.loader import load_rules_bundle
 from deploy.planner.planner import plan as plan_apply
 from deploy.web.review_adapter import review_to_dict
 
@@ -168,13 +168,14 @@ def main():
         claims = load_claims_from_args(args)
 
     # 2) Planner
-    catalog, taxonomy = load_rules(
+    rules_bundle = load_rules_bundle(
         args.version,
         base_url=args.rules_base_url,
         rules_ref=args.rules_ref,
     )
-    setattr(claims, "catalog", catalog)
-    setattr(claims, "taxonomy", taxonomy)
+    setattr(claims, "catalog", rules_bundle.get("catalog"))
+    setattr(claims, "taxonomy", rules_bundle.get("taxonomy"))
+    setattr(claims, "usability", rules_bundle.get("usability"))
 
     apply_plan = plan_apply(claims)
     if getattr(claims, "imported_from_string", False):
