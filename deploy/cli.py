@@ -180,49 +180,54 @@ def main():
 
     args = parser.parse_args()
 
-    import_string = None
-    if args.import_string and args.import_file:
-        raise SystemExit("--import-string cannot be combined with --import-file")
-    if args.import_string:
-        import_string = args.import_string.strip()
-    elif args.import_file:
-        with open(args.import_file, "r", encoding="utf-8") as handle:
-            import_string = handle.read().strip()
+    claims = None
+    rules_bundle = None
+    if args.command in ("plan", "apply"):
+        import_string = None
+        if args.import_string and args.import_file:
+            raise SystemExit("--import-string cannot be combined with --import-file")
+        if args.import_string:
+            import_string = args.import_string.strip()
+        elif args.import_file:
+            with open(args.import_file, "r", encoding="utf-8") as handle:
+                import_string = handle.read().strip()
 
-    if import_string:
-        if args.set:
-            raise SystemExit("--import-string cannot be combined with --set")
-        format_choice = args.import_format
-        if format_choice == "auto":
-            format_choice = "compact" if is_compact_string(import_string) else "full"
+        if import_string:
+            if args.set:
+                raise SystemExit("--import-string cannot be combined with --set")
+            format_choice = args.import_format
+            if format_choice == "auto":
+                format_choice = "compact" if is_compact_string(import_string) else "full"
 
-        if format_choice == "compact":
-            rules_bundle = load_rules_bundle(
-                peek_version(import_string),
-                base_url=args.rules_base_url,
-                rules_ref=args.rules_ref,
-            )
-            params = decode_compact(import_string, rules_bundle.get("catalog"))
+            if format_choice == "compact":
+                rules_bundle = load_rules_bundle(
+                    peek_version(import_string),
+                    base_url=args.rules_base_url,
+                    rules_ref=args.rules_ref,
+                )
+                params = decode_compact(import_string, rules_bundle.get("catalog"))
+            else:
+                rules_bundle = load_rules_bundle(
+                    args.version,
+                    base_url=args.rules_base_url,
+                    rules_ref=args.rules_ref,
+                )
+                params = decode_claims(import_string)
+            profile = args.profile or "normal"
+            claims = Claims(params=params, profile=profile, imported=True)
         else:
+            claims = load_claims_from_args(args)
             rules_bundle = load_rules_bundle(
                 args.version,
                 base_url=args.rules_base_url,
                 rules_ref=args.rules_ref,
             )
-            params = decode_claims(import_string)
-        profile = args.profile or "normal"
-        claims = Claims(params=params, profile=profile, imported=True)
-    else:
-        claims = load_claims_from_args(args)
-        rules_bundle = load_rules_bundle(
-            args.version,
-            base_url=args.rules_base_url,
-            rules_ref=args.rules_ref,
-        )
 
-    setattr(claims, "catalog", rules_bundle.get("catalog"))
-    setattr(claims, "taxonomy", rules_bundle.get("taxonomy"))
-    setattr(claims, "usability", rules_bundle.get("usability"))
+        setattr(claims, "catalog", rules_bundle.get("catalog"))
+        setattr(claims, "taxonomy", rules_bundle.get("taxonomy"))
+        setattr(claims, "usability", rules_bundle.get("usability"))
+    else:
+        claims = Claims(params={}, profile="normal")
 
     apply_plan = plan_apply(claims)
     if getattr(claims, "imported_from_string", False):
