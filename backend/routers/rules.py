@@ -3,7 +3,8 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, Query
 
 from backend.auth import get_current_user, require_roles
-from backend.models import RuleEntry, RulesResponse
+from backend.logging import log_action
+from backend.models import RuleEntry, RulesResponse, RulesUpdateRequest
 from backend.routers.instances import resolve_instance_dir
 
 router = APIRouter()
@@ -28,3 +29,19 @@ def rules_endpoint(instance_dir: str | None = Query(None), user=Depends(get_curr
     server_properties = Path(instance_dir) / "data" / "server.properties"
     entries = _read_server_properties(server_properties)
     return RulesResponse(entries=entries)
+
+
+@router.put("/api/rules", response_model=RulesResponse)
+def update_rules(payload: RulesUpdateRequest, user=Depends(get_current_user)):
+    require_roles(user, ["owner", "admin"])
+    instance_dir = payload.instance_dir or resolve_instance_dir()
+    server_properties = Path(instance_dir) / "data" / "server.properties"
+    current = {entry.key: entry.value for entry in _read_server_properties(server_properties)}
+    for entry in payload.entries:
+        current[entry.key] = entry.value
+    lines = [f"{key}={current[key]}" for key in sorted(current.keys())]
+    server_properties.parent.mkdir(parents=True, exist_ok=True)
+    server_properties.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    log_action(user.username, "rules_update", instance_dir)
+    updated_entries = [RuleEntry(key=key, value=current[key]) for key in sorted(current.keys())]
+    return RulesResponse(entries=updated_entries)

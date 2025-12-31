@@ -33,6 +33,9 @@ const translations = {
     session: "Session",
     deop: "DeOP",
     tpsTrend: "TPS Trend",
+    edit: "Edit",
+    save: "Save",
+    cancel: "Cancel",
     theme: "Dark / Light",
     language: "中文 / EN",
   },
@@ -61,6 +64,9 @@ const translations = {
     session: "在线时长",
     deop: "取消OP",
     tpsTrend: "TPS 趋势",
+    edit: "编辑",
+    save: "保存",
+    cancel: "取消",
     theme: "深色 / 浅色",
     language: "中文 / EN",
   },
@@ -112,6 +118,8 @@ export function App() {
   const [instanceDir, setInstanceDir] = useState("");
   const [players, setPlayers] = useState<Player[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
+  const [rulesDraft, setRulesDraft] = useState<Record<string, string>>({});
+  const [rulesEditing, setRulesEditing] = useState(false);
   const [templates, setTemplates] = useState<CommandTemplate[]>([]);
   const [newTemplate, setNewTemplate] = useState({ name: "", command: "" });
   const [token, setToken] = useState("");
@@ -132,6 +140,7 @@ export function App() {
   const canRcon = role === "owner" || role === "admin";
   const canManagePlayers = role === "owner" || role === "admin" || role === "mod";
   const canTemplateWrite = role === "owner" || role === "admin";
+  const canEditRules = role === "owner" || role === "admin";
 
   useEffect(() => {
     document.body.dataset.theme = dark ? "dark" : "light";
@@ -174,7 +183,17 @@ export function App() {
       .catch(() => {});
     fetch(`/api/rules${instanceQuery}`, { headers: authHeader })
       .then((res) => res.json())
-      .then((data) => setRules(data.entries || []))
+      .then((data) => {
+        const entries = data.entries || [];
+        setRules(entries);
+        if (!rulesEditing) {
+          const draft: Record<string, string> = {};
+          entries.forEach((entry: Rule) => {
+            draft[entry.key] = entry.value;
+          });
+          setRulesDraft(draft);
+        }
+      })
       .catch(() => {});
     fetch("/api/command-templates", { headers: authHeader })
       .then((res) => res.json())
@@ -339,6 +358,40 @@ export function App() {
     }).catch(() => {});
   };
 
+  const startEditRules = () => {
+    if (!canEditRules) {
+      return;
+    }
+    const draft: Record<string, string> = {};
+    rules.forEach((entry) => {
+      draft[entry.key] = entry.value;
+    });
+    setRulesDraft(draft);
+    setRulesEditing(true);
+  };
+
+  const cancelEditRules = () => {
+    setRulesEditing(false);
+  };
+
+  const saveRules = () => {
+    if (!canEditRules) {
+      return;
+    }
+    const entries = Object.keys(rulesDraft).map((key) => ({ key, value: rulesDraft[key] }));
+    fetch("/api/rules", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeader },
+      body: JSON.stringify({ entries, instance_dir: instanceDir || undefined }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setRules(data.entries || []);
+        setRulesEditing(false);
+      })
+      .catch(() => {});
+  };
+
   const handleCommandKey = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "ArrowUp") {
       const nextIndex = Math.min(commandHistory.length - 1, historyIndex + 1);
@@ -495,11 +548,29 @@ export function App() {
 
       <section className="section">
         <h2>{t.rules}</h2>
+        <div className="rules-actions">
+          <button className="btn" disabled={!canEditRules} onClick={startEditRules}>
+            {t.edit}
+          </button>
+          <button className="btn" disabled={!rulesEditing} onClick={saveRules}>
+            {t.save}
+          </button>
+          <button className="btn" disabled={!rulesEditing} onClick={cancelEditRules}>
+            {t.cancel}
+          </button>
+        </div>
         <div className="rules">
           {rules.map((r) => (
             <div key={r.key} className="rule-row">
               <span>{r.key}</span>
-              <span>{r.value}</span>
+              {rulesEditing ? (
+                <input
+                  value={rulesDraft[r.key] ?? ""}
+                  onChange={(event) => setRulesDraft({ ...rulesDraft, [r.key]: event.target.value })}
+                />
+              ) : (
+                <span>{r.value}</span>
+              )}
             </div>
           ))}
         </div>

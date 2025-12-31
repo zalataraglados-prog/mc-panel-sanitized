@@ -66,5 +66,10 @@ class RulesResponse(BaseModel):
     entries: List[RuleEntry]
 
 
+class RulesUpdateRequest(BaseModel):
+    entries: List[RuleEntry]
+    instance_dir: Optional[str] = None
+
+
 class InstancesResponse(BaseModel):
     instances: List[Dict[str, Any]]
