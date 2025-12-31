@@ -133,6 +133,7 @@ export function App() {
   const wsRef = useRef<WebSocket | null>(null);
   const logRef = useRef<HTMLDivElement | null>(null);
   const [logConnected, setLogConnected] = useState(false);
+  const [logError, setLogError] = useState("");
 
   const t = translations[lang];
   const canControl = role === "owner" || role === "admin";
@@ -264,8 +265,12 @@ export function App() {
       wsRef.current = null;
       setLogConnected(false);
     };
+    ws.onerror = () => {
+      setLogError("Log stream error");
+    };
     ws.onopen = () => {
       setLogConnected(true);
+      setLogError("");
     };
     wsRef.current = ws;
   };
@@ -310,7 +315,9 @@ export function App() {
           setLogLines((prev) => [...prev.slice(-200), `> ${command}`, String(response)]);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        setLogError("Command failed");
+      });
     setCommandHistory((prev) => [command, ...prev].slice(0, 20));
     setCommand("");
     setHistoryIndex(-1);
@@ -474,6 +481,7 @@ export function App() {
             <div key={`${line}-${idx}`}>{line}</div>
           ))}
         </div>
+        {logError ? <div className="console-error">{logError}</div> : null}
         <div className="console-actions">
           <button className="btn" disabled={logConnected} onClick={connectLogs}>
             {t.connect}
