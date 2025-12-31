@@ -12,7 +12,13 @@ import json
 import os
 import sys
 
-from deploy.claims_codec import Claims, decode_claims
+from deploy.claims_codec import (
+    Claims,
+    decode_claims,
+    decode_compact,
+    is_compact_string,
+    peek_version,
+)
 from deploy.executor.executor_planner import build_execution_plan
 from deploy.executor.host_inspector import HostInspector
 from deploy.executor.plan_executor import ExecutionPlanExecutor
@@ -137,6 +143,16 @@ def main():
             "--import-string",
             help="Import claims from base64url string",
         )
+        p.add_argument(
+            "--import-file",
+            help="Import claims from file path",
+        )
+        p.add_argument(
+            "--import-format",
+            choices=("auto", "full", "compact"),
+            default="auto",
+            help="Claims string format (default: auto)",
+        )
         if name == "apply":
             mode_group = p.add_mutually_exclusive_group()
             mode_group.add_argument(
@@ -157,22 +173,46 @@ def main():
 
     args = parser.parse_args()
 
-    # 1) Load Claims
+    import_string = None
+    if args.import_string and args.import_file:
+        raise SystemExit("--import-string cannot be combined with --import-file")
     if args.import_string:
+        import_string = args.import_string.strip()
+    elif args.import_file:
+        with open(args.import_file, "r", encoding="utf-8") as handle:
+            import_string = handle.read().strip()
+
+    if import_string:
         if args.set:
             raise SystemExit("--import-string cannot be combined with --set")
-        params = decode_claims(args.import_string)
+        format_choice = args.import_format
+        if format_choice == "auto":
+            format_choice = "compact" if is_compact_string(import_string) else "full"
+
+        if format_choice == "compact":
+            rules_bundle = load_rules_bundle(
+                peek_version(import_string),
+                base_url=args.rules_base_url,
+                rules_ref=args.rules_ref,
+            )
+            params = decode_compact(import_string, rules_bundle.get("catalog"))
+        else:
+            rules_bundle = load_rules_bundle(
+                args.version,
+                base_url=args.rules_base_url,
+                rules_ref=args.rules_ref,
+            )
+            params = decode_claims(import_string)
         profile = args.profile or "normal"
         claims = Claims(params=params, profile=profile, imported=True)
     else:
         claims = load_claims_from_args(args)
+        rules_bundle = load_rules_bundle(
+            args.version,
+            base_url=args.rules_base_url,
+            rules_ref=args.rules_ref,
+        )
 
-    # 2) Planner
-    rules_bundle = load_rules_bundle(
-        args.version,
-        base_url=args.rules_base_url,
-        rules_ref=args.rules_ref,
-    )
     setattr(claims, "catalog", rules_bundle.get("catalog"))
     setattr(claims, "taxonomy", rules_bundle.get("taxonomy"))
     setattr(claims, "usability", rules_bundle.get("usability"))
