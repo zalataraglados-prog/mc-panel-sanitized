@@ -28,6 +28,8 @@ const translations = {
     stop: "Stop",
     restart: "Restart",
     connect: "Connect",
+    disconnect: "Disconnect",
+    clear: "Clear",
     session: "Session",
     deop: "DeOP",
     tpsTrend: "TPS Trend",
@@ -54,6 +56,8 @@ const translations = {
     stop: "停止",
     restart: "重启",
     connect: "连接",
+    disconnect: "断开",
+    clear: "清空",
     session: "在线时长",
     deop: "取消OP",
     tpsTrend: "TPS 趋势",
@@ -120,6 +124,7 @@ export function App() {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const wsRef = useRef<WebSocket | null>(null);
   const logRef = useRef<HTMLDivElement | null>(null);
+  const [logConnected, setLogConnected] = useState(false);
 
   const t = translations[lang];
   const canControl = role === "owner" || role === "admin";
@@ -230,14 +235,32 @@ export function App() {
       return;
     }
     const query = instanceDir ? `&instance_dir=${encodeURIComponent(instanceDir)}` : "";
-    const ws = new WebSocket(`ws://localhost:8000/api/logs/ws?token=${token}${query}`);
+    const ws = new WebSocket(
+      `ws://localhost:8000/api/logs/ws?token=${token}${query}&max_lines=200&max_per_second=50`
+    );
     ws.onmessage = (event) => {
       setLogLines((prev) => [...prev.slice(-200), event.data]);
     };
     ws.onclose = () => {
       wsRef.current = null;
+      setLogConnected(false);
+    };
+    ws.onopen = () => {
+      setLogConnected(true);
     };
     wsRef.current = ws;
+  };
+
+  const disconnectLogs = () => {
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    setLogConnected(false);
+  };
+
+  const clearLogs = () => {
+    setLogLines([]);
   };
 
   useEffect(() => {
@@ -399,9 +422,16 @@ export function App() {
           ))}
         </div>
         <div className="console-actions">
-          <button className="btn" onClick={connectLogs}>
+          <button className="btn" disabled={logConnected} onClick={connectLogs}>
             {t.connect}
           </button>
+          <button className="btn" disabled={!logConnected} onClick={disconnectLogs}>
+            {t.disconnect}
+          </button>
+          <button className="btn" onClick={clearLogs}>
+            {t.clear}
+          </button>
+          <span className="tag">{logConnected ? "LIVE" : "OFFLINE"}</span>
           <input
             value={command}
             onChange={(event) => setCommand(event.target.value)}
