@@ -81,3 +81,13 @@ class MapStatusResponse(BaseModel):
     y_min: int
     y_max: int
     supports_y: bool
+
+
+class MapConfigFile(BaseModel):
+    name: str
+    content: str
+
+
+class MapConfigResponse(BaseModel):
+    plugin: Optional[str]
+    files: List[MapConfigFile]

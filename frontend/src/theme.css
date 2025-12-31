@@ -273,6 +273,46 @@ body {
   color: var(--muted);
 }
 
+.map-config {
+  margin-top: 10px;
+  background: rgba(15, 23, 42, 0.35);
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.map-config summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.map-config-file {
+  margin-top: 8px;
+}
+
+.map-config-name {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.map-config pre {
+  white-space: pre-wrap;
+  background: #0b1224;
+  color: #cbd5f5;
+  padding: 8px;
+  border-radius: 6px;
+  max-height: 240px;
+  overflow: auto;
+  font-size: 12px;
+}
+
+.map-config-empty {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
 .sparkline-wrap {
   margin-top: 12px;
   padding: 12px;

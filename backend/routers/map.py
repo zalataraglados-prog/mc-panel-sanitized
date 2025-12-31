@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, Response
 
 from backend.auth import get_current_user, require_roles
-from backend.models import MapStatusResponse
+from backend.models import MapConfigFile, MapConfigResponse, MapStatusResponse
 from backend.routers.instances import resolve_instance_dir
 from backend.runtime.map_provider import get_map_status, resolve_tile_path
 
@@ -50,3 +50,37 @@ def map_tile(
     </svg>
     """.strip()
     return Response(svg, media_type="image/svg+xml")
+
+
+@router.get("/api/map/config", response_model=MapConfigResponse)
+def map_config(instance_dir: str | None = Query(None), user=Depends(get_current_user)):
+    require_roles(user, ["owner", "admin", "mod", "viewer"])
+    target_dir = instance_dir or resolve_instance_dir()
+    base = Path(target_dir) / "data" / "plugins"
+    dynmap_dir = base / "dynmap"
+    bluemap_dir = base / "BlueMap"
+    files: list[MapConfigFile] = []
+    plugin = None
+    if (dynmap_dir / "configuration.txt").exists():
+        plugin = "dynmap"
+        files.append(
+            MapConfigFile(
+                name="configuration.txt",
+                content=(dynmap_dir / "configuration.txt").read_text(encoding="utf-8", errors="ignore"),
+            )
+        )
+    if (bluemap_dir / "core.conf").exists():
+        plugin = "bluemap"
+        for name in (
+            "core.conf",
+            "webserver.conf",
+            "webapp.conf",
+            "plugin.conf",
+            "maps/map.conf",
+            "storages/file.conf",
+            "storages/sql.conf",
+        ):
+            path = bluemap_dir / name
+            if path.exists():
+                files.append(MapConfigFile(name=name, content=path.read_text(encoding="utf-8", errors="ignore")))
+    return MapConfigResponse(plugin=plugin, files=files)

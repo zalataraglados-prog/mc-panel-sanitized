@@ -7,6 +7,8 @@ type Rule = { key: string; value: string };
 type CommandTemplate = { name: string; command: string };
 type InstanceItem = { name?: string; path?: string };
 type MapStatus = { source: string | null; available: Record<string, boolean>; y_min: number; y_max: number; supports_y: boolean };
+type MapConfigFile = { name: string; content: string };
+type MapConfig = { plugin: string | null; files: MapConfigFile[] };
 
 const translations = {
   en: {
@@ -35,6 +37,7 @@ const translations = {
     deop: "DeOP",
     tpsTrend: "TPS Trend",
     mapStatus: "Map Status",
+    mapSettings: "Map Settings",
     overworld: "Overworld",
     nether: "Nether",
     end: "End",
@@ -74,6 +77,7 @@ const translations = {
     deop: "取消OP",
     tpsTrend: "TPS 趋势",
     mapStatus: "地图状态",
+    mapSettings: "地图设置",
     overworld: "主世界",
     nether: "地狱",
     end: "末地",
@@ -152,6 +156,7 @@ export function App() {
   const [logConnected, setLogConnected] = useState(false);
   const [logError, setLogError] = useState("");
   const [mapStatus, setMapStatus] = useState<MapStatus | null>(null);
+  const [mapConfig, setMapConfig] = useState<MapConfig | null>(null);
   const [mapDimension, setMapDimension] = useState<"overworld" | "nether" | "end">("overworld");
   const [mapZoom, setMapZoom] = useState(0);
   const [mapX, setMapX] = useState(0);
@@ -221,6 +226,16 @@ export function App() {
         }
       })
       .catch(() => {});
+    fetch("/api/command-templates", { headers: authHeader })
+      .then((res) => res.json())
+      .then((data) => setTemplates(data.templates || []))
+      .catch(() => {});
+    fetch(`/api/metrics?window=60${instanceDir ? `&instance_dir=${encodeURIComponent(instanceDir)}` : ""}`, {
+      headers: authHeader,
+    })
+      .then((res) => res.json())
+      .then((data) => setTpsHistory(data || []))
+      .catch(() => {});
     fetch(`/api/map/status${instanceQuery}`, { headers: authHeader })
       .then((res) => res.json())
       .then((data) => {
@@ -242,15 +257,9 @@ export function App() {
         }
       })
       .catch(() => {});
-    fetch("/api/command-templates", { headers: authHeader })
+    fetch(`/api/map/config${instanceQuery}`, { headers: authHeader })
       .then((res) => res.json())
-      .then((data) => setTemplates(data.templates || []))
-      .catch(() => {});
-    fetch(`/api/metrics?window=60${instanceDir ? `&instance_dir=${encodeURIComponent(instanceDir)}` : ""}`, {
-      headers: authHeader,
-    })
-      .then((res) => res.json())
-      .then((data) => setTpsHistory(data || []))
+      .then((data) => setMapConfig(data))
       .catch(() => {});
   };
 
@@ -724,6 +733,21 @@ export function App() {
           <div className="map-hint">
             {t.mapStatus}: {mapStatus?.source ?? "none"} · {t.mapHint}
           </div>
+          <details className="map-config">
+            <summary>
+              {t.mapSettings} {mapConfig?.plugin ? `(${mapConfig.plugin})` : ""}
+            </summary>
+            {mapConfig?.files?.length ? (
+              mapConfig.files.map((file) => (
+                <div key={file.name} className="map-config-file">
+                  <div className="map-config-name">{file.name}</div>
+                  <pre>{file.content}</pre>
+                </div>
+              ))
+            ) : (
+              <div className="map-config-empty">No config files found.</div>
+            )}
+          </details>
         </div>
       </section>
 

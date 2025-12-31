@@ -93,6 +93,7 @@ def _build_template_context(params: dict, instance_name: str, instance_dir: str)
 
     map_port = _parse_int(params.get("map.plugin_port")) or 8123
     render_interval = _parse_int(params.get("map.render_interval")) or 5
+    render_interval_seconds = render_interval * 60
 
     return {
         "INSTANCE_NAME": instance_name,
@@ -112,6 +113,7 @@ def _build_template_context(params: dict, instance_name: str, instance_dir: str)
         "RCON_PASSWORD": "change-me",
         "MAP_PORT": map_port,
         "MAP_RENDER_INTERVAL": render_interval,
+        "MAP_RENDER_INTERVAL_SECONDS": render_interval_seconds,
     }
 
 
@@ -221,6 +223,7 @@ def build_execution_plan(
             )
         )
         if map_plugin == "dynmap":
+            actions.append(Action(type="mkdir", params={"path": posixpath.join(plugin_dir, "dynmap")}))
             actions.append(
                 Action(
                     type="write_file",
@@ -232,12 +235,76 @@ def build_execution_plan(
                 )
             )
         if map_plugin == "bluemap":
+            bluemap_dir = posixpath.join(plugin_dir, "BlueMap")
+            actions.append(Action(type="mkdir", params={"path": bluemap_dir}))
+            actions.append(Action(type="mkdir", params={"path": posixpath.join(bluemap_dir, "maps")}))
+            actions.append(Action(type="mkdir", params={"path": posixpath.join(bluemap_dir, "storages")}))
             actions.append(
                 Action(
                     type="write_file",
                     params={
-                        "path": posixpath.join(plugin_dir, "BlueMap", "core.conf"),
+                        "path": posixpath.join(bluemap_dir, "core.conf"),
                         "template": "bluemap.core.conf.tpl",
+                        "context": context,
+                    },
+                )
+            )
+            actions.append(
+                Action(
+                    type="write_file",
+                    params={
+                        "path": posixpath.join(bluemap_dir, "webserver.conf"),
+                        "template": "bluemap.webserver.conf.tpl",
+                        "context": context,
+                    },
+                )
+            )
+            actions.append(
+                Action(
+                    type="write_file",
+                    params={
+                        "path": posixpath.join(bluemap_dir, "webapp.conf"),
+                        "template": "bluemap.webapp.conf.tpl",
+                        "context": context,
+                    },
+                )
+            )
+            actions.append(
+                Action(
+                    type="write_file",
+                    params={
+                        "path": posixpath.join(bluemap_dir, "plugin.conf"),
+                        "template": "bluemap.plugin.conf.tpl",
+                        "context": context,
+                    },
+                )
+            )
+            actions.append(
+                Action(
+                    type="write_file",
+                    params={
+                        "path": posixpath.join(bluemap_dir, "maps", "map.conf"),
+                        "template": "bluemap.map.conf.tpl",
+                        "context": context,
+                    },
+                )
+            )
+            actions.append(
+                Action(
+                    type="write_file",
+                    params={
+                        "path": posixpath.join(bluemap_dir, "storages", "file.conf"),
+                        "template": "bluemap.storage.file.conf.tpl",
+                        "context": context,
+                    },
+                )
+            )
+            actions.append(
+                Action(
+                    type="write_file",
+                    params={
+                        "path": posixpath.join(bluemap_dir, "storages", "sql.conf"),
+                        "template": "bluemap.storage.sql.conf.tpl",
                         "context": context,
                     },
                 )
