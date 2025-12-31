@@ -132,6 +132,16 @@ body {
   color: var(--muted);
 }
 
+.status-live {
+  color: #22c55e;
+  border: 1px solid #22c55e33;
+}
+
+.status-offline {
+  color: #f97316;
+  border: 1px solid #f9731633;
+}
+
 .players {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

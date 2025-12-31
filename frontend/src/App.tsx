@@ -183,6 +183,16 @@ export function App() {
   const canEditRules = role === "owner" || role === "admin";
   const canEditMapConfig = role === "owner" || role === "admin";
 
+  const formatTimestamp = () => {
+    const now = new Date();
+    return now.toLocaleTimeString();
+  };
+
+  const appendLogLine = (message: string) => {
+    const line = `[${formatTimestamp()}] ${message}`;
+    setLogLines((prev) => [...prev.slice(-200), line]);
+  };
+
   useEffect(() => {
     document.body.dataset.theme = dark ? "dark" : "light";
   }, [dark]);
@@ -343,7 +353,7 @@ export function App() {
       `ws://localhost:8000/api/logs/ws?token=${token}${query}&max_lines=200&max_per_second=50`
     );
     ws.onmessage = (event) => {
-      setLogLines((prev) => [...prev.slice(-200), event.data]);
+      appendLogLine(event.data);
     };
     ws.onclose = () => {
       wsRef.current = null;
@@ -351,10 +361,12 @@ export function App() {
     };
     ws.onerror = () => {
       setLogError("Log stream error");
+      appendLogLine("Log stream error");
     };
     ws.onopen = () => {
       setLogConnected(true);
       setLogError("");
+      appendLogLine("Log stream connected");
     };
     wsRef.current = ws;
   };
@@ -365,6 +377,7 @@ export function App() {
       wsRef.current = null;
     }
     setLogConnected(false);
+    appendLogLine("Log stream disconnected");
   };
 
   const clearLogs = () => {
@@ -396,11 +409,13 @@ export function App() {
       .then((data) => {
         const response = data.result || data.response;
         if (response) {
-          setLogLines((prev) => [...prev.slice(-200), `> ${command}`, String(response)]);
+          appendLogLine(`> ${command}`);
+          appendLogLine(String(response));
         }
       })
       .catch(() => {
         setLogError("Command failed");
+        appendLogLine("Command failed");
       });
     setCommandHistory((prev) => [command, ...prev].slice(0, 20));
     setCommand("");
@@ -623,7 +638,9 @@ export function App() {
           <button className="btn" onClick={clearLogs}>
             {t.clear}
           </button>
-          <span className="tag">{logConnected ? "LIVE" : "OFFLINE"}</span>
+          <span className={`tag status ${logConnected ? "status-live" : "status-offline"}`}>
+            {logConnected ? "LIVE" : "OFFLINE"}
+          </span>
           <input
             value={command}
             onChange={(event) => setCommand(event.target.value)}
