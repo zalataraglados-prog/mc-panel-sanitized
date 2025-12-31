@@ -7,6 +7,7 @@ class PlanRequest(BaseModel):
     profile: str = Field(default="normal")
     params: Dict[str, Any] = Field(default_factory=dict)
     import_string: Optional[str] = Field(default=None)
+    language: str = Field(default="en", description="Language code for translations (en/zh)")
 
 
 class CapabilityReview(BaseModel):

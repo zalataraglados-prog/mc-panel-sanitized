@@ -1,9 +1,14 @@
-def _message_to_dict(obj, *, default_code: str) -> dict:
+from deploy.web.i18n import translate_hint, translate_message
+
+
+def _message_to_dict(obj, *, default_code: str, language: str) -> dict:
     code = getattr(obj, "code", default_code)
-    message = getattr(obj, "message", None)
-    if message is None:
-        message = str(obj)
+    raw_message = getattr(obj, "message", None)
+    if raw_message is None:
+        raw_message = str(obj)
     hint = getattr(obj, "hint", None)
+    params = {"param": getattr(obj, "param", None), "category": getattr(obj, "taxonomy", {}).get("category") if getattr(obj, "taxonomy", None) else None}
+    message = translate_message(code, params, raw_message, language)
     payload = {"code": code, "message": message}
     param = getattr(obj, "param", None)
     taxonomy = getattr(obj, "taxonomy", None)
@@ -12,11 +17,11 @@ def _message_to_dict(obj, *, default_code: str) -> dict:
     if taxonomy:
         payload["taxonomy"] = taxonomy
     if hint:
-        payload["hint"] = hint
+        payload["hint"] = translate_hint(code, hint, language)
     return payload
 
 
-def review_to_dict(apply_plan) -> dict:
+def review_to_dict(apply_plan, *, language: str = "en") -> dict:
     """
     Convert ApplyPlan into a stable JSON review structure.
     """
@@ -32,17 +37,24 @@ def review_to_dict(apply_plan) -> dict:
         )
 
     warnings = [
-        _message_to_dict(w, default_code="WARNING") for w in getattr(apply_plan, "warnings", [])
+        _message_to_dict(w, default_code="WARNING", language=language) for w in getattr(apply_plan, "warnings", [])
     ]
     blocks = [
-        _message_to_dict(b, default_code="BLOCK") for b in getattr(apply_plan, "blocks", [])
+        _message_to_dict(b, default_code="BLOCK", language=language) for b in getattr(apply_plan, "blocks", [])
     ]
     recommendations = []
     for rec in getattr(apply_plan, "recommendations", []):
+        reason = getattr(rec, "reason", None)
+        translated_reason = translate_message(
+            getattr(rec, "code", "RECOMMENDATION"),
+            {"param": getattr(rec, "param", None)},
+            reason or "",
+            language,
+        )
         payload = {
             "param": getattr(rec, "param", None),
             "suggested": getattr(rec, "suggested", None),
-            "reason": getattr(rec, "reason", None),
+            "reason": translated_reason or reason,
             "taxonomy": getattr(rec, "taxonomy", None),
         }
         recommendations.append(payload)

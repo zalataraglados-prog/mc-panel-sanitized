@@ -23,7 +23,7 @@ def plan_endpoint(payload: PlanRequest):
         apply_plan = plan_apply(claims)
         if getattr(claims, "imported_from_string", False):
             setattr(apply_plan, "imported_claims", True)
-        return review_to_dict(apply_plan)
+        return review_to_dict(apply_plan, language=payload.language)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -42,7 +42,7 @@ def decision_endpoint(payload: PlanRequest):
         apply_plan = plan_apply(claims)
         if getattr(claims, "imported_from_string", False):
             setattr(apply_plan, "imported_claims", True)
-        review = review_to_dict(apply_plan)
+        review = review_to_dict(apply_plan, language=payload.language)
 
         deployment = Deployment(
             claims={"profile": claims.profile, "params": claims.params},
