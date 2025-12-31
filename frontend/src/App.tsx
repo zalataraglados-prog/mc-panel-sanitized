@@ -199,7 +199,15 @@ export function App() {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeader },
       body: JSON.stringify({ command, instance_dir: instanceDir || undefined }),
-    }).catch(() => {});
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        const response = data.result || data.response;
+        if (response) {
+          setLogLines((prev) => [...prev.slice(-200), `> ${command}`, String(response)]);
+        }
+      })
+      .catch(() => {});
     setCommandHistory((prev) => [command, ...prev].slice(0, 20));
     setCommand("");
     setHistoryIndex(-1);

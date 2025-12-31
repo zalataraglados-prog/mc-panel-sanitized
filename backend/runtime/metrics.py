@@ -1,7 +1,10 @@
 import os
+import re
 import shutil
 import time
 from pathlib import Path
+
+from backend.runtime.rcon_client import RCONClient
 
 
 def _cpu_usage() -> float:
@@ -36,6 +39,16 @@ def _disk_usage(path: str) -> float:
     return round((disk.used / disk.total) * 100, 2) if disk.total else 0.0
 
 
+def _parse_tps_response(response: str) -> tuple[float | None, float | None]:
+    if not response:
+        return None, None
+    tps_match = re.search(r"TPS[^:]*:\s*([0-9.]+)", response)
+    mspt_match = re.search(r"MSPT[^:]*:\s*([0-9.]+)", response)
+    tps = float(tps_match.group(1)) if tps_match else None
+    mspt = float(mspt_match.group(1)) if mspt_match else None
+    return tps, mspt
+
+
 def gather_metrics(instance_dir: str | None = None) -> dict:
     """
     Collect host-level metrics; if instance_dir provided, disk is measured on its mount path.
@@ -48,13 +61,24 @@ def gather_metrics(instance_dir: str | None = None) -> dict:
     memory = _mem_usage()
     disk = _disk_usage(disk_path)
 
+    tps = None
+    mspt = None
+    players = 0
+    ping = 0.0
+
+    if instance_dir and Path(instance_dir).exists():
+        client = RCONClient.from_instance_dir(instance_dir)
+        tps_response = client.execute("tps")
+        tps, mspt = _parse_tps_response(tps_response)
+        players = len(client.list_players())
+
     return {
         "timestamp": time.time(),
-        "tps": 20.0,  # placeholder; real TPS should be polled from runtime hooks
-        "mspt": 50.0,
-        "ping": 50.0,
+        "tps": tps if tps is not None else 20.0,
+        "mspt": mspt if mspt is not None else 50.0,
+        "ping": ping,
         "cpu": cpu,
         "memory": memory,
         "disk": disk,
-        "players": 0,
+        "players": players,
     }
