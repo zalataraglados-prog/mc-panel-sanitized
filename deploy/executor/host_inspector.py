@@ -34,3 +34,7 @@ class HostInspector:
     def check_systemd_available(self) -> Dict[str, Any]:
         ok = shutil.which("systemctl") is not None
         return {"check": "systemd_available", "ok": ok, "details": "systemctl in PATH"}
+
+    def check_file_exists(self, path: str) -> Dict[str, Any]:
+        ok = os.path.exists(path)
+        return {"check": "file_exists", "ok": ok, "details": path}

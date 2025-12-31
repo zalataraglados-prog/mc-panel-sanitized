@@ -131,6 +131,10 @@ def build_execution_plan(
         preconditions.append(Precondition(type="docker_available", value="docker", required=True))
         preconditions.append(Precondition(type="systemd_available", value="systemd", required=True))
 
+    map_file = params.get("map.file")
+    if map_file:
+        preconditions.append(Precondition(type="file_exists", value=map_file, required=True))
+
     estimate = estimate_capacity(params)
     if estimate:
         _, payload = capacity_status(estimate)
@@ -183,6 +187,21 @@ def build_execution_plan(
             },
         ),
     ]
+
+    map_file = params.get("map.file")
+    if map_file:
+        target = posixpath.join(instance_dir, "data", params.get("map.target", "world"))
+        overwrite = str(params.get("map.overwrite", "true")).lower() in ("true", "1", "yes")
+        actions.append(
+            Action(
+                type="copy_map",
+                params={
+                    "source": map_file,
+                    "target": target,
+                    "overwrite": overwrite,
+                },
+            )
+        )
 
     plan = ExecutionPlan(
         mode=mode,

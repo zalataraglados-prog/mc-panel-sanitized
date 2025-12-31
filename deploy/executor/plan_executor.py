@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
@@ -41,6 +42,8 @@ class ExecutionPlanExecutor:
             result = self.inspector.check_docker_available()
         elif check_type == "systemd_available":
             result = self.inspector.check_systemd_available()
+        elif check_type == "file_exists":
+            result = self.inspector.check_file_exists(value)
         elif check_type == "capacity_sufficient":
             try:
                 memory = float(value.get("memory_gb"))
@@ -108,6 +111,33 @@ class ExecutionPlanExecutor:
                 os.remove(target)
             os.symlink(source, target)
             return ExecutionStep(name="action:symlink", ok=True, details=f"{source} -> {target}")
+
+        if action_type == "copy_map":
+            source = params.get("source")
+            target = params.get("target")
+            overwrite = params.get("overwrite", False)
+            if not source or not target:
+                return ExecutionStep(name="action:copy_map", ok=False, details="missing source/target")
+            if not os.path.exists(source):
+                return ExecutionStep(name="action:copy_map", ok=False, details="source missing")
+            if os.path.exists(target):
+                if overwrite:
+                    if os.path.isdir(target):
+                        shutil.rmtree(target)
+                    else:
+                        os.remove(target)
+                else:
+                    return ExecutionStep(
+                        name="action:copy_map",
+                        ok=False,
+                        details="target exists and overwrite disabled",
+                    )
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            if os.path.isdir(source):
+                shutil.copytree(source, target)
+            else:
+                shutil.copy2(source, target)
+            return ExecutionStep(name="action:copy_map", ok=True, details=f"{source} -> {target}")
 
         return ExecutionStep(
             name=f"action:{action_type}",

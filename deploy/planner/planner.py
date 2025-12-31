@@ -54,7 +54,15 @@ def _validate_profile(profile: str) -> List[PlanMessage]:
 
 
 def _is_reserved_param(key: str) -> bool:
-    return key in {"edition", "stack.type", "runtime.java", "deploy.expected_players"}
+    return key in {
+        "edition",
+        "stack.type",
+        "runtime.java",
+        "deploy.expected_players",
+        "map.file",
+        "map.target",
+        "map.overwrite",
+    }
 
 
 def _validate_params(params: dict, catalog: dict | None = None) -> List[PlanMessage]:
