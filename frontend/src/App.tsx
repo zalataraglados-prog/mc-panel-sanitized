@@ -89,8 +89,8 @@ const translations = {
     end: "末地",
     zoom: "缩放",
     height: "高度",
-    refresh: "刷新间隔（秒）",
-    mapHint: "只读瓦片。将瓦片放入实例目录的 map-tiles/。",
+    refresh: "刷新间隔(秒)",
+    mapHint: "只读瓦片。将瓦片放入实例目录 map-tiles/。",
     edit: "编辑",
     save: "保存",
     cancel: "取消",
@@ -619,43 +619,6 @@ export function App() {
           <span className="tag">Role: {role || "guest"}</span>
         </div>
       </section>
-
-      <section className="section">
-        <h2>{t.logs}</h2>
-        <div className="console" ref={logRef}>
-          {logLines.map((line, idx) => (
-            <div key={`${line}-${idx}`}>{line}</div>
-          ))}
-        </div>
-        {logError ? <div className="console-error">{logError}</div> : null}
-        <div className="console-actions">
-          <button className="btn" disabled={logConnected} onClick={connectLogs}>
-            {t.connect}
-          </button>
-          <button className="btn" disabled={!logConnected} onClick={disconnectLogs}>
-            {t.disconnect}
-          </button>
-          <button className="btn" onClick={clearLogs}>
-            {t.clear}
-          </button>
-          <span className={`tag status ${logConnected ? "status-live" : "status-offline"}`}>
-            {logConnected ? "LIVE" : "OFFLINE"}
-          </span>
-          <input
-            value={command}
-            onChange={(event) => setCommand(event.target.value)}
-            onKeyDown={handleCommandKey}
-            placeholder={t.command}
-          />
-          <button className="btn" disabled={!canCommand} onClick={() => sendCommand("/api/command")}>
-            {t.command}
-          </button>
-          <button className="btn" disabled={!canRcon} onClick={() => sendCommand("/api/rcon")}>
-            {t.rcon}
-          </button>
-        </div>
-      </section>
-
       <section className="section">
         <h2>{t.players}</h2>
         <div className="players">
@@ -732,137 +695,178 @@ export function App() {
         </div>
       </section>
 
-      <section className="section">
-        <h2>{t.map}</h2>
-        <div className="map-panel">
-          <div className="map-toolbar">
-            <div className="map-tabs">
-              <button
-                className="btn"
-                disabled={!mapStatus?.available?.overworld}
-                onClick={() => setMapDimension("overworld")}
-              >
-                {t.overworld}
-              </button>
-              <button
-                className="btn"
-                disabled={!mapStatus?.available?.nether}
-                onClick={() => setMapDimension("nether")}
-              >
-                {t.nether}
-              </button>
-              <button className="btn" disabled={!mapStatus?.available?.end} onClick={() => setMapDimension("end")}>
-                {t.end}
-              </button>
-            </div>
-            <div className="map-controls">
-              <label>
-                {t.zoom}
-                <input
-                  type="range"
-                  min="0"
-                  max="6"
-                  value={mapZoom}
-                  onChange={(event) => setMapZoom(Number(event.target.value))}
-                />
-              </label>
-              <label>
-                {t.height}
-                <input
-                  type="range"
-                  min={mapStatus?.y_min ?? -64}
-                  max={mapStatus?.y_max ?? 320}
-                  value={mapY}
-                  onChange={(event) => setMapY(Number(event.target.value))}
-                />
-              </label>
-              <label>
-                {t.refresh}
-                <input
-                  type="range"
-                  min="1"
-                  max="30"
-                  value={mapRefreshSec}
-                  onChange={(event) => setMapRefreshSec(Number(event.target.value))}
-                />
-                <span>{mapRefreshSec}s</span>
-              </label>
-            </div>
-          </div>
-          <div className="map-canvas">
-            <img
-              alt="map"
-              src={`/api/map/tile?dimension=${mapDimension}&x=${mapX}&z=${mapZ}&zoom=${mapZoom}&y=${mapY}&instance_dir=${encodeURIComponent(
-                instanceDir || ""
-              )}&tick=${mapTick}`}
-            />
-          </div>
-          <div className="map-pan">
-            <button className="btn" onClick={() => setMapZ((value) => value - 1)}>
-              ↑
-            </button>
-            <div className="map-pan-row">
-              <button className="btn" onClick={() => setMapX((value) => value - 1)}>
-                ←
-              </button>
-              <button className="btn" onClick={() => setMapX((value) => value + 1)}>
-                →
-              </button>
-            </div>
-            <button className="btn" onClick={() => setMapZ((value) => value + 1)}>
-              ↓
-            </button>
-          </div>
-          <div className="map-hint">
-            {t.mapStatus}: {mapStatus?.source ?? "none"} · {t.mapHint}
-          </div>
-          <div className="map-config-actions">
-            <button className="btn" onClick={toggleMapConfig}>
-              {mapConfigOpen ? t.close : t.open}
-            </button>
-            <button className="btn" disabled={!canEditMapConfig} onClick={startEditMapConfig}>
-              {t.edit}
-            </button>
-            <button className="btn" disabled={!mapConfigEditing} onClick={saveMapConfig}>
-              {t.save}
-            </button>
-            <button className="btn" disabled={!mapConfigEditing} onClick={cancelEditMapConfig}>
-              {t.cancel}
-            </button>
-            <button className="btn" disabled={!canEditMapConfig} onClick={reloadMapPlugin}>
-              {t.reload}
-            </button>
-          </div>
-          {mapConfigOpen ? (
-            <div className="map-config">
-              <div className="map-config-title">
-                {t.mapSettings} {mapConfig?.plugin ? `(${mapConfig.plugin})` : ""}
+            <section className="section runtime-grid">
+        <div className="map-area">
+          <h2>{t.map}</h2>
+          <div className="map-panel">
+            <div className="map-toolbar">
+              <div className="map-tabs">
+                <button
+                  className="btn"
+                  disabled={!mapStatus?.available?.overworld}
+                  onClick={() => setMapDimension("overworld")}
+                >
+                  {t.overworld}
+                </button>
+                <button
+                  className="btn"
+                  disabled={!mapStatus?.available?.nether}
+                  onClick={() => setMapDimension("nether")}
+                >
+                  {t.nether}
+                </button>
+                <button className="btn" disabled={!mapStatus?.available?.end} onClick={() => setMapDimension("end")}>
+                  {t.end}
+                </button>
               </div>
-              {mapConfig?.files?.length ? (
-                mapConfig.files.map((file) => (
-                  <div key={file.name} className="map-config-file">
-                    <div className="map-config-name">{file.name}</div>
-                    {mapConfigEditing ? (
-                      <textarea
-                        value={mapConfigDraft[file.name] ?? ""}
-                        onChange={(event) =>
-                          setMapConfigDraft({ ...mapConfigDraft, [file.name]: event.target.value })
-                        }
-                      />
-                    ) : (
-                      <pre>{file.content}</pre>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <div className="map-config-empty">No config files found.</div>
-              )}
+              <div className="map-controls">
+                <label>
+                  {t.zoom}
+                  <input
+                    type="range"
+                    min="0"
+                    max="6"
+                    value={mapZoom}
+                    onChange={(event) => setMapZoom(Number(event.target.value))}
+                  />
+                </label>
+                <label>
+                  {t.height}
+                  <input
+                    type="range"
+                    min={mapStatus?.y_min ?? -64}
+                    max={mapStatus?.y_max ?? 320}
+                    value={mapY}
+                    onChange={(event) => setMapY(Number(event.target.value))}
+                  />
+                </label>
+                <label>
+                  {t.refresh}
+                  <input
+                    type="range"
+                    min="1"
+                    max="30"
+                    value={mapRefreshSec}
+                    onChange={(event) => setMapRefreshSec(Number(event.target.value))}
+                  />
+                  <span>{mapRefreshSec}s</span>
+                </label>
+              </div>
             </div>
-          ) : null}
+            <div className="map-canvas">
+              <img
+                alt="map"
+                src={`/api/map/tile?dimension=${mapDimension}&x=${mapX}&z=${mapZ}&zoom=${mapZoom}&y=${mapY}&instance_dir=${encodeURIComponent(
+                  instanceDir || ""
+                )}&tick=${mapTick}`}
+              />
+            </div>
+            <div className="map-pan">
+              <button className="btn" onClick={() => setMapZ((value) => value - 1)}>
+                Up
+              </button>
+              <div className="map-pan-row">
+                <button className="btn" onClick={() => setMapX((value) => value - 1)}>
+                  Left
+                </button>
+                <button className="btn" onClick={() => setMapX((value) => value + 1)}>
+                  Right
+                </button>
+              </div>
+              <button className="btn" onClick={() => setMapZ((value) => value + 1)}>
+                Down
+              </button>
+            </div>
+            <div className="map-hint">
+              {t.mapStatus}: {mapStatus?.source ?? "none"} · {t.mapHint}
+            </div>
+            <div className="map-config-actions">
+              <button className="btn" onClick={toggleMapConfig}>
+                {mapConfigOpen ? t.close : t.open}
+              </button>
+              <button className="btn" disabled={!canEditMapConfig} onClick={startEditMapConfig}>
+                {t.edit}
+              </button>
+              <button className="btn" disabled={!mapConfigEditing} onClick={saveMapConfig}>
+                {t.save}
+              </button>
+              <button className="btn" disabled={!mapConfigEditing} onClick={cancelEditMapConfig}>
+                {t.cancel}
+              </button>
+              <button className="btn" disabled={!canEditMapConfig} onClick={reloadMapPlugin}>
+                {t.reload}
+              </button>
+            </div>
+            {mapConfigOpen ? (
+              <div className="map-config">
+                <div className="map-config-title">
+                  {t.mapSettings} {mapConfig?.plugin ? `(${mapConfig.plugin})` : ""}
+                </div>
+                {mapConfig?.files?.length ? (
+                  mapConfig.files.map((file) => (
+                    <div key={file.name} className="map-config-file">
+                      <div className="map-config-name">{file.name}</div>
+                      {mapConfigEditing ? (
+                        <textarea
+                          value={mapConfigDraft[file.name] ?? ""}
+                          onChange={(event) =>
+                            setMapConfigDraft({ ...mapConfigDraft, [file.name]: event.target.value })
+                          }
+                        />
+                      ) : (
+                        <pre>{file.content}</pre>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="map-config-empty">No config files found.</div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </div>
+        <div className="log-area">
+          <h2>{t.logs}</h2>
+          <div className="console" ref={logRef}>
+            {logLines.map((line, idx) => (
+              <div key={`${line}-${idx}`}>{line}</div>
+            ))}
+          </div>
+          {logError ? <div className="console-error">{logError}</div> : null}
+          <div className="console-actions">
+            <button className="btn" disabled={logConnected} onClick={connectLogs}>
+              {t.connect}
+            </button>
+            <button className="btn" disabled={!logConnected} onClick={disconnectLogs}>
+              {t.disconnect}
+            </button>
+            <button className="btn" onClick={clearLogs}>
+              {t.clear}
+            </button>
+            <span className={`tag status ${logConnected ? "status-live" : "status-offline"}`}>
+              {logConnected ? "LIVE" : "OFFLINE"}
+            </span>
+          </div>
+          <div className="command-bar">
+            <input
+              value={command}
+              onChange={(event) => setCommand(event.target.value)}
+              onKeyDown={handleCommandKey}
+              placeholder={t.command}
+            />
+            <div className="command-actions">
+              <button className="btn" disabled={!canCommand} onClick={() => sendCommand("/api/command")}>
+                {t.command}
+              </button>
+              <button className="btn" disabled={!canRcon} onClick={() => sendCommand("/api/rcon")}>
+                {t.rcon}
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="section">
+<section className="section">
         <h2>{t.templates}</h2>
         <div className="templates">
           <div className="template-form">

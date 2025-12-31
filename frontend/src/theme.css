@@ -80,7 +80,7 @@ body {
   border-radius: 6px;
   padding: 12px;
   min-height: 120px;
-  max-height: 260px;
+  max-height: 220px;
   overflow: auto;
   font-family: "JetBrains Mono", monospace;
 }
@@ -95,6 +95,7 @@ body {
   display: flex;
   gap: 8px;
   margin-top: 8px;
+  flex-wrap: wrap;
 }
 
 .console-actions input {
@@ -257,7 +258,7 @@ body {
   background: #0b1224;
   border-radius: 8px;
   padding: 10px;
-  min-height: 320px;
+  min-height: 520px;
 }
 
 .map-canvas img {
@@ -395,4 +396,54 @@ body {
   border: 1px solid var(--muted);
   background: transparent;
   color: var(--fg);
+}
+
+.runtime-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.map-area {
+  min-width: 0;
+}
+
+.log-area {
+  position: sticky;
+  top: 12px;
+  background: var(--card);
+  padding: 12px;
+  border-radius: 10px;
+}
+
+.command-bar {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.command-bar input {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--muted);
+  background: transparent;
+  color: var(--fg);
+}
+
+.command-actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 1000px) {
+  .runtime-grid {
+    grid-template-columns: 1fr;
+  }
+  .log-area {
+    position: static;
+  }
+  .map-canvas {
+    min-height: 360px;
+  }
 }

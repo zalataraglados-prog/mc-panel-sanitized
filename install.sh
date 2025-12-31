@@ -276,7 +276,7 @@ for section in ("server_properties", "gamerule"):
             dtype = "int"
         else:
             dtype = "string"
-        print(f\"{key}\\t{'' if hint is None else hint}\\t{dtype}\\t{'' if min_val is None else min_val}\\t{'' if max_val is None else max_val}\")
+        print(f"{key}\t{'' if hint is None else hint}\t{dtype}\t{'' if min_val is None else min_val}\t{'' if max_val is None else max_val}")
 PY > /tmp/param_keys.txt
 
 while IFS=$'\t' read -r key default_hint dtype min_val max_val; do
