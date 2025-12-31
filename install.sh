@@ -60,6 +60,7 @@ read_tty() {
 
 echo ""
 IMPORT_STRING=$(read_tty "Paste claims string (or press Enter to continue): ")
+export IMPORT_STRING
 
 cd "$INSTALL_DIR"
 
@@ -68,6 +69,7 @@ VERSION=$(read_tty "Minecraft version (e.g. 1.21.4): ")
 if [ -z "$VERSION" ]; then
   VERSION="1.21.4"
 fi
+export VERSION
 
 echo ""
 echo "Select Minecraft edition:"
@@ -102,6 +104,7 @@ case "$PROFILE_CHOICE" in
 esac
 
 PARAMS_JSON="/tmp/claims_params.json"
+export PARAMS_JSON
 
 python3 - <<'PY'
 import json
