@@ -52,50 +52,50 @@ const translations = {
     save: "Save",
     cancel: "Cancel",
     theme: "Dark / Light",
-    language: "中文 / EN",
+    language: "\u4e2d\u6587 / EN",
   },
   zh: {
-    title: "MC 面板",
-    dashboard: "仪表盘",
-    instances: "实例列表",
-    logs: "实时日志",
-    players: "玩家列表",
-    rules: "服务器规则",
-    map: "世界地图",
-    command: "指令",
+    title: "MC \u9762\u677f",
+    dashboard: "\u4eea\u8868\u76d8",
+    instances: "\u5b9e\u4f8b\u5217\u8868",
+    logs: "\u5b9e\u65f6\u65e5\u5fd7",
+    players: "\u73a9\u5bb6\u5217\u8868",
+    rules: "\u670d\u52a1\u5668\u89c4\u5219",
+    map: "\u4e16\u754c\u5730\u56fe",
+    command: "\u6307\u4ee4",
     rcon: "RCON",
-    control: "控制",
-    login: "登录",
-    username: "账号",
-    password: "密码",
-    templates: "常用指令",
-    addTemplate: "添加模板",
-    start: "启动",
-    stop: "停止",
-    restart: "重启",
-    connect: "连接",
-    disconnect: "断开",
-    clear: "清空",
-    session: "在线时长",
-    deop: "取消OP",
-    tpsTrend: "TPS 趋势",
-    mapStatus: "地图状态",
-    mapSettings: "地图设置",
-    open: "展开",
-    close: "收起",
-    reload: "重载",
-    overworld: "主世界",
-    nether: "地狱",
-    end: "末地",
-    zoom: "缩放",
-    height: "高度",
-    refresh: "刷新间隔(秒)",
-    mapHint: "只读瓦片。将瓦片放入实例目录 map-tiles/。",
-    edit: "编辑",
-    save: "保存",
-    cancel: "取消",
-    theme: "深色 / 浅色",
-    language: "中文 / EN",
+    control: "\u63a7\u5236",
+    login: "\u767b\u5f55",
+    username: "\u8d26\u53f7",
+    password: "\u5bc6\u7801",
+    templates: "\u5e38\u7528\u6307\u4ee4",
+    addTemplate: "\u6dfb\u52a0\u6a21\u677f",
+    start: "\u542f\u52a8",
+    stop: "\u505c\u6b62",
+    restart: "\u91cd\u542f",
+    connect: "\u8fde\u63a5",
+    disconnect: "\u65ad\u5f00",
+    clear: "\u6e05\u7a7a",
+    session: "\u5728\u7ebf\u65f6\u957f",
+    deop: "\u53d6\u6d88OP",
+    tpsTrend: "TPS \u8d8b\u52bf",
+    mapStatus: "\u5730\u56fe\u72b6\u6001",
+    mapSettings: "\u5730\u56fe\u8bbe\u7f6e",
+    open: "\u5c55\u5f00",
+    close: "\u6536\u8d77",
+    reload: "\u91cd\u8f7d",
+    overworld: "\u4e3b\u4e16\u754c",
+    nether: "\u5730\u72f1",
+    end: "\u672b\u5730",
+    zoom: "\u7f29\u653e",
+    height: "\u9ad8\u5ea6",
+    refresh: "\u5237\u65b0\u95f4\u9694(\u79d2)",
+    mapHint: "\u53ea\u8bfb\u74e6\u7247\u3002\u5c06\u74e6\u7247\u653e\u5165\u5b9e\u4f8b\u76ee\u5f55 map-tiles/ \u3002",
+    edit: "\u7f16\u8f91",
+    save: "\u4fdd\u5b58",
+    cancel: "\u53d6\u6d88",
+    theme: "\u6df1\u8272 / \u6d45\u8272",
+    language: "\u4e2d\u6587 / EN",
   },
 };
 
@@ -695,7 +695,7 @@ export function App() {
         </div>
       </section>
 
-            <section className="section runtime-grid">
+      <section className="section runtime-grid">
         <div className="map-area">
           <h2>{t.map}</h2>
           <div className="map-panel">
@@ -778,7 +778,7 @@ export function App() {
               </button>
             </div>
             <div className="map-hint">
-              {t.mapStatus}: {mapStatus?.source ?? "none"} · {t.mapHint}
+              {t.mapStatus}: {mapStatus?.source ?? "none"} - {t.mapHint}
             </div>
             <div className="map-config-actions">
               <button className="btn" onClick={toggleMapConfig}>
@@ -866,7 +866,7 @@ export function App() {
         </div>
       </section>
 
-<section className="section">
+      <section className="section">
         <h2>{t.templates}</h2>
         <div className="templates">
           <div className="template-form">

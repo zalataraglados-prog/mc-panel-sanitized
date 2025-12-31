@@ -85,6 +85,10 @@ body {
   font-family: "JetBrains Mono", monospace;
 }
 
+.log-area .console {
+  max-height: 280px;
+}
+
 .console-error {
   margin-top: 6px;
   color: #f87171;
@@ -258,7 +262,7 @@ body {
   background: #0b1224;
   border-radius: 8px;
   padding: 10px;
-  min-height: 520px;
+  min-height: 640px;
 }
 
 .map-canvas img {
@@ -400,7 +404,7 @@ body {
 
 .runtime-grid {
   display: grid;
-  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -415,6 +419,8 @@ body {
   background: var(--card);
   padding: 12px;
   border-radius: 10px;
+  max-height: 720px;
+  overflow: hidden;
 }
 
 .command-bar {

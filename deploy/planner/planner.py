@@ -239,8 +239,10 @@ def _parse_bool(value) -> bool | None:
 
 
 def _validate_param_ranges(params: dict, catalog: dict | None, usability: dict | None) -> List[PlanMessage]:
-    if not isinstance(catalog, dict) or not isinstance(usability, dict):
+    if not isinstance(catalog, dict):
         return []
+    if not isinstance(usability, dict):
+        usability = {}
 
     blocks: List[PlanMessage] = []
 
