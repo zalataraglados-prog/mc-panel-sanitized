@@ -150,6 +150,24 @@ with open(os.environ["PARAMS_JSON"], "w", encoding="utf-8") as handle:
 PY
 }
 
+MAP_PLUGIN_EXISTS=$(PARAM_KEY="map.plugin" get_param "map.plugin")
+if [ -z "$MAP_PLUGIN_EXISTS" ]; then
+  echo ""
+  echo "Map plugin (optional):"
+  echo "1) none"
+  echo "2) Dynmap"
+  echo "3) BlueMap"
+  PLUGIN_CHOICE=$(read_tty "Enter [1-3]: ")
+  case "$PLUGIN_CHOICE" in
+    2) MAP_PLUGIN="dynmap" ;;
+    3) MAP_PLUGIN="bluemap" ;;
+    *) MAP_PLUGIN="" ;;
+  esac
+  if [ -n "$MAP_PLUGIN" ]; then
+    PARAM_KEY="map.plugin" PARAM_VALUE="$MAP_PLUGIN" set_param "map.plugin" "$MAP_PLUGIN"
+  fi
+fi
+
 echo ""
 OVERRIDE_JAVA=$(read_tty "Override Java runtime? [y/N] ")
 if [ "$OVERRIDE_JAVA" = "y" ] || [ "$OVERRIDE_JAVA" = "Y" ]; then

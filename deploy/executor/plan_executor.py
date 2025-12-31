@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import urllib.request
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
@@ -138,6 +139,25 @@ class ExecutionPlanExecutor:
             else:
                 shutil.copy2(source, target)
             return ExecutionStep(name="action:copy_map", ok=True, details=f"{source} -> {target}")
+
+        if action_type == "download_file":
+            url = params.get("url")
+            target = params.get("target")
+            overwrite = params.get("overwrite", False)
+            if not url or not target:
+                return ExecutionStep(name="action:download_file", ok=False, details="missing url/target")
+            if os.path.exists(target) and not overwrite:
+                return ExecutionStep(
+                    name="action:download_file",
+                    ok=False,
+                    details="target exists and overwrite disabled",
+                )
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            try:
+                urllib.request.urlretrieve(url, target)
+            except Exception as exc:
+                return ExecutionStep(name="action:download_file", ok=False, details=str(exc))
+            return ExecutionStep(name="action:download_file", ok=True, details=target)
 
         return ExecutionStep(
             name=f"action:{action_type}",

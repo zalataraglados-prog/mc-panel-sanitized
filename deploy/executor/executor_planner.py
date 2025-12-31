@@ -14,6 +14,16 @@ DEFAULT_BASE_DIR = "/opt/mc-instances"
 DEFAULT_MC_VERSION = "1.21.4"
 DEFAULT_DOCKER_IMAGE = "itzg/minecraft-server"
 DEFAULT_DOCKER_TAG = "latest"
+MAP_PLUGIN_URLS = {
+    "dynmap": {
+        "url": "https://dynmap.us/builds/dynmap/Dynmap-HEAD-spigot.jar",
+        "filename": "Dynmap.jar",
+    },
+    "bluemap": {
+        "url": "https://github.com/BlueMap-Minecraft/BlueMap/releases/latest/download/BlueMap.jar",
+        "filename": "BlueMap.jar",
+    },
+}
 
 
 def _parse_int(value) -> int | None:
@@ -187,6 +197,24 @@ def build_execution_plan(
             },
         ),
     ]
+
+    map_plugin = params.get("map.plugin")
+    if map_plugin in MAP_PLUGIN_URLS:
+        plugin_spec = MAP_PLUGIN_URLS[map_plugin]
+        plugin_dir = posixpath.join(instance_dir, "data", "plugins")
+        plugin_target = posixpath.join(plugin_dir, plugin_spec["filename"])
+        plugin_url = params.get("map.plugin_url", plugin_spec["url"])
+        actions.append(Action(type="mkdir", params={"path": plugin_dir}))
+        actions.append(
+            Action(
+                type="download_file",
+                params={
+                    "url": plugin_url,
+                    "target": plugin_target,
+                    "overwrite": False,
+                },
+            )
+        )
 
     map_file = params.get("map.file")
     if map_file:
