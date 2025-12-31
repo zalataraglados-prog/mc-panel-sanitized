@@ -280,10 +280,16 @@ body {
   border-radius: 8px;
 }
 
-.map-config summary {
-  cursor: pointer;
-  color: var(--accent);
+.map-config-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.map-config-title {
   font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 6px;
 }
 
 .map-config-file {
@@ -305,6 +311,18 @@ body {
   max-height: 240px;
   overflow: auto;
   font-size: 12px;
+}
+
+.map-config textarea {
+  width: 100%;
+  min-height: 160px;
+  background: #0b1224;
+  color: #cbd5f5;
+  border: 1px solid #1f2937;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 12px;
+  font-family: "JetBrains Mono", monospace;
 }
 
 .map-config-empty {

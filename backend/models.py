@@ -91,3 +91,14 @@ class MapConfigFile(BaseModel):
 class MapConfigResponse(BaseModel):
     plugin: Optional[str]
     files: List[MapConfigFile]
+
+
+class MapConfigUpdateRequest(BaseModel):
+    plugin: Optional[str]
+    files: List[MapConfigFile]
+    instance_dir: Optional[str] = None
+
+
+class MapReloadResponse(BaseModel):
+    plugin: Optional[str]
+    status: str

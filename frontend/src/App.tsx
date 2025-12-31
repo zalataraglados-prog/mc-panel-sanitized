@@ -38,6 +38,9 @@ const translations = {
     tpsTrend: "TPS Trend",
     mapStatus: "Map Status",
     mapSettings: "Map Settings",
+    open: "Open",
+    close: "Close",
+    reload: "Reload",
     overworld: "Overworld",
     nether: "Nether",
     end: "End",
@@ -78,6 +81,9 @@ const translations = {
     tpsTrend: "TPS 趋势",
     mapStatus: "地图状态",
     mapSettings: "地图设置",
+    open: "展开",
+    close: "收起",
+    reload: "重载",
     overworld: "主世界",
     nether: "地狱",
     end: "末地",
@@ -157,6 +163,9 @@ export function App() {
   const [logError, setLogError] = useState("");
   const [mapStatus, setMapStatus] = useState<MapStatus | null>(null);
   const [mapConfig, setMapConfig] = useState<MapConfig | null>(null);
+  const [mapConfigOpen, setMapConfigOpen] = useState(false);
+  const [mapConfigEditing, setMapConfigEditing] = useState(false);
+  const [mapConfigDraft, setMapConfigDraft] = useState<Record<string, string>>({});
   const [mapDimension, setMapDimension] = useState<"overworld" | "nether" | "end">("overworld");
   const [mapZoom, setMapZoom] = useState(0);
   const [mapX, setMapX] = useState(0);
@@ -172,6 +181,7 @@ export function App() {
   const canManagePlayers = role === "owner" || role === "admin" || role === "mod";
   const canTemplateWrite = role === "owner" || role === "admin";
   const canEditRules = role === "owner" || role === "admin";
+  const canEditMapConfig = role === "owner" || role === "admin";
 
   useEffect(() => {
     document.body.dataset.theme = dark ? "dark" : "light";
@@ -259,7 +269,16 @@ export function App() {
       .catch(() => {});
     fetch(`/api/map/config${instanceQuery}`, { headers: authHeader })
       .then((res) => res.json())
-      .then((data) => setMapConfig(data))
+      .then((data) => {
+        setMapConfig(data);
+        if (!mapConfigEditing && data?.files) {
+          const draft: Record<string, string> = {};
+          data.files.forEach((file: MapConfigFile) => {
+            draft[file.name] = file.content;
+          });
+          setMapConfigDraft(draft);
+        }
+      })
       .catch(() => {});
   };
 
@@ -462,6 +481,53 @@ export function App() {
         setRulesEditing(false);
       })
       .catch(() => {});
+  };
+
+  const toggleMapConfig = () => {
+    setMapConfigOpen((value) => !value);
+  };
+
+  const startEditMapConfig = () => {
+    if (!canEditMapConfig) {
+      return;
+    }
+    const draft: Record<string, string> = {};
+    mapConfig?.files?.forEach((file) => {
+      draft[file.name] = file.content;
+    });
+    setMapConfigDraft(draft);
+    setMapConfigEditing(true);
+    setMapConfigOpen(true);
+  };
+
+  const cancelEditMapConfig = () => {
+    setMapConfigEditing(false);
+  };
+
+  const saveMapConfig = () => {
+    if (!canEditMapConfig || !mapConfig?.plugin) {
+      return;
+    }
+    const files = Object.keys(mapConfigDraft).map((name) => ({ name, content: mapConfigDraft[name] }));
+    fetch("/api/map/config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeader },
+      body: JSON.stringify({ plugin: mapConfig.plugin, files, instance_dir: instanceDir || undefined }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setMapConfig(data);
+        setMapConfigEditing(false);
+      })
+      .catch(() => {});
+  };
+
+  const reloadMapPlugin = () => {
+    if (!canEditMapConfig) {
+      return;
+    }
+    const query = instanceDir ? `?instance_dir=${encodeURIComponent(instanceDir)}` : "";
+    fetch(`/api/map/reload${query}`, { method: "POST", headers: authHeader }).catch(() => {});
   };
 
   const handleCommandKey = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -733,21 +799,49 @@ export function App() {
           <div className="map-hint">
             {t.mapStatus}: {mapStatus?.source ?? "none"} · {t.mapHint}
           </div>
-          <details className="map-config">
-            <summary>
-              {t.mapSettings} {mapConfig?.plugin ? `(${mapConfig.plugin})` : ""}
-            </summary>
-            {mapConfig?.files?.length ? (
-              mapConfig.files.map((file) => (
-                <div key={file.name} className="map-config-file">
-                  <div className="map-config-name">{file.name}</div>
-                  <pre>{file.content}</pre>
-                </div>
-              ))
-            ) : (
-              <div className="map-config-empty">No config files found.</div>
-            )}
-          </details>
+          <div className="map-config-actions">
+            <button className="btn" onClick={toggleMapConfig}>
+              {mapConfigOpen ? t.close : t.open}
+            </button>
+            <button className="btn" disabled={!canEditMapConfig} onClick={startEditMapConfig}>
+              {t.edit}
+            </button>
+            <button className="btn" disabled={!mapConfigEditing} onClick={saveMapConfig}>
+              {t.save}
+            </button>
+            <button className="btn" disabled={!mapConfigEditing} onClick={cancelEditMapConfig}>
+              {t.cancel}
+            </button>
+            <button className="btn" disabled={!canEditMapConfig} onClick={reloadMapPlugin}>
+              {t.reload}
+            </button>
+          </div>
+          {mapConfigOpen ? (
+            <div className="map-config">
+              <div className="map-config-title">
+                {t.mapSettings} {mapConfig?.plugin ? `(${mapConfig.plugin})` : ""}
+              </div>
+              {mapConfig?.files?.length ? (
+                mapConfig.files.map((file) => (
+                  <div key={file.name} className="map-config-file">
+                    <div className="map-config-name">{file.name}</div>
+                    {mapConfigEditing ? (
+                      <textarea
+                        value={mapConfigDraft[file.name] ?? ""}
+                        onChange={(event) =>
+                          setMapConfigDraft({ ...mapConfigDraft, [file.name]: event.target.value })
+                        }
+                      />
+                    ) : (
+                      <pre>{file.content}</pre>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="map-config-empty">No config files found.</div>
+              )}
+            </div>
+          ) : null}
         </div>
       </section>
 
