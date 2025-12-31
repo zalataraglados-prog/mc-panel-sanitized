@@ -168,6 +168,35 @@ if [ -z "$MAP_PLUGIN_EXISTS" ]; then
   fi
 fi
 
+MAP_PORT_EXISTS=$(PARAM_KEY="map.plugin_port" get_param "map.plugin_port")
+if [ -z "$MAP_PORT_EXISTS" ]; then
+  if [ "$MAP_PLUGIN" = "dynmap" ] || [ "$MAP_PLUGIN_EXISTS" = "dynmap" ]; then
+    DEFAULT_MAP_PORT="8123"
+  elif [ "$MAP_PLUGIN" = "bluemap" ] || [ "$MAP_PLUGIN_EXISTS" = "bluemap" ]; then
+    DEFAULT_MAP_PORT="8100"
+  else
+    DEFAULT_MAP_PORT=""
+  fi
+  if [ -n "$DEFAULT_MAP_PORT" ]; then
+    MAP_PORT=$(read_tty "Map plugin port [default: ${DEFAULT_MAP_PORT}]: ")
+    if [ -z "$MAP_PORT" ]; then
+      MAP_PORT="$DEFAULT_MAP_PORT"
+    fi
+    PARAM_KEY="map.plugin_port" PARAM_VALUE="$MAP_PORT" set_param "map.plugin_port" "$MAP_PORT"
+  fi
+fi
+
+MAP_RENDER_EXISTS=$(PARAM_KEY="map.render_interval" get_param "map.render_interval")
+if [ -z "$MAP_RENDER_EXISTS" ]; then
+  if [ "$MAP_PLUGIN" = "dynmap" ] || [ "$MAP_PLUGIN_EXISTS" = "dynmap" ] || [ "$MAP_PLUGIN" = "bluemap" ] || [ "$MAP_PLUGIN_EXISTS" = "bluemap" ]; then
+    MAP_RENDER=$(read_tty "Map render interval (minutes) [default: 5]: ")
+    if [ -z "$MAP_RENDER" ]; then
+      MAP_RENDER="5"
+    fi
+    PARAM_KEY="map.render_interval" PARAM_VALUE="$MAP_RENDER" set_param "map.render_interval" "$MAP_RENDER"
+  fi
+fi
+
 echo ""
 OVERRIDE_JAVA=$(read_tty "Override Java runtime? [y/N] ")
 if [ "$OVERRIDE_JAVA" = "y" ] || [ "$OVERRIDE_JAVA" = "Y" ]; then

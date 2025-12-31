@@ -40,6 +40,7 @@ const translations = {
     end: "End",
     zoom: "Zoom",
     height: "Y Level",
+    refresh: "Refresh (s)",
     mapHint: "Tiles are read-only. Provide tiles via map-tiles/ in instance dir.",
     edit: "Edit",
     save: "Save",
@@ -78,6 +79,7 @@ const translations = {
     end: "末地",
     zoom: "缩放",
     height: "高度",
+    refresh: "刷新间隔（秒）",
     mapHint: "只读瓦片。将瓦片放入实例目录的 map-tiles/。",
     edit: "编辑",
     save: "保存",
@@ -155,6 +157,7 @@ export function App() {
   const [mapX, setMapX] = useState(0);
   const [mapZ, setMapZ] = useState(0);
   const [mapY, setMapY] = useState(64);
+  const [mapRefreshSec, setMapRefreshSec] = useState(5);
   const [mapTick, setMapTick] = useState(0);
 
   const t = translations[lang];
@@ -279,9 +282,9 @@ export function App() {
     }
     const interval = window.setInterval(() => {
       setMapTick((tick) => tick + 1);
-    }, 5000);
+    }, Math.max(1, mapRefreshSec) * 1000);
     return () => window.clearInterval(interval);
-  }, [token, instanceDir]);
+  }, [token, instanceDir, mapRefreshSec]);
 
   const handleLogin = (event: React.FormEvent) => {
     event.preventDefault();
@@ -680,6 +683,17 @@ export function App() {
                   value={mapY}
                   onChange={(event) => setMapY(Number(event.target.value))}
                 />
+              </label>
+              <label>
+                {t.refresh}
+                <input
+                  type="range"
+                  min="1"
+                  max="30"
+                  value={mapRefreshSec}
+                  onChange={(event) => setMapRefreshSec(Number(event.target.value))}
+                />
+                <span>{mapRefreshSec}s</span>
               </label>
             </div>
           </div>

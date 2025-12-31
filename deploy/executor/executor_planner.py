@@ -91,6 +91,9 @@ def _build_template_context(params: dict, instance_name: str, instance_dir: str)
     docker_image = params.get("docker.image", DEFAULT_DOCKER_IMAGE)
     docker_tag = params.get("docker.tag", DEFAULT_DOCKER_TAG)
 
+    map_port = _parse_int(params.get("map.plugin_port")) or 8123
+    render_interval = _parse_int(params.get("map.render_interval")) or 5
+
     return {
         "INSTANCE_NAME": instance_name,
         "INSTANCE_DIR": instance_dir,
@@ -107,6 +110,8 @@ def _build_template_context(params: dict, instance_name: str, instance_dir: str)
         "CREATED_AT": "1970-01-01T00:00:00Z",
         "DEPLOYER_VERSION": "phase12",
         "RCON_PASSWORD": "change-me",
+        "MAP_PORT": map_port,
+        "MAP_RENDER_INTERVAL": render_interval,
     }
 
 
@@ -215,6 +220,28 @@ def build_execution_plan(
                 },
             )
         )
+        if map_plugin == "dynmap":
+            actions.append(
+                Action(
+                    type="write_file",
+                    params={
+                        "path": posixpath.join(plugin_dir, "dynmap", "configuration.txt"),
+                        "template": "dynmap.configuration.txt.tpl",
+                        "context": context,
+                    },
+                )
+            )
+        if map_plugin == "bluemap":
+            actions.append(
+                Action(
+                    type="write_file",
+                    params={
+                        "path": posixpath.join(plugin_dir, "BlueMap", "core.conf"),
+                        "template": "bluemap.core.conf.tpl",
+                        "context": context,
+                    },
+                )
+            )
 
     map_file = params.get("map.file")
     if map_file:
