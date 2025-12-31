@@ -122,6 +122,11 @@ export function App() {
   const logRef = useRef<HTMLDivElement | null>(null);
 
   const t = translations[lang];
+  const canControl = role === "owner" || role === "admin";
+  const canCommand = role === "owner" || role === "admin" || role === "mod";
+  const canRcon = role === "owner" || role === "admin";
+  const canManagePlayers = role === "owner" || role === "admin" || role === "mod";
+  const canTemplateWrite = role === "owner" || role === "admin";
 
   useEffect(() => {
     document.body.dataset.theme = dark ? "dark" : "light";
@@ -245,6 +250,12 @@ export function App() {
     if (!command.trim()) {
       return;
     }
+    if (endpoint === "/api/rcon" && !canRcon) {
+      return;
+    }
+    if (endpoint === "/api/command" && !canCommand) {
+      return;
+    }
     fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeader },
@@ -264,6 +275,9 @@ export function App() {
   };
 
   const sendControl = (action: string) => {
+    if (!canControl) {
+      return;
+    }
     fetch("/api/control", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeader },
@@ -273,6 +287,9 @@ export function App() {
 
   const addTemplate = () => {
     if (!newTemplate.name.trim() || !newTemplate.command.trim()) {
+      return;
+    }
+    if (!canTemplateWrite) {
       return;
     }
     fetch("/api/command-templates", {
@@ -289,6 +306,9 @@ export function App() {
   };
 
   const sendPlayerCommand = (cmd: string) => {
+    if (!canManagePlayers) {
+      return;
+    }
     fetch("/api/command", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeader },
@@ -358,13 +378,13 @@ export function App() {
       <section className="section">
         <h2>{t.control}</h2>
         <div className="control-row">
-          <button className="btn" onClick={() => sendControl("start")}>
+          <button className="btn" disabled={!canControl} onClick={() => sendControl("start")}>
             {t.start}
           </button>
-          <button className="btn" onClick={() => sendControl("stop")}>
+          <button className="btn" disabled={!canControl} onClick={() => sendControl("stop")}>
             {t.stop}
           </button>
-          <button className="btn" onClick={() => sendControl("restart")}>
+          <button className="btn" disabled={!canControl} onClick={() => sendControl("restart")}>
             {t.restart}
           </button>
           <span className="tag">Role: {role || "guest"}</span>
@@ -388,10 +408,10 @@ export function App() {
             onKeyDown={handleCommandKey}
             placeholder={t.command}
           />
-          <button className="btn" onClick={() => sendCommand("/api/command")}>
+          <button className="btn" disabled={!canCommand} onClick={() => sendCommand("/api/command")}>
             {t.command}
           </button>
-          <button className="btn" onClick={() => sendCommand("/api/rcon")}>
+          <button className="btn" disabled={!canRcon} onClick={() => sendCommand("/api/rcon")}>
             {t.rcon}
           </button>
         </div>
@@ -412,16 +432,28 @@ export function App() {
                   {t.session}: {Math.floor((p as any).session_seconds || 0)}s
                 </div>
                 <div className="player-actions">
-                  <button className="btn" onClick={() => sendPlayerCommand(`op ${p.name}`)}>
+                  <button className="btn" disabled={!canManagePlayers} onClick={() => sendPlayerCommand(`op ${p.name}`)}>
                     OP
                   </button>
-                  <button className="btn" onClick={() => sendPlayerCommand(`deop ${p.name}`)}>
+                  <button
+                    className="btn"
+                    disabled={!canManagePlayers}
+                    onClick={() => sendPlayerCommand(`deop ${p.name}`)}
+                  >
                     {t.deop}
                   </button>
-                  <button className="btn" onClick={() => sendPlayerCommand(`kick ${p.name}`)}>
+                  <button
+                    className="btn"
+                    disabled={!canManagePlayers}
+                    onClick={() => sendPlayerCommand(`kick ${p.name}`)}
+                  >
                     Kick
                   </button>
-                  <button className="btn" onClick={() => sendPlayerCommand(`tp ${p.name} @s`)}>
+                  <button
+                    className="btn"
+                    disabled={!canManagePlayers}
+                    onClick={() => sendPlayerCommand(`tp ${p.name} @s`)}
+                  >
                     Teleport
                   </button>
                 </div>
@@ -462,7 +494,7 @@ export function App() {
               onChange={(event) => setNewTemplate({ ...newTemplate, command: event.target.value })}
               placeholder="command"
             />
-            <button className="btn" onClick={addTemplate}>
+            <button className="btn" disabled={!canTemplateWrite} onClick={addTemplate}>
               {t.addTemplate}
             </button>
           </div>
