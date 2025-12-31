@@ -1,22 +1,25 @@
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 
-from backend.auth import get_current_user
-from backend.runtime.log_streamer import tail_log
+from backend.auth import get_current_user, require_roles
+from backend.runtime.log_streamer import follow_log, tail_log
+from backend.routers.instances import resolve_instance_dir
 
 router = APIRouter()
 
 
 @router.websocket("/api/logs/ws")
-async def logs_websocket(websocket: WebSocket, token: str, instance_dir: str = "/opt/mc-instances"):
+async def logs_websocket(websocket: WebSocket, token: str, instance_dir: str | None = None):
     await websocket.accept()
     try:
         user = get_current_user(f"Bearer {token}")
+        require_roles(user, ["owner", "admin", "mod", "viewer"])
     except Exception as exc:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
-    log_path = Path(instance_dir) / "logs" / "latest.log"
+    target_dir = instance_dir or resolve_instance_dir()
+    log_path = Path(target_dir) / "logs" / "latest.log"
     if not log_path.exists():
         await websocket.send_text("logs not found")
         await websocket.close()
@@ -25,8 +28,7 @@ async def logs_websocket(websocket: WebSocket, token: str, instance_dir: str = "
         lines = tail_log(str(log_path), lines=200)
         for line in lines:
             await websocket.send_text(line.strip())
-        while True:
-            await websocket.send_text("heartbeat")
-            await websocket.receive_text()
+        async for line in follow_log(str(log_path)):
+            await websocket.send_text(line)
     except WebSocketDisconnect:
         return

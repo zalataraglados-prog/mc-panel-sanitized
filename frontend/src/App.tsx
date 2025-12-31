@@ -1,6 +1,58 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type Metric = { label: string; value: string };
+type Player = { name: string; uuid: string; skin_url: string; position: { x: number; y: number; z: number } };
+type Rule = { key: string; value: string };
+type CommandTemplate = { name: string; command: string };
+
+const translations = {
+  en: {
+    title: "MC Panel",
+    dashboard: "Dashboard",
+    instances: "Instances",
+    logs: "Logs",
+    players: "Players",
+    rules: "Server Rules",
+    map: "World Map",
+    command: "Command",
+    rcon: "RCON",
+    control: "Control",
+    login: "Login",
+    username: "Username",
+    password: "Password",
+    templates: "Command Templates",
+    addTemplate: "Add Template",
+    start: "Start",
+    stop: "Stop",
+    restart: "Restart",
+    connect: "Connect",
+    theme: "Dark / Light",
+    language: "中文 / EN",
+  },
+  zh: {
+    title: "MC 面板",
+    dashboard: "仪表盘",
+    instances: "实例列表",
+    logs: "实时日志",
+    players: "玩家列表",
+    rules: "服务器规则",
+    map: "世界地图",
+    command: "指令",
+    rcon: "RCON",
+    control: "控制",
+    login: "登录",
+    username: "账号",
+    password: "密码",
+    templates: "常用指令",
+    addTemplate: "添加模板",
+    start: "启动",
+    stop: "停止",
+    restart: "重启",
+    connect: "连接",
+    theme: "深色 / 浅色",
+    language: "中文 / EN",
+  },
+};
 
 function StatCard({ title, value }: { title: string; value: string }) {
   return (
@@ -14,9 +66,34 @@ function StatCard({ title, value }: { title: string; value: string }) {
 export function App() {
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [instances, setInstances] = useState<string[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [rules, setRules] = useState<Rule[]>([]);
+  const [templates, setTemplates] = useState<CommandTemplate[]>([]);
+  const [newTemplate, setNewTemplate] = useState({ name: "", command: "" });
+  const [token, setToken] = useState("");
+  const [role, setRole] = useState("");
+  const [lang, setLang] = useState<"en" | "zh">("en");
+  const [dark, setDark] = useState(true);
+  const [logLines, setLogLines] = useState<string[]>([]);
+  const [command, setCommand] = useState("");
+  const [commandHistory, setCommandHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const wsRef = useRef<WebSocket | null>(null);
+  const logRef = useRef<HTMLDivElement | null>(null);
+
+  const t = translations[lang];
 
   useEffect(() => {
-    fetch("/api/status", { headers: { Authorization: "Bearer owner-token" } })
+    document.body.dataset.theme = dark ? "dark" : "light";
+  }, [dark]);
+
+  const authHeader = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
+
+  const refreshData = () => {
+    if (!token) {
+      return;
+    }
+    fetch("/api/status", { headers: authHeader })
       .then((res) => res.json())
       .then((data) => {
         setMetrics([
@@ -29,7 +106,7 @@ export function App() {
         ]);
       })
       .catch(() => {});
-    fetch("/api/instances", { headers: { Authorization: "Bearer owner-token" } })
+    fetch("/api/instances", { headers: authHeader })
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data.instances)) {
@@ -37,36 +114,290 @@ export function App() {
         }
       })
       .catch(() => {});
-  }, []);
+    fetch("/api/players", { headers: authHeader })
+      .then((res) => res.json())
+      .then((data) => setPlayers(data))
+      .catch(() => {});
+    fetch("/api/rules", { headers: authHeader })
+      .then((res) => res.json())
+      .then((data) => setRules(data.entries || []))
+      .catch(() => {});
+    fetch("/api/command-templates", { headers: authHeader })
+      .then((res) => res.json())
+      .then((data) => setTemplates(data.templates || []))
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    if (token) {
+      refreshData();
+    }
+  }, [token]);
+
+  const handleLogin = (event: React.FormEvent) => {
+    event.preventDefault();
+    const form = event.target as HTMLFormElement;
+    const payload = {
+      username: (form.elements.namedItem("username") as HTMLInputElement).value,
+      password: (form.elements.namedItem("password") as HTMLInputElement).value,
+    };
+    fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setToken(data.token || "");
+        setRole(data.role || "");
+      })
+      .catch(() => {});
+  };
+
+  const connectLogs = () => {
+    if (!token || wsRef.current) {
+      return;
+    }
+    const ws = new WebSocket(`ws://localhost:8000/api/logs/ws?token=${token}`);
+    ws.onmessage = (event) => {
+      setLogLines((prev) => [...prev.slice(-200), event.data]);
+    };
+    ws.onclose = () => {
+      wsRef.current = null;
+    };
+    wsRef.current = ws;
+  };
+
+  useEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight;
+    }
+  }, [logLines]);
+
+  const sendCommand = (endpoint: string) => {
+    if (!command.trim()) {
+      return;
+    }
+    fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeader },
+      body: JSON.stringify({ command }),
+    }).catch(() => {});
+    setCommandHistory((prev) => [command, ...prev].slice(0, 20));
+    setCommand("");
+    setHistoryIndex(-1);
+  };
+
+  const sendControl = (action: string) => {
+    fetch("/api/control", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeader },
+      body: JSON.stringify({ action }),
+    }).catch(() => {});
+  };
+
+  const addTemplate = () => {
+    if (!newTemplate.name.trim() || !newTemplate.command.trim()) {
+      return;
+    }
+    fetch("/api/command-templates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeader },
+      body: JSON.stringify(newTemplate),
+    })
+      .then((res) => res.json())
+      .then(() => {
+        setNewTemplate({ name: "", command: "" });
+        refreshData();
+      })
+      .catch(() => {});
+  };
+
+  const sendPlayerCommand = (cmd: string) => {
+    fetch("/api/command", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeader },
+      body: JSON.stringify({ command: cmd }),
+    }).catch(() => {});
+  };
+
+  const handleCommandKey = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "ArrowUp") {
+      const nextIndex = Math.min(commandHistory.length - 1, historyIndex + 1);
+      if (nextIndex >= 0) {
+        setCommand(commandHistory[nextIndex]);
+        setHistoryIndex(nextIndex);
+      }
+    }
+    if (event.key === "ArrowDown") {
+      const nextIndex = Math.max(-1, historyIndex - 1);
+      if (nextIndex === -1) {
+        setCommand("");
+      } else {
+        setCommand(commandHistory[nextIndex]);
+      }
+      setHistoryIndex(nextIndex);
+    }
+  };
 
   return (
     <div className="page">
       <header className="header">
-        <h1>MC Panel</h1>
+        <h1>{t.title}</h1>
         <div className="actions">
-          <button className="btn">Dark / Light</button>
-          <button className="btn">中文 / EN</button>
+          <button className="btn" onClick={() => setDark((value) => !value)}>
+            {t.theme}
+          </button>
+          <button className="btn" onClick={() => setLang((value) => (value === "en" ? "zh" : "en"))}>
+            {t.language}
+          </button>
         </div>
       </header>
+
+      {!token ? (
+        <section className="section">
+          <h2>{t.login}</h2>
+          <form className="login" onSubmit={handleLogin}>
+            <input name="username" placeholder={t.username} />
+            <input name="password" type="password" placeholder={t.password} />
+            <button className="btn" type="submit">
+              {t.login}
+            </button>
+          </form>
+        </section>
+      ) : null}
+
       <section className="section">
-        <h2>Dashboard</h2>
+        <h2>{t.dashboard}</h2>
         <div className="grid">
           {metrics.map((m) => (
             <StatCard key={m.label} title={m.label} value={m.value} />
           ))}
         </div>
       </section>
+
       <section className="section">
-        <h2>Instances</h2>
+        <h2>{t.control}</h2>
+        <div className="control-row">
+          <button className="btn" onClick={() => sendControl("start")}>
+            {t.start}
+          </button>
+          <button className="btn" onClick={() => sendControl("stop")}>
+            {t.stop}
+          </button>
+          <button className="btn" onClick={() => sendControl("restart")}>
+            {t.restart}
+          </button>
+          <span className="tag">Role: {role || "guest"}</span>
+        </div>
+      </section>
+
+      <section className="section">
+        <h2>{t.logs}</h2>
+        <div className="console" ref={logRef}>
+          {logLines.map((line, idx) => (
+            <div key={`${line}-${idx}`}>{line}</div>
+          ))}
+        </div>
+        <div className="console-actions">
+          <button className="btn" onClick={connectLogs}>
+            {t.connect}
+          </button>
+          <input
+            value={command}
+            onChange={(event) => setCommand(event.target.value)}
+            onKeyDown={handleCommandKey}
+            placeholder={t.command}
+          />
+          <button className="btn" onClick={() => sendCommand("/api/command")}>
+            {t.command}
+          </button>
+          <button className="btn" onClick={() => sendCommand("/api/rcon")}>
+            {t.rcon}
+          </button>
+        </div>
+      </section>
+
+      <section className="section">
+        <h2>{t.players}</h2>
+        <div className="players">
+          {players.map((p) => (
+            <div key={p.uuid} className="player-card">
+              <img src={p.skin_url} alt={p.name} />
+              <div>
+                <div className="player-name">{p.name}</div>
+                <div className="player-meta">
+                  {p.position.x},{p.position.y},{p.position.z}
+                </div>
+                <div className="player-actions">
+                  <button className="btn" onClick={() => sendPlayerCommand(`op ${p.name}`)}>
+                    OP
+                  </button>
+                  <button className="btn" onClick={() => sendPlayerCommand(`kick ${p.name}`)}>
+                    Kick
+                  </button>
+                  <button className="btn" onClick={() => sendPlayerCommand(`tp ${p.name} @s`)}>
+                    Teleport
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="section">
+        <h2>{t.rules}</h2>
+        <div className="rules">
+          {rules.map((r) => (
+            <div key={r.key} className="rule-row">
+              <span>{r.key}</span>
+              <span>{r.value}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="section">
+        <h2>{t.map}</h2>
+        <div className="map-placeholder">Map module placeholder</div>
+      </section>
+
+      <section className="section">
+        <h2>{t.templates}</h2>
+        <div className="templates">
+          <div className="template-form">
+            <input
+              value={newTemplate.name}
+              onChange={(event) => setNewTemplate({ ...newTemplate, name: event.target.value })}
+              placeholder="name"
+            />
+            <input
+              value={newTemplate.command}
+              onChange={(event) => setNewTemplate({ ...newTemplate, command: event.target.value })}
+              placeholder="command"
+            />
+            <button className="btn" onClick={addTemplate}>
+              {t.addTemplate}
+            </button>
+          </div>
+          <div className="template-list">
+            {templates.map((tpl) => (
+              <button key={tpl.name} className="btn" onClick={() => setCommand(tpl.command)}>
+                {tpl.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="section">
+        <h2>{t.instances}</h2>
         <ul>
           {instances.map((name) => (
             <li key={name}>{name}</li>
           ))}
         </ul>
-      </section>
-      <section className="section">
-        <h2>Logs</h2>
-        <div className="console">Connect to /api/logs/ws with token in query</div>
       </section>
     </div>
   );

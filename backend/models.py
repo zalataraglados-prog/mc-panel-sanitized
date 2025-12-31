@@ -51,5 +51,18 @@ class CommandRequest(BaseModel):
     target: Optional[str] = None
 
 
+class ControlRequest(BaseModel):
+    action: str
+
+
+class RuleEntry(BaseModel):
+    key: str
+    value: str
+
+
+class RulesResponse(BaseModel):
+    entries: List[RuleEntry]
+
+
 class InstancesResponse(BaseModel):
     instances: List[Dict[str, Any]]
