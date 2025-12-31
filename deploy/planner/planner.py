@@ -132,19 +132,21 @@ def _validate_stack_rules(params: dict) -> List[PlanMessage]:
     has_mods = any(is_mod_param(key) for key in params.keys())
 
     if stack_type in {"vanilla", "fabric", "forge"} and has_plugins:
-        blocks.append(
-            PlanMessage(
-                code="stack_param_conflict",
-                message=f"Plugins are not supported on {stack_type} server stack.",
+            blocks.append(
+                PlanMessage(
+                    code="stack_param_conflict",
+                    message=f"Plugins are not supported on {stack_type} server stack.",
+                    taxonomy={"category": "compatibility", "scope": "world"},
+                )
             )
-        )
     if stack_type in {"vanilla", "paper"} and has_mods:
-        blocks.append(
-            PlanMessage(
-                code="stack_param_conflict",
-                message=f"Mods are not supported on {stack_type} server stack.",
+            blocks.append(
+                PlanMessage(
+                    code="stack_param_conflict",
+                    message=f"Mods are not supported on {stack_type} server stack.",
+                    taxonomy={"category": "compatibility", "scope": "world"},
+                )
             )
-        )
 
     return blocks
 

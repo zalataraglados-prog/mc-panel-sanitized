@@ -3,11 +3,18 @@ from fastapi import FastAPI, HTTPException
 from deploy.claims_codec import Claims, decode_claims
 from deploy.planner.planner import plan as plan_apply
 from deploy.deployment.model import Deployment, DeploymentStatus
-from deploy.web.schemas import DecisionResponse, PlanRequest, PlanResponse
+from deploy.web.schemas import (
+    DeploymentView,
+    DecisionResponse,
+    PlanRequest,
+    PlanResponse,
+)
 from deploy.web.review_adapter import review_to_dict
+from deploy.executor.host_inspector import HostInspector
 
 
 app = FastAPI(title="MC-Panel Web Review API")
+inspector = HostInspector()
 
 
 @app.post("/deploy/plan", response_model=PlanResponse)
@@ -57,3 +64,11 @@ def decision_endpoint(payload: PlanRequest):
         }
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/deploy/instances")
+def instances_endpoint(base_dir: str = "/opt/mc-instances"):
+    result = inspector.list_instances(base_dir)
+    if not result.get("ok"):
+        raise HTTPException(status_code=404, detail=result.get("details"))
+    return result

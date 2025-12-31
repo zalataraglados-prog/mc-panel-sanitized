@@ -38,3 +38,19 @@ class HostInspector:
     def check_file_exists(self, path: str) -> Dict[str, Any]:
         ok = os.path.exists(path)
         return {"check": "file_exists", "ok": ok, "details": path}
+
+    def list_instances(self, base_dir: str) -> Dict[str, Any]:
+        if not os.path.isdir(base_dir):
+            return {"check": "list_instances", "ok": False, "details": "base dir missing"}
+        entries = []
+        for name in os.listdir(base_dir):
+            path = os.path.join(base_dir, name)
+            if not os.path.isdir(path):
+                continue
+            entries.append(
+                {
+                    "name": name,
+                    "path": path,
+                }
+            )
+        return {"check": "list_instances", "ok": True, "details": f"{len(entries)} instances", "instances": entries}

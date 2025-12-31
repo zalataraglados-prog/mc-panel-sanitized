@@ -171,6 +171,13 @@ def main():
                 help="Confirm execution when review level is warn",
             )
 
+    list_parser = sub.add_parser("instances")
+    list_parser.add_argument(
+        "--base-dir",
+        default=os.environ.get("MC_PANEL_BASE_DIR", "/opt/mc-instances"),
+        help="Base directory where instances are stored",
+    )
+
     args = parser.parse_args()
 
     import_string = None
@@ -226,6 +233,13 @@ def main():
     review_payload = review_to_dict(apply_plan)
 
     if args.command == "plan":
+        return 0
+
+    if args.command == "instances":
+        inspector = HostInspector()
+        base_dir = args.base_dir
+        result = inspector.list_instances(base_dir)
+        print(json.dumps(result, indent=2, ensure_ascii=True))
         return 0
 
     if apply_plan.summary.level == "block":
