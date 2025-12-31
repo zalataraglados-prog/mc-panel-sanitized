@@ -204,6 +204,75 @@ body {
   border-radius: 8px;
 }
 
+.map-panel {
+  display: grid;
+  gap: 12px;
+  background: var(--card);
+  padding: 12px;
+  border-radius: 10px;
+}
+
+.map-toolbar {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.map-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.map-controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.map-controls label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.map-canvas {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #0b1224;
+  border-radius: 8px;
+  padding: 10px;
+  min-height: 320px;
+}
+
+.map-canvas img {
+  max-width: 100%;
+  border-radius: 6px;
+  image-rendering: pixelated;
+}
+
+.map-pan {
+  display: grid;
+  justify-content: center;
+  gap: 6px;
+}
+
+.map-pan-row {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.map-hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .sparkline-wrap {
   margin-top: 12px;
   padding: 12px;

@@ -6,6 +6,7 @@ type Player = { name: string; uuid: string; skin_url: string; position: { x: num
 type Rule = { key: string; value: string };
 type CommandTemplate = { name: string; command: string };
 type InstanceItem = { name?: string; path?: string };
+type MapStatus = { source: string | null; available: Record<string, boolean>; y_min: number; y_max: number; supports_y: boolean };
 
 const translations = {
   en: {
@@ -33,6 +34,13 @@ const translations = {
     session: "Session",
     deop: "DeOP",
     tpsTrend: "TPS Trend",
+    mapStatus: "Map Status",
+    overworld: "Overworld",
+    nether: "Nether",
+    end: "End",
+    zoom: "Zoom",
+    height: "Y Level",
+    mapHint: "Tiles are read-only. Provide tiles via map-tiles/ in instance dir.",
     edit: "Edit",
     save: "Save",
     cancel: "Cancel",
@@ -64,6 +72,13 @@ const translations = {
     session: "在线时长",
     deop: "取消OP",
     tpsTrend: "TPS 趋势",
+    mapStatus: "地图状态",
+    overworld: "主世界",
+    nether: "地狱",
+    end: "末地",
+    zoom: "缩放",
+    height: "高度",
+    mapHint: "只读瓦片。将瓦片放入实例目录的 map-tiles/。",
     edit: "编辑",
     save: "保存",
     cancel: "取消",
@@ -134,6 +149,13 @@ export function App() {
   const logRef = useRef<HTMLDivElement | null>(null);
   const [logConnected, setLogConnected] = useState(false);
   const [logError, setLogError] = useState("");
+  const [mapStatus, setMapStatus] = useState<MapStatus | null>(null);
+  const [mapDimension, setMapDimension] = useState<"overworld" | "nether" | "end">("overworld");
+  const [mapZoom, setMapZoom] = useState(0);
+  const [mapX, setMapX] = useState(0);
+  const [mapZ, setMapZ] = useState(0);
+  const [mapY, setMapY] = useState(64);
+  const [mapTick, setMapTick] = useState(0);
 
   const t = translations[lang];
   const canControl = role === "owner" || role === "admin";
@@ -196,6 +218,27 @@ export function App() {
         }
       })
       .catch(() => {});
+    fetch(`/api/map/status${instanceQuery}`, { headers: authHeader })
+      .then((res) => res.json())
+      .then((data) => {
+        setMapStatus(data);
+        if (data && data.available) {
+          if (!data.available[mapDimension]) {
+            const fallback = data.available.overworld
+              ? "overworld"
+              : data.available.nether
+                ? "nether"
+                : data.available.end
+                  ? "end"
+                  : "overworld";
+            setMapDimension(fallback as "overworld" | "nether" | "end");
+          }
+        }
+        if (data && data.supports_y) {
+          setMapY((prev) => Math.min(data.y_max, Math.max(data.y_min, prev)));
+        }
+      })
+      .catch(() => {});
     fetch("/api/command-templates", { headers: authHeader })
       .then((res) => res.json())
       .then((data) => setTemplates(data.templates || []))
@@ -227,6 +270,16 @@ export function App() {
     const interval = window.setInterval(() => {
       refreshData();
     }, 10000);
+    return () => window.clearInterval(interval);
+  }, [token, instanceDir]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+    const interval = window.setInterval(() => {
+      setMapTick((tick) => tick + 1);
+    }, 5000);
     return () => window.clearInterval(interval);
   }, [token, instanceDir]);
 
@@ -586,7 +639,78 @@ export function App() {
 
       <section className="section">
         <h2>{t.map}</h2>
-        <div className="map-placeholder">Map module placeholder</div>
+        <div className="map-panel">
+          <div className="map-toolbar">
+            <div className="map-tabs">
+              <button
+                className="btn"
+                disabled={!mapStatus?.available?.overworld}
+                onClick={() => setMapDimension("overworld")}
+              >
+                {t.overworld}
+              </button>
+              <button
+                className="btn"
+                disabled={!mapStatus?.available?.nether}
+                onClick={() => setMapDimension("nether")}
+              >
+                {t.nether}
+              </button>
+              <button className="btn" disabled={!mapStatus?.available?.end} onClick={() => setMapDimension("end")}>
+                {t.end}
+              </button>
+            </div>
+            <div className="map-controls">
+              <label>
+                {t.zoom}
+                <input
+                  type="range"
+                  min="0"
+                  max="6"
+                  value={mapZoom}
+                  onChange={(event) => setMapZoom(Number(event.target.value))}
+                />
+              </label>
+              <label>
+                {t.height}
+                <input
+                  type="range"
+                  min={mapStatus?.y_min ?? -64}
+                  max={mapStatus?.y_max ?? 320}
+                  value={mapY}
+                  onChange={(event) => setMapY(Number(event.target.value))}
+                />
+              </label>
+            </div>
+          </div>
+          <div className="map-canvas">
+            <img
+              alt="map"
+              src={`/api/map/tile?dimension=${mapDimension}&x=${mapX}&z=${mapZ}&zoom=${mapZoom}&y=${mapY}&instance_dir=${encodeURIComponent(
+                instanceDir || ""
+              )}&tick=${mapTick}`}
+            />
+          </div>
+          <div className="map-pan">
+            <button className="btn" onClick={() => setMapZ((value) => value - 1)}>
+              ↑
+            </button>
+            <div className="map-pan-row">
+              <button className="btn" onClick={() => setMapX((value) => value - 1)}>
+                ←
+              </button>
+              <button className="btn" onClick={() => setMapX((value) => value + 1)}>
+                →
+              </button>
+            </div>
+            <button className="btn" onClick={() => setMapZ((value) => value + 1)}>
+              ↓
+            </button>
+          </div>
+          <div className="map-hint">
+            {t.mapStatus}: {mapStatus?.source ?? "none"} · {t.mapHint}
+          </div>
+        </div>
       </section>
 
       <section className="section">

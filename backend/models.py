@@ -73,3 +73,11 @@ class RulesUpdateRequest(BaseModel):
 
 class InstancesResponse(BaseModel):
     instances: List[Dict[str, Any]]
+
+
+class MapStatusResponse(BaseModel):
+    source: Optional[str]
+    available: Dict[str, bool]
+    y_min: int
+    y_max: int
+    supports_y: bool

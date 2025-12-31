@@ -35,6 +35,8 @@ backend/
 | `GET /api/status?instance_dir=...` | read overall metrics (TPS/MSPT/CPU/memory/disk/players) |
 | `GET /api/metrics?window=60&instance_dir=...` | return historic TPS points over window seconds |
 | `GET /api/instances` | list MC instances under `/opt/mc-instances` |
+| `GET /api/map/status?instance_dir=...` | report map tile availability and Y-range |
+| `GET /api/map/tile?dimension=...&x=...&z=...&zoom=...&y=...` | fetch a map tile or placeholder |
 | `GET /api/players` | return player list (avatar, coord, session) |
 | `POST /api/command` | enqueue console or player command (owner/admin/mod) |
 | `POST /api/control` | start/stop/restart server (owner/admin) |
