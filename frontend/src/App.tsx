@@ -27,6 +27,8 @@ const translations = {
     stop: "Stop",
     restart: "Restart",
     connect: "Connect",
+    session: "Session",
+    deop: "DeOP",
     theme: "Dark / Light",
     language: "中文 / EN",
   },
@@ -50,6 +52,8 @@ const translations = {
     stop: "停止",
     restart: "重启",
     connect: "连接",
+    session: "在线时长",
+    deop: "取消OP",
     theme: "深色 / 浅色",
     language: "中文 / EN",
   },
@@ -342,9 +346,15 @@ export function App() {
                 <div className="player-meta">
                   {p.position.x},{p.position.y},{p.position.z}
                 </div>
+                <div className="player-meta">
+                  {t.session}: {Math.floor((p as any).session_seconds || 0)}s
+                </div>
                 <div className="player-actions">
                   <button className="btn" onClick={() => sendPlayerCommand(`op ${p.name}`)}>
                     OP
+                  </button>
+                  <button className="btn" onClick={() => sendPlayerCommand(`deop ${p.name}`)}>
+                    {t.deop}
                   </button>
                   <button className="btn" onClick={() => sendPlayerCommand(`kick ${p.name}`)}>
                     Kick
