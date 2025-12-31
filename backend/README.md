@@ -36,6 +36,7 @@ backend/
 | `POST /api/command` | enqueue console or player command (owner/admin/mod) |
 | `POST /api/rcon` | send custom RCON command (owner/admin) |
 | `WS /api/logs/ws?token=...` | stream tail of server logs with rate limit |
+| `POST /api/auth/login` | exchange username/password for bearer token |
 
 All mutating endpoints call `backend.logging.log_action` and verify roles using bearer tokens (`owner`, `admin`, `mod`, `viewer`).
 

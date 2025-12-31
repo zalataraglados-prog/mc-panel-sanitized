@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-LOG_PATH = os.path.join(os.path.dirname(__file__), "..", "backend.log")
+LOG_PATH = os.path.join(os.path.dirname(__file__), "backend.log")
 
 
 def log_action(user: str, action: str, details: str) -> None:
