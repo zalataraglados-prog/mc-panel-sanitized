@@ -182,6 +182,12 @@ def main():
 
     claims = None
     rules_bundle = None
+    if args.command == "instances":
+        inspector = HostInspector()
+        result = inspector.list_instances(args.base_dir)
+        print(json.dumps(result, indent=2, ensure_ascii=True))
+        return 0
+
     if args.command in ("plan", "apply"):
         import_string = None
         if args.import_string and args.import_file:
