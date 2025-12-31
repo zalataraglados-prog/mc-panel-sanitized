@@ -32,17 +32,17 @@ backend/
 | Endpoint | Description |
 |----------|-------------|
 | `POST /api/auth/login` | exchange username/password for bearer token |
-| `GET /api/status` | read overall metrics (TPS/MSPT/CPU/memory/disk/players) |
-| `GET /api/metrics?window=60` | return historic TPS points over window seconds |
+| `GET /api/status?instance_dir=...` | read overall metrics (TPS/MSPT/CPU/memory/disk/players) |
+| `GET /api/metrics?window=60&instance_dir=...` | return historic TPS points over window seconds |
 | `GET /api/instances` | list MC instances under `/opt/mc-instances` |
 | `GET /api/players` | return player list (avatar, coord, session) |
 | `POST /api/command` | enqueue console or player command (owner/admin/mod) |
 | `POST /api/control` | start/stop/restart server (owner/admin) |
 | `POST /api/rcon` | send custom RCON command (owner/admin) |
-| `GET /api/rules` | read server.properties values |
+| `GET /api/rules?instance_dir=...` | read server.properties values |
 | `GET /api/command-templates` | list command templates |
 | `POST /api/command-templates` | add new template |
-| `WS /api/logs/ws?token=...` | stream tail of server logs with rate limit |
+| `WS /api/logs/ws?token=...&instance_dir=...` | stream tail of server logs with rate limit |
 
 All mutating endpoints call `backend.logging.log_action` and verify roles using bearer tokens (`owner`, `admin`, `mod`, `viewer`).
 

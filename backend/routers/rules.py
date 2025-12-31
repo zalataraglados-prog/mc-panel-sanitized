@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from backend.auth import get_current_user, require_roles
 from backend.models import RuleEntry, RulesResponse
@@ -22,9 +22,9 @@ def _read_server_properties(path: Path) -> list[RuleEntry]:
 
 
 @router.get("/api/rules", response_model=RulesResponse)
-def rules_endpoint(user=Depends(get_current_user)):
+def rules_endpoint(instance_dir: str | None = Query(None), user=Depends(get_current_user)):
     require_roles(user, ["owner", "admin", "mod", "viewer"])
-    instance_dir = resolve_instance_dir()
+    instance_dir = instance_dir or resolve_instance_dir()
     server_properties = Path(instance_dir) / "data" / "server.properties"
     entries = _read_server_properties(server_properties)
     return RulesResponse(entries=entries)

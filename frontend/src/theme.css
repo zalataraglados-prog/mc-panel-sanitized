@@ -201,3 +201,18 @@ body {
   gap: 6px;
   flex-wrap: wrap;
 }
+
+.instance-select {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.instance-select select {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--muted);
+  background: transparent;
+  color: var(--fg);
+}

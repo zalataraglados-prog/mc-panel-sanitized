@@ -49,10 +49,12 @@ class CommandRequest(BaseModel):
     command: str
     channel: str = "console"
     target: Optional[str] = None
+    instance_dir: Optional[str] = None
 
 
 class ControlRequest(BaseModel):
     action: str
+    instance_dir: Optional[str] = None
 
 
 class RuleEntry(BaseModel):

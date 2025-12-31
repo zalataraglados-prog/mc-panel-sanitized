@@ -4,6 +4,7 @@ type Metric = { label: string; value: string };
 type Player = { name: string; uuid: string; skin_url: string; position: { x: number; y: number; z: number } };
 type Rule = { key: string; value: string };
 type CommandTemplate = { name: string; command: string };
+type InstanceItem = { name?: string; path?: string };
 
 const translations = {
   en: {
@@ -65,7 +66,8 @@ function StatCard({ title, value }: { title: string; value: string }) {
 
 export function App() {
   const [metrics, setMetrics] = useState<Metric[]>([]);
-  const [instances, setInstances] = useState<string[]>([]);
+  const [instances, setInstances] = useState<InstanceItem[]>([]);
+  const [instanceDir, setInstanceDir] = useState("");
   const [players, setPlayers] = useState<Player[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
   const [templates, setTemplates] = useState<CommandTemplate[]>([]);
@@ -93,7 +95,8 @@ export function App() {
     if (!token) {
       return;
     }
-    fetch("/api/status", { headers: authHeader })
+    const instanceQuery = instanceDir ? `?instance_dir=${encodeURIComponent(instanceDir)}` : "";
+    fetch(`/api/status${instanceQuery}`, { headers: authHeader })
       .then((res) => res.json())
       .then((data) => {
         setMetrics([
@@ -110,15 +113,18 @@ export function App() {
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data.instances)) {
-          setInstances(data.instances.map((item: any) => item.name || item.path));
+          setInstances(data.instances);
+          if (!instanceDir && data.instances.length > 0) {
+            setInstanceDir(data.instances[0].path || "");
+          }
         }
       })
       .catch(() => {});
-    fetch("/api/players", { headers: authHeader })
+    fetch(`/api/players${instanceQuery}`, { headers: authHeader })
       .then((res) => res.json())
       .then((data) => setPlayers(data))
       .catch(() => {});
-    fetch("/api/rules", { headers: authHeader })
+    fetch(`/api/rules${instanceQuery}`, { headers: authHeader })
       .then((res) => res.json())
       .then((data) => setRules(data.entries || []))
       .catch(() => {});
@@ -133,6 +139,12 @@ export function App() {
       refreshData();
     }
   }, [token]);
+
+  useEffect(() => {
+    if (token) {
+      refreshData();
+    }
+  }, [instanceDir]);
 
   const handleLogin = (event: React.FormEvent) => {
     event.preventDefault();
@@ -158,7 +170,8 @@ export function App() {
     if (!token || wsRef.current) {
       return;
     }
-    const ws = new WebSocket(`ws://localhost:8000/api/logs/ws?token=${token}`);
+    const query = instanceDir ? `&instance_dir=${encodeURIComponent(instanceDir)}` : "";
+    const ws = new WebSocket(`ws://localhost:8000/api/logs/ws?token=${token}${query}`);
     ws.onmessage = (event) => {
       setLogLines((prev) => [...prev.slice(-200), event.data]);
     };
@@ -181,7 +194,7 @@ export function App() {
     fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeader },
-      body: JSON.stringify({ command }),
+      body: JSON.stringify({ command, instance_dir: instanceDir || undefined }),
     }).catch(() => {});
     setCommandHistory((prev) => [command, ...prev].slice(0, 20));
     setCommand("");
@@ -192,7 +205,7 @@ export function App() {
     fetch("/api/control", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeader },
-      body: JSON.stringify({ action }),
+      body: JSON.stringify({ action, instance_dir: instanceDir || undefined }),
     }).catch(() => {});
   };
 
@@ -217,7 +230,7 @@ export function App() {
     fetch("/api/command", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeader },
-      body: JSON.stringify({ command: cmd }),
+      body: JSON.stringify({ command: cmd, instance_dir: instanceDir || undefined }),
     }).catch(() => {});
   };
 
@@ -393,9 +406,22 @@ export function App() {
 
       <section className="section">
         <h2>{t.instances}</h2>
+        <div className="instance-select">
+          <select value={instanceDir} onChange={(event) => setInstanceDir(event.target.value)}>
+            <option value="">default</option>
+            {instances.map((item) => (
+              <option key={item.path || item.name} value={item.path || ""}>
+                {item.name || item.path}
+              </option>
+            ))}
+          </select>
+          <button className="btn" onClick={refreshData}>
+            Refresh
+          </button>
+        </div>
         <ul>
-          {instances.map((name) => (
-            <li key={name}>{name}</li>
+          {instances.map((item) => (
+            <li key={item.path || item.name}>{item.name || item.path}</li>
           ))}
         </ul>
       </section>

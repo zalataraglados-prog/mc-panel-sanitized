@@ -1,5 +1,5 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from backend.auth import get_current_user
 from backend.models import StatusResponse
@@ -10,8 +10,8 @@ router = APIRouter()
 
 
 @router.get("/api/status", response_model=StatusResponse)
-def status_endpoint(user=Depends(get_current_user)):
-    instance_dir = resolve_instance_dir()
+def status_endpoint(instance_dir: str | None = Query(None), user=Depends(get_current_user)):
+    instance_dir = instance_dir or resolve_instance_dir()
     metrics = gather_metrics(instance_dir)
     return StatusResponse(
         running=True,

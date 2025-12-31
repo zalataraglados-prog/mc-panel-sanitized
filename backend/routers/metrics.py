@@ -10,9 +10,13 @@ history = []
 
 
 @router.get("/api/metrics")
-def metrics_endpoint(window: int = Query(60, ge=10, le=300), user=Depends(get_current_user)):
-    instance_dir = resolve_instance_dir()
-    point = runtime_metrics.gather_metrics(instance_dir)
+def metrics_endpoint(
+    window: int = Query(60, ge=10, le=300),
+    instance_dir: str | None = Query(None),
+    user=Depends(get_current_user),
+):
+    target_dir = instance_dir or resolve_instance_dir()
+    point = runtime_metrics.gather_metrics(target_dir)
     history.append({"timestamp": point["timestamp"], "value": point["tps"]})
     # keep only window worth of data
     history[:] = history[-window:]
