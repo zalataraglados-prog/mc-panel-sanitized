@@ -241,43 +241,7 @@ fi
 
 echo ""
 echo "[INFO] Loading parameters from catalog for prompting..."
-python3 - <<'PY'
-import json
-import os
-from deploy.loader import load_rules_bundle
-
-version = os.environ["VERSION"]
-base_url = os.environ.get("RULES_BASE_URL")
-rules_ref = os.environ.get("RULES_REF")
-
-bundle = load_rules_bundle(version, base_url=base_url, rules_ref=rules_ref)
-catalog = bundle["catalog"]
-usability = bundle.get("usability", {})
-
-def pick_default(section, key, catalog_default):
-    entry = usability.get(section, {}).get("entries", {}).get(key, {})
-    usage = entry.get("usability", {})
-    hint = usage.get("default_hint")
-    return hint if hint is not None else catalog_default
-
-for section in ("server_properties", "gamerule"):
-    entries = catalog.get(section, {}).get("entries", {})
-    for key, meta in entries.items():
-        default = meta.get("default")
-        hint = pick_default(section, key, default)
-        entry = usability.get(section, {}).get("entries", {}).get(key, {})
-        usage = entry.get("usability", {})
-        rec_range = usage.get("recommended_range", {})
-        min_val = rec_range.get("min")
-        max_val = rec_range.get("max")
-        if isinstance(default, bool):
-            dtype = "bool"
-        elif isinstance(default, int):
-            dtype = "int"
-        else:
-            dtype = "string"
-        print(f"{key}\t{'' if hint is None else hint}\t{dtype}\t{'' if min_val is None else min_val}\t{'' if max_val is None else max_val}")
-PY > /tmp/param_keys.txt
+python3 -c $'import os\nfrom deploy.loader import load_rules_bundle\n\nversion = os.environ[\"VERSION\"]\nbase_url = os.environ.get(\"RULES_BASE_URL\")\nrules_ref = os.environ.get(\"RULES_REF\")\n\nbundle = load_rules_bundle(version, base_url=base_url, rules_ref=rules_ref)\ncatalog = bundle[\"catalog\"]\nusability = bundle.get(\"usability\", {})\n\ndef pick_default(section, key, catalog_default):\n    entry = usability.get(section, {}).get(\"entries\", {}).get(key, {})\n    usage = entry.get(\"usability\", {})\n    hint = usage.get(\"default_hint\")\n    return hint if hint is not None else catalog_default\n\nfor section in (\"server_properties\", \"gamerule\"):\n    entries = catalog.get(section, {}).get(\"entries\", {})\n    for key, meta in entries.items():\n        default = meta.get(\"default\")\n        hint = pick_default(section, key, default)\n        entry = usability.get(section, {}).get(\"entries\", {}).get(key, {})\n        usage = entry.get(\"usability\", {})\n        rec_range = usage.get(\"recommended_range\", {})\n        min_val = rec_range.get(\"min\")\n        max_val = rec_range.get(\"max\")\n        if isinstance(default, bool):\n            dtype = \"bool\"\n        elif isinstance(default, int):\n            dtype = \"int\"\n        else:\n            dtype = \"string\"\n        print(f\"{key}\\t{'' if hint is None else hint}\\t{dtype}\\t{'' if min_val is None else min_val}\\t{'' if max_val is None else max_val}\")' > /tmp/param_keys.txt
 
 while IFS=$'\t' read -r key default_hint dtype min_val max_val; do
   existing=$(PARAM_KEY="$key" get_param "$key")
