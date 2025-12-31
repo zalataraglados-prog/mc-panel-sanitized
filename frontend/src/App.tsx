@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Metric = { label: string; value: string };
+type MetricPoint = { timestamp: number; value: number };
 type Player = { name: string; uuid: string; skin_url: string; position: { x: number; y: number; z: number } };
 type Rule = { key: string; value: string };
 type CommandTemplate = { name: string; command: string };
@@ -29,6 +30,7 @@ const translations = {
     connect: "Connect",
     session: "Session",
     deop: "DeOP",
+    tpsTrend: "TPS Trend",
     theme: "Dark / Light",
     language: "中文 / EN",
   },
@@ -54,6 +56,7 @@ const translations = {
     connect: "连接",
     session: "在线时长",
     deop: "取消OP",
+    tpsTrend: "TPS 趋势",
     theme: "深色 / 浅色",
     language: "中文 / EN",
   },
@@ -68,8 +71,39 @@ function StatCard({ title, value }: { title: string; value: string }) {
   );
 }
 
+function Sparkline({ points }: { points: MetricPoint[] }) {
+  if (!points.length) {
+    return <div className="sparkline-empty">No data</div>;
+  }
+  const values = points.map((p) => p.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const width = 260;
+  const height = 60;
+  const scale = (val: number) => {
+    if (max === min) {
+      return height / 2;
+    }
+    return height - ((val - min) / (max - min)) * height;
+  };
+  const step = width / Math.max(points.length - 1, 1);
+  const path = points
+    .map((point, index) => {
+      const x = index * step;
+      const y = scale(point.value);
+      return `${index === 0 ? "M" : "L"}${x},${y}`;
+    })
+    .join(" ");
+  return (
+    <svg className="sparkline" width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+      <path d={path} fill="none" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
+
 export function App() {
   const [metrics, setMetrics] = useState<Metric[]>([]);
+  const [tpsHistory, setTpsHistory] = useState<MetricPoint[]>([]);
   const [instances, setInstances] = useState<InstanceItem[]>([]);
   const [instanceDir, setInstanceDir] = useState("");
   const [players, setPlayers] = useState<Player[]>([]);
@@ -136,6 +170,12 @@ export function App() {
       .then((res) => res.json())
       .then((data) => setTemplates(data.templates || []))
       .catch(() => {});
+    fetch(`/api/metrics?window=60${instanceDir ? `&instance_dir=${encodeURIComponent(instanceDir)}` : ""}`, {
+      headers: authHeader,
+    })
+      .then((res) => res.json())
+      .then((data) => setTpsHistory(data || []))
+      .catch(() => {});
   };
 
   useEffect(() => {
@@ -149,6 +189,16 @@ export function App() {
       refreshData();
     }
   }, [instanceDir]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+    const interval = window.setInterval(() => {
+      refreshData();
+    }, 10000);
+    return () => window.clearInterval(interval);
+  }, [token, instanceDir]);
 
   const handleLogin = (event: React.FormEvent) => {
     event.preventDefault();
@@ -298,6 +348,10 @@ export function App() {
           {metrics.map((m) => (
             <StatCard key={m.label} title={m.label} value={m.value} />
           ))}
+        </div>
+        <div className="sparkline-wrap">
+          <div className="card-title">{t.tpsTrend}</div>
+          <Sparkline points={tpsHistory} />
         </div>
       </section>
 

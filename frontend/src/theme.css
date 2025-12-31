@@ -177,6 +177,22 @@ body {
   border-radius: 8px;
 }
 
+.sparkline-wrap {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.sparkline {
+  color: var(--accent);
+}
+
+.sparkline-empty {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .templates {
   display: grid;
   gap: 10px;

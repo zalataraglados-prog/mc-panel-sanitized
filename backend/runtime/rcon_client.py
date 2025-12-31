@@ -4,7 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import socket
 import struct
-from typing import List, Tuple
+from typing import List
+import re
 
 
 @dataclass
@@ -40,8 +41,19 @@ class RCONClient:
             return f"RCON error: {exc}"
 
     def list_players(self) -> List[str]:
+        if not self.enabled:
+            return []
         response = self.execute("list")
         return _parse_player_list(response)
+
+    def get_player_position(self, name: str) -> dict:
+        if not self.enabled:
+            return {"x": 0.0, "y": 0.0, "z": 0.0}
+        response = self.execute(f"data get entity {name} Pos")
+        match = re.search(r"\[([-\d.]+)d?,\s*([-\d.]+)d?,\s*([-\d.]+)d?\]", response)
+        if not match:
+            return {"x": 0.0, "y": 0.0, "z": 0.0}
+        return {"x": float(match.group(1)), "y": float(match.group(2)), "z": float(match.group(3))}
 
     @classmethod
     def from_instance_dir(cls, instance_dir: str) -> "RCONClient":
