@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Set
 
 from deploy.capacity_guard import capacity_status, estimate_capacity
+from deploy.compat.modpack_matrix import MODPACK_STACK_COMPAT, normalize_loader
 from deploy.mapper.mappings import (
     PARAMETER_MAPPINGS,
     is_mod_param,
@@ -70,6 +71,12 @@ def _is_reserved_param(key: str) -> bool:
         "map.overwrite",
         "inventory.plugin",
         "inventory.plugin_url",
+        "modpack.name",
+        "modpack.loader",
+        "modpack.type",
+        "modpack.stack",
+        "modpack.version",
+        "modpack.source",
     }
 
 
@@ -223,6 +230,60 @@ def _validate_runtime_rules(params: dict) -> List[PlanMessage]:
             )
         )
 
+    return blocks
+
+
+def _read_modpack_loader(params: dict) -> str | None:
+    for key in ("modpack.loader", "modpack.type", "modpack.stack"):
+        value = params.get(key)
+        loader = normalize_loader(value)
+        if loader:
+            return loader
+    return None
+
+
+def _validate_modpack_rules(params: dict) -> List[PlanMessage]:
+    blocks = []
+    loader = _read_modpack_loader(params)
+    if not loader:
+        if params.get("modpack.name"):
+            return [
+                PlanMessage(
+                    code="modpack_loader_missing",
+                    message="Modpack name provided without loader; compatibility cannot be validated.",
+                    taxonomy={"category": "compatibility", "scope": "world"},
+                )
+            ]
+        return blocks
+
+    stack_type = normalize_loader(params.get("stack.type"))
+    compat = MODPACK_STACK_COMPAT.get(loader)
+    if not compat:
+        blocks.append(
+            PlanMessage(
+                code="modpack_loader_unknown",
+                message=f"Unknown modpack loader: {loader}",
+                taxonomy={"category": "compatibility", "scope": "world"},
+            )
+        )
+        return blocks
+    if not stack_type:
+        blocks.append(
+            PlanMessage(
+                code="modpack_stack_missing",
+                message="Modpack loader provided without stack.type.",
+                taxonomy={"category": "compatibility", "scope": "world"},
+            )
+        )
+        return blocks
+    if stack_type not in compat:
+        blocks.append(
+            PlanMessage(
+                code="modpack_stack_conflict",
+                message=f"Modpack loader '{loader}' is not compatible with stack '{stack_type}'.",
+                taxonomy={"category": "compatibility", "scope": "world"},
+            )
+        )
     return blocks
 
 
@@ -559,6 +620,7 @@ def plan(claims) -> ApplyPlan:
     blocks.extend(_validate_params(claims.params, getattr(claims, "catalog", None)))
     blocks.extend(_validate_edition_rules(claims.params))
     blocks.extend(_validate_stack_rules(claims.params))
+    blocks.extend(_validate_modpack_rules(claims.params))
     blocks.extend(_validate_runtime_rules(claims.params))
     blocks.extend(
         _validate_param_ranges(

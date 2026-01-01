@@ -19,6 +19,7 @@ def resolve_instance_dir(base_dir: str = DEFAULT_BASE_DIR) -> str:
     override = os.environ.get("MC_PANEL_INSTANCE_DIR")
     if override:
         return override
+    base_dir = os.environ.get("MC_PANEL_BASE_DIR", base_dir)
     if not Path(base_dir).exists():
         return base_dir
     inspector = HostInspector()
@@ -30,6 +31,7 @@ def resolve_instance_dir(base_dir: str = DEFAULT_BASE_DIR) -> str:
 
 @router.get("/api/instances", response_model=InstancesResponse)
 def instances_endpoint(base_dir: str = DEFAULT_BASE_DIR, user=Depends(get_current_user)):
+    base_dir = os.environ.get("MC_PANEL_BASE_DIR", base_dir)
     inspector = HostInspector()
     result = inspector.list_instances(base_dir)
     if not result.get("ok"):

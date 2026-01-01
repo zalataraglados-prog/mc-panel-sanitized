@@ -26,14 +26,14 @@ def _load_instance_config(instance_dir: str) -> dict:
         return {}
 
 
-def _resolve_instance_dir(instance_dir: str | None, base_dir: str) -> str:
+def _resolve_instance_dir(instance_dir: str | None, base_dir: str) -> str | None:
     if instance_dir:
         return instance_dir
     inspector = HostInspector()
     result = inspector.list_instances(base_dir)
     if result.get("ok") and result.get("instances"):
         return result["instances"][0]["path"]
-    raise RuntimeError("No instance directory found.")
+    return None
 
 
 def _ensure_frontend_build(repo_root: Path, build: bool) -> Path:
@@ -76,13 +76,12 @@ def install_panel(
     panel_root: str | None,
 ) -> str:
     inspector = HostInspector()
-    instance_dir = _resolve_instance_dir(instance_dir, base_dir)
-    instance_name = Path(instance_dir).name
     repo_root = Path(panel_root) if panel_root else _repo_root()
     _ensure_panel_deps()
     _ensure_frontend_build(repo_root, build_frontend)
 
-    config = _load_instance_config(instance_dir)
+    resolved_instance_dir = _resolve_instance_dir(instance_dir, base_dir)
+    config = _load_instance_config(resolved_instance_dir) if resolved_instance_dir else {}
     config_port = None
     if isinstance(config.get("panel"), dict):
         config_port = config["panel"].get("port")
@@ -92,11 +91,10 @@ def install_panel(
     if not template_path.exists():
         raise RuntimeError(f"Missing service template: {template_path}")
 
-    service_name = f"{instance_name}-panel.service"
+    service_name = "mc-panel.service"
     service_path = Path("/etc/systemd/system") / service_name
     context = {
-        "INSTANCE_NAME": instance_name,
-        "INSTANCE_DIR": instance_dir,
+        "BASE_DIR": base_dir,
         "PANEL_PORT": port,
         "PANEL_ROOT": str(repo_root),
         "PANEL_STATIC_DIR": str(repo_root / "frontend" / "dist"),
@@ -117,9 +115,7 @@ def install_panel(
 
 def uninstall_panel(*, instance_dir: str | None, base_dir: str) -> str:
     inspector = HostInspector()
-    instance_dir = _resolve_instance_dir(instance_dir, base_dir)
-    instance_name = Path(instance_dir).name
-    service_name = f"{instance_name}-panel.service"
+    service_name = "mc-panel.service"
     service_path = Path("/etc/systemd/system") / service_name
 
     if not inspector.check_systemd_available().get("ok"):

@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 import socket
+import subprocess
 from typing import Any, Dict
 
 
@@ -38,6 +39,19 @@ class HostInspector:
     def check_file_exists(self, path: str) -> Dict[str, Any]:
         ok = os.path.exists(path)
         return {"check": "file_exists", "ok": ok, "details": path}
+
+    def check_service_exists(self, service_name: str) -> Dict[str, Any]:
+        if not shutil.which("systemctl"):
+            return {"check": "service_exists", "ok": False, "details": "systemctl missing"}
+        result = subprocess.run(
+            ["systemctl", "status", service_name],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        ok = result.returncode == 0
+        details = service_name if ok else (result.stderr.strip() or result.stdout.strip())
+        return {"check": "service_exists", "ok": ok, "details": details}
 
     def list_instances(self, base_dir: str) -> Dict[str, Any]:
         if not os.path.isdir(base_dir):

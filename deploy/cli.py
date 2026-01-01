@@ -322,6 +322,9 @@ def main():
         host_facts.append(inspector.check_port_free(server_port))
     if any(key.startswith("docker.") for key in claims.params.keys()):
         host_facts.append(inspector.check_docker_available())
+    panel_enabled = str(claims.params.get("panel.enable", "false")).lower() in ("true", "1", "yes", "y")
+    if panel_enabled:
+        host_facts.append(inspector.check_service_exists("mc-panel.service"))
 
     plan = build_execution_plan(
         claims=claims,

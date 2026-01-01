@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Python packages: `fastapi`, `uvicorn`
-- The panel service expects `MC_PANEL_INSTANCE_DIR` and `MC_PANEL_STATIC_DIR` set by systemd.
+- The panel service expects `MC_PANEL_BASE_DIR` and `MC_PANEL_STATIC_DIR` set by systemd.
 
 ## Architecture
 

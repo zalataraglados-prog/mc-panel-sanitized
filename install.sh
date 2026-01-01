@@ -72,7 +72,7 @@ if [ "$PANEL_MAINT" = "1" ] || [ "$PANEL_MAINT" = "2" ]; then
   echo ""
   echo "[INFO] Available instances:"
   python3 -m deploy.cli instances || true
-  INSTANCE_DIR=$(read_tty "Instance dir (blank for default): ")
+  INSTANCE_DIR=$(read_tty "Instance dir (optional, for panel port lookup): ")
   if [ "$PANEL_MAINT" = "1" ]; then
     BUILD_PANEL="y"
     if [ -f "$INSTALL_DIR/frontend/dist/index.html" ]; then

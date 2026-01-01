@@ -134,6 +134,15 @@ def _build_template_context(params: dict, instance_name: str, instance_dir: str)
     }
 
 
+def _has_service(host_facts: List[Dict[str, Any]], service_name: str) -> bool:
+    for fact in host_facts:
+        if fact.get("check") != "service_exists":
+            continue
+        if fact.get("details") == service_name and fact.get("ok"):
+            return True
+    return False
+
+
 def build_execution_plan(
     *,
     claims,
@@ -162,7 +171,8 @@ def build_execution_plan(
         preconditions.append(Precondition(type="port_free", value=port, required=True))
 
     panel_enabled = str(params.get("panel.enable", "false")).lower() in ("true", "1", "yes", "y")
-    if panel_enabled:
+    panel_installed = _has_service(host_facts, "mc-panel.service")
+    if panel_enabled and not panel_installed:
         panel_port = _parse_int(params.get("panel.port")) or 15000
         preconditions.append(Precondition(type="port_free", value=panel_port, required=True))
         preconditions.append(Precondition(type="systemd_available", value="systemd", required=True))
@@ -189,6 +199,7 @@ def build_execution_plan(
     instance_name = _stable_instance_name(params)
     instance_dir = posixpath.join(base_dir, instance_name)
     context = _build_template_context(params, instance_name, instance_dir)
+    context["BASE_DIR"] = base_dir
 
     actions: List[Action] = [
         Action(type="mkdir", params={"path": instance_dir}),
@@ -219,12 +230,12 @@ def build_execution_plan(
             },
         ),
     ]
-    if panel_enabled:
+    if panel_enabled and not panel_installed:
         actions.append(
             Action(
                 type="write_file",
                 params={
-                    "path": f"/etc/systemd/system/{instance_name}-panel.service",
+                    "path": "/etc/systemd/system/mc-panel.service",
                     "template": "mc-panel.service.tpl",
                     "context": context,
                 },

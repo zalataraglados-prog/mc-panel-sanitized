@@ -29,6 +29,8 @@ When running `install.sh`, choose:
 - Install panel for an existing instance
 - Uninstall panel from an existing instance
 
+The panel is a single service (`mc-panel.service`) that can manage multiple instances.
+
 ### Add panel to an existing instance
 
 ```
@@ -54,6 +56,11 @@ During deploy, you can optionally enable Dynmap or BlueMap. The deployer can con
 
 During deploy, you can optionally install an inventory plugin for richer inventory editing.
 Supported choices: InvSee++ or OpenInv. Defaults point to the `vanilla_catalog` repository, but you can override the URL.
+
+## Modpack compatibility
+
+If you provide `modpack.loader` (or `modpack.type`/`modpack.stack`) in claims params,
+the planner validates it against the stack compatibility matrix. See `docs/compatibility.md`.
 
 ## Plugin download logging
 
