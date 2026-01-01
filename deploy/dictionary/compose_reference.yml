@@ -1,0 +1,267 @@
+﻿# ==========================================================
+# compose.yaml / docker-compose.yml  字典级母本（尽可能全）
+# 参考：Docker Compose 文件规范 + Docker Docs 服务字段目录
+# ==========================================================
+
+# 项目名（可选；Compose 新版常用）
+name: mc-stack
+
+# include（Compose 2.20+）：把另一个 compose 当“子域”纳入
+# 注意：include 是“复制资源”，不做资源合并；冲突会警告。【置信度：高】:contentReference[oaicite:6]{index=6}
+# include:
+#   - path: ./compose.subsystem.yaml
+#     project_directory: .
+#     env_file: ./env/sub.env
+
+# （传统）version 在新规范里可省略，但很多人保留
+version: "3.9"
+
+# 扩展字段：任何你自定义的“片段/宏”，用 x- 开头（合法 YAML 扩展）
+x-common: &common
+  restart: unless-stopped
+  tty: true
+  stdin_open: true
+
+services:
+  minecraft:
+    <<: *common
+
+    # ---------- 基本身份 ----------
+    image: itzg/minecraft-server:java21
+    container_name: minecraft
+    hostname: mc
+    domainname: local
+    labels:
+      com.example.role: "game"
+    annotations:
+      com.example.note: "compose-annotations"
+
+    # ---------- 拉取/构建 ----------
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    #   target: runtime
+    #   args:
+    #     SOME_ARG: "1"
+    pull_policy: if_not_present   # always / never / missing / if_not_present 等实现相关
+    platform: linux/amd64
+
+    # ---------- 启动与命令 ----------
+    command: []          # 覆盖 CMD（危险：空数组会清空默认 CMD）
+    entrypoint: []       # 覆盖 ENTRYPOINT（危险）
+    init: true
+    working_dir: /data
+
+    # 生命周期钩子（Docker Docs 服务目录包含：启动后/停止前操作）【置信度：高】:contentReference[oaicite:7]{index=7}
+    # post_start:
+    #   - command: ["sh", "-lc", "echo started"]
+    #     user: "0:0"
+    #     privileged: false
+    # pre_stop:
+    #   - command: ["sh", "-lc", "echo stopping"]
+
+    stop_signal: SIGTERM
+    stop_grace_period: 60s
+
+    # ---------- 端口 ----------
+    ports:
+      - "25565:25565/tcp"
+      # - "19132:19132/udp"
+    expose:
+      - "25565"
+
+    # ---------- 环境变量 ----------
+    environment:
+      EULA: "TRUE"
+      TYPE: "PAPER"
+      VERSION: "1.20.4"
+      MEMORY: "8G"
+      # ……以下是镜像业务变量，不是 compose 字段
+    env_file:
+      - ./env/mc.env
+
+    # ---------- 依赖关系 ----------
+    depends_on:
+      # db:
+      #   condition: service_healthy
+      # redis:
+      #   condition: service_started
+      []
+
+    # ---------- 健康检查 ----------
+    healthcheck:
+      test: ["CMD", "mc-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 1m
+
+    # ---------- 网络 ----------
+    networks:
+      mc-net:
+        aliases: [mc]
+    network_mode: ""   # bridge/host/none 或自定义
+    mac_address: "02:42:ac:11:00:02"
+    dns: [1.1.1.1, 8.8.8.8]
+    dns_search: [local]
+    dns_opt: ["timeout:2"]
+
+    # 额外 hosts
+    extra_hosts:
+      - "example.local:127.0.0.1"
+
+    # links / external_links（历史字段，仍可能见到）
+    links: []
+    external_links: []
+
+    # ---------- 存储 ----------
+    volumes:
+      - type: bind
+        source: ./data
+        target: /data
+        read_only: false
+      # - type: volume
+      #   source: mc-data
+      #   target: /data
+
+    volumes_from: []
+
+    tmpfs:
+      - /tmp:size=512m
+
+    # storage_opt（存储驱动参数；平台相关）
+    storage_opt:
+      size: "20G"
+
+    # ---------- 日志 ----------
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+    # attach（2.20+）：false 时 compose 不自动收集日志【置信度：高】:contentReference[oaicite:8]{index=8}
+    attach: true
+
+    # ---------- 安全/权限 ----------
+    user: "1000:1000"
+    group_add: []
+    privileged: false
+    read_only: false
+    security_opt: []
+    cap_add: []
+    cap_drop: []
+    userns_mode: ""       # host 等
+    ipc: ""               # host 等
+    pid: ""               # host 等
+    uts: ""               # host 等
+    isolation: ""         # Windows 常见
+    shm_size: "64m"
+
+    sysctls:
+      net.core.somaxconn: 1024
+
+    # ---------- 资源限制（两套：非 deploy / deploy） ----------
+    cpus: "4.0"
+    cpu_count: 4
+    cpu_percent: 0
+    cpu_shares: 1024
+    cpu_period: 100000
+    cpu_quota: 0
+    cpu_rt_runtime: 0
+    cpu_rt_period: 0
+    cpuset: "0-3"
+
+    mem_limit: 10G
+    mem_reservation: 6G
+    memswap_limit: 10G
+    mem_swappiness: 0
+
+    oom_kill_disable: false
+    oom_score_adj: 0
+
+    pids_limit: 4096
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+    # blkio_config（块 IO 限制）
+    blkio_config:
+      weight: 500
+      weight_device: []
+      device_read_bps: []
+      device_read_iops: []
+      device_write_bps: []
+      device_write_iops: []
+
+    # cgroup / cgroup_parent（Linux 控制组）
+    cgroup: ""            # host/private 等
+    cgroup_parent: ""
+
+    # ---------- 设备 ----------
+    devices: []
+    device_cgroup_rules: []
+
+    # GPU（实现相关；有些环境用 gpus）
+    gpus: ""              # "all" 或 "device=0" 等
+
+    # ---------- 运行时 ----------
+    runtime: ""           # nvidia 等（实现相关）
+
+    # ---------- 开发模式（compose develop，2.x 特性） ----------
+    # develop:
+    #   watch:
+    #     - path: ./config
+    #       action: sync
+
+    # ---------- 配置/密钥 ----------
+    configs:
+      # - source: my_config
+      #   target: /etc/my.conf
+      []
+    secrets:
+      # - source: my_secret
+      #   target: /run/secrets/my_secret
+      []
+    credential_spec: ""   # Windows gMSA 等场景
+
+    # ---------- profiles ----------
+    profiles: ["default"]
+
+    # ---------- 扩容（注意：container_name 会阻止 scale） ----------
+    # scale: 1
+
+    # ---------- 其他 ----------
+    deploy:               # Swarm/平台可选；不支持就会被忽略【置信度：高】:contentReference[oaicite:9]{index=9}
+      replicas: 1
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 10G
+        reservations:
+          cpus: "2.0"
+          memory: 6G
+
+networks:
+  mc-net:
+    driver: bridge
+    internal: false
+    enable_ipv6: false
+    driver_opts: {}
+
+volumes:
+  mc-data:
+    driver: local
+    driver_opts: {}
+
+configs:
+  my_config:
+    file: ./config/my.conf
+
+secrets:
+  my_secret:
+    file: ./secrets/secret.txt
+

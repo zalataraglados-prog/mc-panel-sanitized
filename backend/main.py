@@ -1,4 +1,8 @@
+import os
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from backend.routers.command import router as command_router
 from backend.routers.control import router as control_router
@@ -26,3 +30,10 @@ app.include_router(players_router)
 app.include_router(instances_router)
 app.include_router(rules_router)
 app.include_router(templates_router)
+
+static_dir = os.environ.get("MC_PANEL_STATIC_DIR")
+if static_dir:
+    static_path = Path(static_dir)
+    index_path = static_path / "index.html"
+    if static_path.exists() and index_path.exists():
+        app.mount("/", StaticFiles(directory=static_path, html=True), name="panel")

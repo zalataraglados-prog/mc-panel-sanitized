@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from fastapi import APIRouter, Depends
@@ -15,6 +16,9 @@ def resolve_instance_dir(base_dir: str = DEFAULT_BASE_DIR) -> str:
     """
     Pick the first instance directory if available, otherwise the base dir.
     """
+    override = os.environ.get("MC_PANEL_INSTANCE_DIR")
+    if override:
+        return override
     if not Path(base_dir).exists():
         return base_dir
     inspector = HostInspector()

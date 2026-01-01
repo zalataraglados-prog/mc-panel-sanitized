@@ -1,9 +1,10 @@
 from pathlib import Path
 
+from backend.logging import log_action
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from backend.auth import get_current_user, require_roles
-from backend.logging import log_action
 from backend.models import (
     MapConfigFile,
     MapConfigResponse,
@@ -71,28 +72,14 @@ def map_config(instance_dir: str | None = Query(None), user=Depends(get_current_
     bluemap_dir = base / "BlueMap"
     files: list[MapConfigFile] = []
     plugin = None
-    if (dynmap_dir / "configuration.txt").exists():
+
+    if dynmap_dir.exists():
         plugin = "dynmap"
-        files.append(
-            MapConfigFile(
-                name="configuration.txt",
-                content=(dynmap_dir / "configuration.txt").read_text(encoding="utf-8", errors="ignore"),
-            )
-        )
-    if (bluemap_dir / "core.conf").exists():
+        files.extend(_collect_config_files(dynmap_dir))
+    if bluemap_dir.exists():
         plugin = "bluemap"
-        for name in (
-            "core.conf",
-            "webserver.conf",
-            "webapp.conf",
-            "plugin.conf",
-            "maps/map.conf",
-            "storages/file.conf",
-            "storages/sql.conf",
-        ):
-            path = bluemap_dir / name
-            if path.exists():
-                files.append(MapConfigFile(name=name, content=path.read_text(encoding="utf-8", errors="ignore")))
+        files.extend(_collect_config_files(bluemap_dir))
+
     return MapConfigResponse(plugin=plugin, files=files)
 
 
@@ -111,20 +98,12 @@ def update_map_config(payload: MapConfigUpdateRequest, user=Depends(get_current_
     plugin = payload.plugin
     if plugin == "dynmap":
         config_dir = base / "dynmap"
-        allowed = {"configuration.txt"}
     elif plugin == "bluemap":
         config_dir = base / "BlueMap"
-        allowed = {
-            "core.conf",
-            "webserver.conf",
-            "webapp.conf",
-            "plugin.conf",
-            "maps/map.conf",
-            "storages/file.conf",
-            "storages/sql.conf",
-        }
     else:
         raise HTTPException(status_code=400, detail="Unsupported plugin")
+
+    allowed = {entry.name for entry in _collect_config_files(config_dir)}
 
     config_dir.mkdir(parents=True, exist_ok=True)
     for entry in payload.files:
@@ -135,12 +114,29 @@ def update_map_config(payload: MapConfigUpdateRequest, user=Depends(get_current_
         path.write_text(entry.content, encoding="utf-8")
 
     log_action(user.username, "map_config_update", plugin or "unknown")
-    files = []
-    for name in allowed:
-        path = (config_dir / name)
-        if path.exists():
-            files.append(MapConfigFile(name=name, content=path.read_text(encoding="utf-8", errors="ignore")))
+    files = _collect_config_files(config_dir)
     return MapConfigResponse(plugin=plugin, files=files)
+
+
+def _collect_config_files(base_dir: Path) -> list[MapConfigFile]:
+    allowed_ext = {".txt", ".conf", ".yml", ".yaml", ".json"}
+    ignore_dirs = {"tiles"}
+    max_size = 512 * 1024
+    items: list[MapConfigFile] = []
+    if not base_dir.exists():
+        return items
+    for path in sorted(base_dir.rglob("*")):
+        if any(part in ignore_dirs for part in path.parts):
+            continue
+        if not path.is_file():
+            continue
+        if path.suffix.lower() not in allowed_ext:
+            continue
+        if path.stat().st_size > max_size:
+            continue
+        relative = path.relative_to(base_dir).as_posix()
+        items.append(MapConfigFile(name=relative, content=path.read_text(encoding="utf-8", errors="ignore")))
+    return items
 
 
 @router.post("/api/map/reload", response_model=MapReloadResponse)

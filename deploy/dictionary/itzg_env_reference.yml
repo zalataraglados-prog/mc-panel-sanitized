@@ -1,0 +1,153 @@
+﻿environment:
+
+  # =====================================================
+  # 【0】法律与启动
+  # =====================================================
+  EULA: "FALSE"                # 必须 TRUE
+  TZ: "Asia/Shanghai"
+
+  # =====================================================
+  # 【1】服务器核心类型
+  # =====================================================
+  TYPE: "VANILLA"              # VANILLA / PAPER / SPIGOT / FABRIC / FORGE / QUILT / NEOFORGE
+  VERSION: "LATEST"
+  ENABLE_JMX: "false"
+  JMX_PORT: 9010
+
+  # =====================================================
+  # 【2】世界与基础规则
+  # =====================================================
+  LEVEL: "world"
+  LEVEL_NAME: "world"
+  LEVEL_SEED: ""
+  LEVEL_TYPE: "default"
+  GENERATE_STRUCTURES: "true"
+  MAX_WORLD_SIZE: 29999984
+
+  DIFFICULTY: "normal"
+  MODE: "survival"
+  HARDCORE: "false"
+  PVP: "true"
+  ALLOW_FLIGHT: "false"
+  VIEW_DISTANCE: 10
+  SIMULATION_DISTANCE: 10
+  SPAWN_PROTECTION: 16
+  MAX_PLAYERS: 20
+  MOTD: "A Minecraft Server"
+  ONLINE_MODE: "true"
+  WHITE_LIST: "false"
+  ENFORCE_WHITELIST: "false"
+  OPS: ""
+
+  # =====================================================
+  # 【3】网络与连接
+  # =====================================================
+  SERVER_PORT: 25565
+  ENABLE_QUERY: "false"
+  QUERY_PORT: 25565
+  ENABLE_RCON: "false"
+  RCON_PORT: 25575
+  RCON_PASSWORD: ""
+
+  # =====================================================
+  # 【4】JVM / 性能调优
+  # =====================================================
+  MEMORY: "1G"
+  INIT_MEMORY: ""
+  MAX_MEMORY: ""
+  USE_AIKAR_FLAGS: "true"
+  JVM_OPTS: ""
+  JVM_DD_OPTS: ""
+  JVM_XX_OPTS: ""
+
+  # =====================================================
+  # 【5】自动暂停（空服节能）
+  # =====================================================
+  ENABLE_AUTOPAUSE: "false"
+  AUTOPAUSE_TIMEOUT_EST: 3600
+  AUTOPAUSE_TIMEOUT_INIT: 600
+  AUTOPAUSE_PERIOD: 10
+  AUTOPAUSE_KNOCK_INTERFACE: eth0
+
+  # =====================================================
+  # 【6】备份系统（极易被忽略）
+  # =====================================================
+  ENABLE_BACKUPS: "false"
+  BACKUP_INTERVAL: "24h"
+  BACKUP_METHOD: "tar"
+  BACKUP_NAME: "world-backup"
+  BACKUP_RETENTION: 7
+  BACKUP_PRUNE: "true"
+
+  # =====================================================
+  # 【7】插件 / 模组自动下载
+  # =====================================================
+  PLUGINS: ""
+  MODS: ""
+  SPIGET_RESOURCES: ""
+  BUKKIT_PLUGIN_DIR: "/data/plugins"
+  REMOVE_OLD_MODS: "false"
+  REMOVE_OLD_PLUGINS: "false"
+
+  # =====================================================
+  # 【8】Paper / Spigot / Bukkit 专用
+  # =====================================================
+  PAPER_BUILD: ""
+  SPIGOT_DOWNLOAD_URL: ""
+  BUILD_FROM_SOURCE: "false"
+
+  # =====================================================
+  # 【9】Fabric / Quilt / Forge
+  # =====================================================
+  FABRIC_LOADER_VERSION: ""
+  FABRIC_INSTALLER_VERSION: ""
+  FORGE_VERSION: ""
+  NEOFORGE_VERSION: ""
+  QUILT_LOADER_VERSION: ""
+
+  # =====================================================
+  # 【10】代理 / 群组服支持
+  # =====================================================
+  ENABLE_BUNGEECORD: "false"
+  ENABLE_VELOCITY: "false"
+  VELOCITY_SECRET: ""
+
+  # =====================================================
+  # 【11】Gamerule（批量注入）
+  # =====================================================
+  GAME_RULES: |
+    doFireTick=false
+    keepInventory=true
+
+  # =====================================================
+  # 【12】执行钩子（极高级）
+  # =====================================================
+  PRE_START_SCRIPT: ""
+  POST_START_SCRIPT: ""
+  PRE_STOP_SCRIPT: ""
+
+  # =====================================================
+  # 【13】日志与运维
+  # =====================================================
+  ENABLE_ROLLING_LOGS: "true"
+  LOG_TIMESTAMP: "true"
+  DEBUG: "false"
+
+  # =====================================================
+  # 【14】用户 & 文件权限
+  # =====================================================
+  UID: 1000
+  GID: 1000
+  UMASK: "002"
+
+  # =====================================================
+  # 【15】高级 / 风险变量（慎用）
+  # =====================================================
+  OVERRIDE_SERVER_PROPERTIES: "false"
+  OVERRIDE_WHITELIST: "false"
+  SKIP_SERVER_PROPERTIES: "false"
+  STOP_SERVER_ANNOUNCE_DELAY: 10
+
+
+
+

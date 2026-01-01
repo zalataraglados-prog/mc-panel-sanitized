@@ -262,7 +262,7 @@ body {
   background: #0b1224;
   border-radius: 8px;
   padding: 10px;
-  min-height: 640px;
+  min-height: 70vh;
 }
 
 .map-canvas img {

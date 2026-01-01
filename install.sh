@@ -58,11 +58,43 @@ read_tty() {
   echo "$var"
 }
 
+# ------------------------------
+# Optional panel maintenance mode
+# ------------------------------
+echo ""
+echo "Panel maintenance (existing instance):"
+echo "1) Install panel for an existing instance"
+echo "2) Uninstall panel from an existing instance"
+echo "Enter to continue normal deployment."
+PANEL_MAINT=$(read_tty "Enter [1-2] or blank: ")
+
+if [ "$PANEL_MAINT" = "1" ] || [ "$PANEL_MAINT" = "2" ]; then
+  echo ""
+  echo "[INFO] Available instances:"
+  python3 -m deploy.cli instances || true
+  INSTANCE_DIR=$(read_tty "Instance dir (blank for default): ")
+  if [ "$PANEL_MAINT" = "1" ]; then
+    BUILD_PANEL="y"
+    if [ -f "$INSTALL_DIR/frontend/dist/index.html" ]; then
+      BUILD_PANEL=$(read_tty "Frontend already built. Rebuild? [y/N] ")
+    fi
+    if [ "$BUILD_PANEL" = "y" ] || [ "$BUILD_PANEL" = "Y" ]; then
+      python3 -m deploy.cli panel install ${INSTANCE_DIR:+--instance-dir "$INSTANCE_DIR"}
+    else
+      python3 -m deploy.cli panel install ${INSTANCE_DIR:+--instance-dir "$INSTANCE_DIR"} --no-build
+    fi
+  else
+    python3 -m deploy.cli panel uninstall ${INSTANCE_DIR:+--instance-dir "$INSTANCE_DIR"}
+  fi
+  exit 0
+fi
+
 echo ""
 IMPORT_STRING=$(read_tty "Paste claims string (or press Enter to continue): ")
 export IMPORT_STRING
 
 cd "$INSTALL_DIR"
+export MC_PANEL_ROOT="$INSTALL_DIR"
 
 echo ""
 VERSION=$(read_tty "Minecraft version (e.g. 1.21.4): ")
@@ -153,6 +185,43 @@ with open(os.environ["PARAMS_JSON"], "w", encoding="utf-8") as handle:
 PY
 }
 
+PANEL_ENABLED=$(PARAM_KEY="panel.enable" get_param "panel.enable")
+if [ -z "$PANEL_ENABLED" ]; then
+  echo ""
+  PANEL_CHOICE=$(read_tty "Install Web Panel? [y/N] ")
+  case "$PANEL_CHOICE" in
+    y|Y) PARAM_KEY="panel.enable" PARAM_VALUE="true" set_param "panel.enable" "true" ;;
+    *) : ;;
+  esac
+fi
+
+PANEL_PORT_EXISTS=$(PARAM_KEY="panel.port" get_param "panel.port")
+PANEL_ENABLED=$(PARAM_KEY="panel.enable" get_param "panel.enable")
+if [ -z "$PANEL_PORT_EXISTS" ] && [ "$PANEL_ENABLED" = "true" ]; then
+  PANEL_PORT=$(read_tty "Panel port [default: 15000]: ")
+  if [ -z "$PANEL_PORT" ]; then
+    PANEL_PORT="15000"
+  fi
+  PARAM_KEY="panel.port" PARAM_VALUE="$PANEL_PORT" set_param "panel.port" "$PANEL_PORT"
+fi
+
+if [ "$PANEL_ENABLED" = "true" ]; then
+  if [ ! -f "$INSTALL_DIR/frontend/dist/index.html" ]; then
+    echo ""
+    echo "[WARN] frontend/dist not found. Panel will require a frontend build."
+    if command -v npm >/dev/null 2>&1; then
+      BUILD_PANEL=$(read_tty "Build frontend now? [y/N] ")
+      if [ "$BUILD_PANEL" = "y" ] || [ "$BUILD_PANEL" = "Y" ]; then
+        (cd "$INSTALL_DIR/frontend" && npm install && npm run build)
+      else
+        echo "[WARN] Skipped frontend build. Panel service may fail until built."
+      fi
+    else
+      echo "[WARN] npm not found. Install Node.js then run npm install && npm run build."
+    fi
+  fi
+fi
+
 MAP_PLUGIN_EXISTS=$(PARAM_KEY="map.plugin" get_param "map.plugin")
 if [ -z "$MAP_PLUGIN_EXISTS" ]; then
   echo ""
@@ -197,6 +266,24 @@ if [ -z "$MAP_RENDER_EXISTS" ]; then
       MAP_RENDER="5"
     fi
     PARAM_KEY="map.render_interval" PARAM_VALUE="$MAP_RENDER" set_param "map.render_interval" "$MAP_RENDER"
+  fi
+fi
+
+MAP_FILE_EXISTS=$(PARAM_KEY="map.file" get_param "map.file")
+if [ -z "$MAP_FILE_EXISTS" ]; then
+  MAP_FILE=$(read_tty "Optional map file (world zip/dir path): ")
+  if [ -n "$MAP_FILE" ]; then
+    PARAM_KEY="map.file" PARAM_VALUE="$MAP_FILE" set_param "map.file" "$MAP_FILE"
+    MAP_TARGET=$(read_tty "Map target folder [default: world]: ")
+    if [ -z "$MAP_TARGET" ]; then
+      MAP_TARGET="world"
+    fi
+    PARAM_KEY="map.target" PARAM_VALUE="$MAP_TARGET" set_param "map.target" "$MAP_TARGET"
+    MAP_OVERWRITE=$(read_tty "Overwrite existing world? [Y/n] ")
+    case "$MAP_OVERWRITE" in
+      n|N) PARAM_KEY="map.overwrite" PARAM_VALUE="false" set_param "map.overwrite" "false" ;;
+      *) PARAM_KEY="map.overwrite" PARAM_VALUE="true" set_param "map.overwrite" "true" ;;
+    esac
   fi
 fi
 

@@ -14,6 +14,7 @@ DEFAULT_BASE_DIR = "/opt/mc-instances"
 DEFAULT_MC_VERSION = "1.21.4"
 DEFAULT_DOCKER_IMAGE = "itzg/minecraft-server"
 DEFAULT_DOCKER_TAG = "latest"
+DEFAULT_PANEL_ROOT = "/opt/mc-panel-sanitized"
 MAP_PLUGIN_URLS = {
     "dynmap": {
         "url": "https://dynmap.us/builds/dynmap/Dynmap-HEAD-spigot.jar",
@@ -94,6 +95,9 @@ def _build_template_context(params: dict, instance_name: str, instance_dir: str)
     map_port = _parse_int(params.get("map.plugin_port")) or 8123
     render_interval = _parse_int(params.get("map.render_interval")) or 5
     render_interval_seconds = render_interval * 60
+    panel_enabled = str(params.get("panel.enable", "false")).lower() in ("true", "1", "yes", "y")
+    panel_root = os.environ.get("MC_PANEL_ROOT", DEFAULT_PANEL_ROOT)
+    panel_static_dir = posixpath.join(panel_root, "frontend", "dist")
 
     return {
         "INSTANCE_NAME": instance_name,
@@ -114,6 +118,9 @@ def _build_template_context(params: dict, instance_name: str, instance_dir: str)
         "MAP_PORT": map_port,
         "MAP_RENDER_INTERVAL": render_interval,
         "MAP_RENDER_INTERVAL_SECONDS": render_interval_seconds,
+        "PANEL_ENABLED": "true" if panel_enabled else "false",
+        "PANEL_ROOT": panel_root,
+        "PANEL_STATIC_DIR": panel_static_dir,
     }
 
 
@@ -143,6 +150,12 @@ def build_execution_plan(
     port = _pick_server_port(params)
     if port is not None:
         preconditions.append(Precondition(type="port_free", value=port, required=True))
+
+    panel_enabled = str(params.get("panel.enable", "false")).lower() in ("true", "1", "yes", "y")
+    if panel_enabled:
+        panel_port = _parse_int(params.get("panel.port")) or 15000
+        preconditions.append(Precondition(type="port_free", value=panel_port, required=True))
+        preconditions.append(Precondition(type="systemd_available", value="systemd", required=True))
 
     if _needs_docker(params):
         preconditions.append(Precondition(type="docker_available", value="docker", required=True))
@@ -195,15 +208,18 @@ def build_execution_plan(
                 "context": context,
             },
         ),
-        Action(
-            type="write_file",
-            params={
-                "path": f"/etc/systemd/system/{instance_name}-panel.service",
-                "template": "mc-panel.service.tpl",
-                "context": context,
-            },
-        ),
     ]
+    if panel_enabled:
+        actions.append(
+            Action(
+                type="write_file",
+                params={
+                    "path": f"/etc/systemd/system/{instance_name}-panel.service",
+                    "template": "mc-panel.service.tpl",
+                    "context": context,
+                },
+            )
+        )
 
     map_plugin = params.get("map.plugin")
     if map_plugin in MAP_PLUGIN_URLS:

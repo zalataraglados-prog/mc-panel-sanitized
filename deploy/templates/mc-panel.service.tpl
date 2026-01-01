@@ -1,15 +1,14 @@
 [Unit]
 Description=Minecraft Panel for {{INSTANCE_NAME}}
-After=network.target docker.service
-Requires=docker.service
+After=network.target
 
 [Service]
-Type=oneshot
-RemainAfterExit=true
-WorkingDirectory={{INSTANCE_DIR}}
-ExecStart=/usr/local/lib/docker/cli-plugins/docker-compose -p {{INSTANCE_NAME}} up -d --build
-ExecStop=/usr/local/lib/docker/cli-plugins/docker-compose -p {{INSTANCE_NAME}} down
-TimeoutStartSec=0
+Type=simple
+WorkingDirectory={{PANEL_ROOT}}
+Environment=MC_PANEL_INSTANCE_DIR={{INSTANCE_DIR}}
+Environment=MC_PANEL_STATIC_DIR={{PANEL_STATIC_DIR}}
+ExecStart=/usr/bin/python3 -m uvicorn backend.main:app --host 0.0.0.0 --port {{PANEL_PORT}}
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target

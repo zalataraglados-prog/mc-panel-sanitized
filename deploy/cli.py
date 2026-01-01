@@ -23,6 +23,7 @@ from deploy.executor.executor_planner import build_execution_plan
 from deploy.executor.host_inspector import HostInspector
 from deploy.executor.plan_executor import ExecutionPlanExecutor
 from deploy.loader import load_rules_bundle
+from deploy.panel_manager import install_panel, uninstall_panel
 from deploy.planner.planner import plan as plan_apply
 from deploy.web.review_adapter import review_to_dict
 
@@ -178,6 +179,32 @@ def main():
         help="Base directory where instances are stored",
     )
 
+    panel_parser = sub.add_parser("panel")
+    panel_sub = panel_parser.add_subparsers(dest="panel_command", required=True)
+    panel_install = panel_sub.add_parser("install")
+    panel_install.add_argument("--instance-dir", help="Target instance directory")
+    panel_install.add_argument(
+        "--base-dir",
+        default=os.environ.get("MC_PANEL_BASE_DIR", "/opt/mc-instances"),
+        help="Base directory where instances are stored",
+    )
+    panel_install.add_argument("--panel-port", type=int, help="Override panel port")
+    panel_install.add_argument("--no-start", action="store_true", help="Do not start service immediately")
+    panel_install.add_argument("--no-build", action="store_true", help="Skip frontend build step")
+    panel_install.add_argument(
+        "--panel-root",
+        default=os.environ.get("MC_PANEL_ROOT"),
+        help="Panel repository root (default: auto-detect)",
+    )
+
+    panel_uninstall = panel_sub.add_parser("uninstall")
+    panel_uninstall.add_argument("--instance-dir", help="Target instance directory")
+    panel_uninstall.add_argument(
+        "--base-dir",
+        default=os.environ.get("MC_PANEL_BASE_DIR", "/opt/mc-instances"),
+        help="Base directory where instances are stored",
+    )
+
     args = parser.parse_args()
 
     claims = None
@@ -187,6 +214,27 @@ def main():
         result = inspector.list_instances(args.base_dir)
         print(json.dumps(result, indent=2, ensure_ascii=True))
         return 0
+
+    if args.command == "panel":
+        if args.panel_command == "install":
+            service = install_panel(
+                instance_dir=args.instance_dir,
+                base_dir=args.base_dir,
+                panel_port=args.panel_port,
+                start=not args.no_start,
+                build_frontend=not args.no_build,
+                panel_root=args.panel_root,
+            )
+            print(f"Panel service installed: {service}")
+            return 0
+        if args.panel_command == "uninstall":
+            service = uninstall_panel(
+                instance_dir=args.instance_dir,
+                base_dir=args.base_dir,
+            )
+            print(f"Panel service removed: {service}")
+            return 0
+        raise SystemExit("Unknown panel command.")
 
     if args.command in ("plan", "apply"):
         import_string = None

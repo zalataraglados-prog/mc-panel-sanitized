@@ -1,10 +1,64 @@
-# test-version (archive)
+# MC Panel (demon1.1)
 
-This branch is kept only as a reference snapshot and is not maintained. Do not use it for deployment; use `demo1` instead.
-# Rules Data Source
-#
-# Catalog/Taxonomy rules are stored in the external rules repository.
-# Main project should not vendor these files; future loader will fetch:
-# https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/catalog/vanilla_1.21.4.json
-# https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/taxonomy/vanilla_1.21.4.json
-#
+This project is a configuration decision engine for Minecraft deployments with an optional runtime panel.
+
+## Quick start (plan + dry-run)
+
+```
+curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/demon1.1/install.sh | sudo bash
+```
+
+## Optional Web Panel
+
+The panel is optional. It can be installed during deploy or added later without affecting the server.
+
+### Panel prerequisites
+
+- Python packages: `fastapi`, `uvicorn`
+- Frontend build output: `frontend/dist` (build with Node.js + npm)
+
+### Install panel during deploy
+
+When running `install.sh`, choose:
+`Install Web Panel? [y/N]`
+
+### Panel maintenance mode (existing instance)
+
+`install.sh` offers a maintenance menu before deploy:
+
+- Install panel for an existing instance
+- Uninstall panel from an existing instance
+
+### Add panel to an existing instance
+
+```
+sudo python3 -m deploy.cli panel install --instance-dir /opt/mc-instances/<instance-name>
+```
+
+Options:
+
+- `--panel-port 15000` to override port
+- `--no-start` to avoid starting the service immediately
+- `--no-build` to skip frontend build
+- `--panel-root /opt/mc-panel-sanitized` to point to the repo root
+
+## Map plugins
+
+During deploy, you can optionally enable Dynmap or BlueMap. The deployer can configure:
+
+- plugin port (`map.plugin_port`)
+- render interval (`map.render_interval`)
+- optional world file copy (`map.file`, `map.target`, `map.overwrite`)
+
+### Uninstall panel from an instance
+
+```
+sudo python3 -m deploy.cli panel uninstall --instance-dir /opt/mc-instances/<instance-name>
+```
+
+## Rules data source
+
+Catalog/Taxonomy are stored in the external rules repository.
+
+- https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/catalog/vanilla_1.21.4.json
+- https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/taxonomy/vanilla_1.21.4.json

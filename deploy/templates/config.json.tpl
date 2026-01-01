@@ -56,7 +56,7 @@
   },
 
   "panel": {
-    "enabled": true,
+    "enabled": {{PANEL_ENABLED}},
     "port": {{PANEL_PORT}},
     "public_url": "",
     "secret_key": "",
