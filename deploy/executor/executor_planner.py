@@ -27,9 +27,11 @@ MAP_PLUGIN_URLS = {
 }
 INVENTORY_PLUGIN_URLS = {
     "invsee": {
+        "url": "https://github.com/Jannyboy11/InvSee-plus-plus/releases/latest/download/InvSee%2B%2B.jar",
         "filename": "InvSeePlusPlus.jar",
     },
     "openinv": {
+        "url": "https://dev.bukkit.org/projects/openinv/files/latest/download",
         "filename": "OpenInv.jar",
     },
 }
@@ -335,22 +337,23 @@ def build_execution_plan(
         )
 
     inventory_plugin = params.get("inventory.plugin")
-    inventory_url = params.get("inventory.plugin_url")
-    if inventory_plugin in INVENTORY_PLUGIN_URLS and inventory_url:
+    if inventory_plugin in INVENTORY_PLUGIN_URLS:
         plugin_spec = INVENTORY_PLUGIN_URLS[inventory_plugin]
-        plugin_dir = posixpath.join(instance_dir, "data", "plugins")
-        plugin_target = posixpath.join(plugin_dir, plugin_spec["filename"])
-        actions.append(Action(type="mkdir", params={"path": plugin_dir}))
-        actions.append(
-            Action(
-                type="download_file",
-                params={
-                    "url": inventory_url,
-                    "target": plugin_target,
-                    "overwrite": False,
-                },
+        inventory_url = params.get("inventory.plugin_url", plugin_spec.get("url"))
+        if inventory_url:
+            plugin_dir = posixpath.join(instance_dir, "data", "plugins")
+            plugin_target = posixpath.join(plugin_dir, plugin_spec["filename"])
+            actions.append(Action(type="mkdir", params={"path": plugin_dir}))
+            actions.append(
+                Action(
+                    type="download_file",
+                    params={
+                        "url": inventory_url,
+                        "target": plugin_target,
+                        "overwrite": False,
+                    },
+                )
             )
-        )
 
     map_file = params.get("map.file")
     if map_file:

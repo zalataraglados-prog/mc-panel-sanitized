@@ -55,6 +55,11 @@ During deploy, you can optionally enable Dynmap or BlueMap. The deployer can con
 During deploy, you can optionally install an inventory plugin for richer inventory editing.
 Supported choices: InvSee++ or OpenInv. Provide a download URL when prompted.
 
+## Plugin download logging
+
+Download failures are appended to `logs/plugin_download.log`. If log push is enabled,
+the deployer will attempt to push updates to the `logs` branch in the repo.
+
 ### Uninstall panel from an instance
 
 ```

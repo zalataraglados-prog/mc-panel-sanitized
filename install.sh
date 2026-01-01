@@ -95,6 +95,10 @@ export IMPORT_STRING
 
 cd "$INSTALL_DIR"
 export MC_PANEL_ROOT="$INSTALL_DIR"
+export MC_PANEL_LOG_DIR="$INSTALL_DIR/logs"
+export MC_PANEL_LOG_BRANCH="logs"
+export MC_PANEL_LOG_WORKTREE="$INSTALL_DIR/.logs-worktree"
+export MC_PANEL_LOG_PUSH="1"
 
 echo ""
 VERSION=$(read_tty "Minecraft version (e.g. 1.21.4): ")
@@ -284,7 +288,20 @@ if [ -z "$INVENTORY_PLUGIN_EXISTS" ]; then
     *) INVENTORY_PLUGIN="" ;;
   esac
   if [ -n "$INVENTORY_PLUGIN" ]; then
-    INVENTORY_URL=$(read_tty "Inventory plugin download URL (required): ")
+    DEFAULT_INV_URL=""
+    if [ "$INVENTORY_PLUGIN" = "invsee" ]; then
+      DEFAULT_INV_URL="https://github.com/Jannyboy11/InvSee-plus-plus/releases/latest/download/InvSee%2B%2B.jar"
+    elif [ "$INVENTORY_PLUGIN" = "openinv" ]; then
+      DEFAULT_INV_URL="https://dev.bukkit.org/projects/openinv/files/latest/download"
+    fi
+    if [ -n "$DEFAULT_INV_URL" ]; then
+      INVENTORY_URL=$(read_tty "Inventory plugin download URL [default: ${DEFAULT_INV_URL}]: ")
+      if [ -z "$INVENTORY_URL" ]; then
+        INVENTORY_URL="$DEFAULT_INV_URL"
+      fi
+    else
+      INVENTORY_URL=$(read_tty "Inventory plugin download URL (required): ")
+    fi
     if [ -n "$INVENTORY_URL" ]; then
       PARAM_KEY="inventory.plugin" PARAM_VALUE="$INVENTORY_PLUGIN" set_param "inventory.plugin" "$INVENTORY_PLUGIN"
       PARAM_KEY="inventory.plugin_url" PARAM_VALUE="$INVENTORY_URL" set_param "inventory.plugin_url" "$INVENTORY_URL"
@@ -299,7 +316,20 @@ fi
 
 INVENTORY_URL_EXISTS=$(PARAM_KEY="inventory.plugin_url" get_param "inventory.plugin_url")
 if [ -n "$INVENTORY_PLUGIN" ] && [ -z "$INVENTORY_URL_EXISTS" ]; then
-  INVENTORY_URL=$(read_tty "Inventory plugin download URL (required): ")
+  DEFAULT_INV_URL=""
+  if [ "$INVENTORY_PLUGIN" = "invsee" ]; then
+    DEFAULT_INV_URL="https://github.com/Jannyboy11/InvSee-plus-plus/releases/latest/download/InvSee%2B%2B.jar"
+  elif [ "$INVENTORY_PLUGIN" = "openinv" ]; then
+    DEFAULT_INV_URL="https://dev.bukkit.org/projects/openinv/files/latest/download"
+  fi
+  if [ -n "$DEFAULT_INV_URL" ]; then
+    INVENTORY_URL=$(read_tty "Inventory plugin download URL [default: ${DEFAULT_INV_URL}]: ")
+    if [ -z "$INVENTORY_URL" ]; then
+      INVENTORY_URL="$DEFAULT_INV_URL"
+    fi
+  else
+    INVENTORY_URL=$(read_tty "Inventory plugin download URL (required): ")
+  fi
   if [ -n "$INVENTORY_URL" ]; then
     PARAM_KEY="inventory.plugin_url" PARAM_VALUE="$INVENTORY_URL" set_param "inventory.plugin_url" "$INVENTORY_URL"
   else

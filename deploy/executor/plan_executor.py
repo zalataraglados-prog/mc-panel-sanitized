@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import subprocess
 import urllib.request
+from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
@@ -154,8 +156,14 @@ class ExecutionPlanExecutor:
                 )
             os.makedirs(os.path.dirname(target), exist_ok=True)
             try:
-                urllib.request.urlretrieve(url, target)
+                self._download_file(url, target)
             except Exception as exc:
+                self._log_source_issue(
+                    issue_type="download_file",
+                    url=url,
+                    target=target,
+                    error=str(exc),
+                )
                 return ExecutionStep(name="action:download_file", ok=False, details=str(exc))
             return ExecutionStep(name="action:download_file", ok=True, details=target)
 
@@ -164,6 +172,73 @@ class ExecutionPlanExecutor:
             ok=False,
             details="unsupported action type",
         )
+
+    def _download_file(self, url: str, target: str) -> None:
+        request = urllib.request.Request(url, headers={"User-Agent": "mc-panel"})
+        with urllib.request.urlopen(request, timeout=30) as response:
+            with open(target, "wb") as handle:
+                shutil.copyfileobj(response, handle)
+
+    def _log_source_issue(self, *, issue_type: str, url: str, target: str, error: str) -> None:
+        base_dir = os.environ.get("MC_PANEL_ROOT") or os.getcwd()
+        log_dir = os.environ.get("MC_PANEL_LOG_DIR") or os.path.join(base_dir, "logs")
+        os.makedirs(log_dir, exist_ok=True)
+        log_path = os.path.join(log_dir, "plugin_download.log")
+        entry = {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "type": issue_type,
+            "url": url,
+            "target": target,
+            "error": error,
+        }
+        try:
+            with open(log_path, "a", encoding="utf-8") as handle:
+                handle.write(json.dumps(entry, ensure_ascii=True))
+                handle.write("\n")
+        except Exception:
+            return
+
+        if str(os.environ.get("MC_PANEL_LOG_PUSH", "")).lower() not in ("1", "true", "yes"):
+            return
+        self._push_log(log_path, base_dir)
+
+    def _push_log(self, log_path: str, base_dir: str) -> None:
+        if not shutil.which("git"):
+            return
+        branch = os.environ.get("MC_PANEL_LOG_BRANCH", "logs")
+        worktree = os.environ.get("MC_PANEL_LOG_WORKTREE") or os.path.join(base_dir, ".logs-worktree")
+        log_rel = os.path.relpath(log_path, base_dir)
+        log_target = os.path.join(worktree, log_rel)
+        try:
+            if not os.path.isdir(worktree):
+                subprocess.run(
+                    ["git", "-C", base_dir, "worktree", "add", "-B", branch, worktree],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+            os.makedirs(os.path.dirname(log_target), exist_ok=True)
+            shutil.copy2(log_path, log_target)
+            subprocess.run(
+                ["git", "-C", worktree, "add", log_rel],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(
+                ["git", "-C", worktree, "commit", "-m", "Update plugin download log"],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(
+                ["git", "-C", worktree, "push", "origin", branch],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        except Exception:
+            return
 
     def _render_template(self, template_name: str, context: Dict[str, Any]) -> str:
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "templates"))
