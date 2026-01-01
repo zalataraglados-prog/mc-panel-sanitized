@@ -45,6 +45,26 @@ class PlayerInfo(BaseModel):
     role: Optional[str] = None
 
 
+class InventoryItem(BaseModel):
+    slot: int
+    id: str
+    count: int
+    meta: Optional[Dict[str, Any]] = None
+
+
+class PlayerInventoryResponse(BaseModel):
+    player: str
+    supported: bool
+    items: List[InventoryItem] = []
+    message: Optional[str] = None
+
+
+class PlayerInventoryUpdateRequest(BaseModel):
+    player: str
+    items: List[InventoryItem]
+    instance_dir: Optional[str] = None
+
+
 class CommandRequest(BaseModel):
     command: str
     channel: str = "console"

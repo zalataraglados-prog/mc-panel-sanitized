@@ -171,6 +171,7 @@ body {
   display: flex;
   gap: 6px;
   margin-top: 6px;
+  flex-wrap: wrap;
 }
 
 .player-name {
@@ -407,6 +408,53 @@ body {
   grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 16px;
+}
+
+.modal {
+  background: var(--card);
+  border-radius: 10px;
+  padding: 16px;
+  width: min(640px, 100%);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.4);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.inventory-item {
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 12px;
+}
+
+.inventory-id {
+  font-weight: 600;
+}
+
+.inventory-count {
+  color: var(--muted);
 }
 
 .map-area {

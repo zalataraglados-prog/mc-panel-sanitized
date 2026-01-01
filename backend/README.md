@@ -43,6 +43,8 @@ backend/
 | `GET /api/map/status?instance_dir=...` | report map tile availability and Y-range |
 | `GET /api/map/tile?dimension=...&x=...&z=...&zoom=...&y=...` | fetch a map tile or placeholder |
 | `GET /api/players` | return player list (avatar, coord, session) |
+| `GET /api/players/inventory?name=...` | inventory preview (requires plugin; placeholder) |
+| `POST /api/players/inventory` | inventory update (placeholder) |
 | `POST /api/command` | enqueue console or player command (owner/admin/mod) |
 | `POST /api/control` | start/stop/restart server (owner/admin) |
 | `POST /api/rcon` | send custom RCON command (owner/admin) |

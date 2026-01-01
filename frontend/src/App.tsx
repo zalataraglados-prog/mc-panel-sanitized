@@ -9,6 +9,7 @@ type InstanceItem = { name?: string; path?: string };
 type MapStatus = { source: string | null; available: Record<string, boolean>; y_min: number; y_max: number; supports_y: boolean };
 type MapConfigFile = { name: string; content: string };
 type MapConfig = { plugin: string | null; files: MapConfigFile[] };
+type InventoryItem = { slot: number; id: string; count: number };
 
 const translations = {
   en: {
@@ -53,6 +54,11 @@ const translations = {
     cancel: "Cancel",
     theme: "Dark / Light",
     language: "\u4e2d\u6587 / EN",
+    inventory: "Inventory",
+    inventoryOpen: "Open Inventory",
+    inventoryClose: "Close",
+    inventoryEmpty: "No inventory data.",
+    inventoryUnsupported: "Inventory editing requires a compatible plugin.",
   },
   zh: {
     title: "MC \u9762\u677f",
@@ -96,6 +102,11 @@ const translations = {
     cancel: "\u53d6\u6d88",
     theme: "\u6df1\u8272 / \u6d45\u8272",
     language: "\u4e2d\u6587 / EN",
+    inventory: "\u80cc\u5305",
+    inventoryOpen: "\u67e5\u770b\u80cc\u5305",
+    inventoryClose: "\u5173\u95ed",
+    inventoryEmpty: "\u6682\u65e0\u80cc\u5305\u6570\u636e\u3002",
+    inventoryUnsupported: "\u80cc\u5305\u7f16\u8f91\u9700\u8981\u76f8\u5bb9\u63d2\u4ef6\u3002",
   },
 };
 
@@ -175,6 +186,11 @@ export function App() {
   const [mapY, setMapY] = useState(64);
   const [mapRefreshSec, setMapRefreshSec] = useState(5);
   const [mapTick, setMapTick] = useState(0);
+  const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [inventoryPlayer, setInventoryPlayer] = useState("");
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [inventoryMessage, setInventoryMessage] = useState("");
+  const [inventorySupported, setInventorySupported] = useState(false);
 
   const t = translations[lang];
   const canControl = role === "owner" || role === "admin";
@@ -578,6 +594,32 @@ export function App() {
     }
   };
 
+  const openInventory = (name: string) => {
+    if (!canManagePlayers) {
+      return;
+    }
+    const query = new URLSearchParams({ name });
+    if (instanceDir) {
+      query.set("instance_dir", instanceDir);
+    }
+    fetch(`/api/players/inventory?${query.toString()}`, { headers: authHeader })
+      .then((res) => res.json())
+      .then((data) => {
+        setInventoryPlayer(name);
+        setInventoryItems(data.items || []);
+        setInventorySupported(Boolean(data.supported));
+        setInventoryMessage(data.message || "");
+        setInventoryOpen(true);
+      })
+      .catch(() => {
+        setInventoryPlayer(name);
+        setInventoryItems([]);
+        setInventorySupported(false);
+        setInventoryMessage("Inventory request failed.");
+        setInventoryOpen(true);
+      });
+  };
+
   return (
     <div className="page">
       <header className="header">
@@ -675,6 +717,9 @@ export function App() {
                     onClick={() => sendPlayerCommand(`tp ${p.name} @s`)}
                   >
                     Teleport
+                  </button>
+                  <button className="btn" disabled={!canManagePlayers} onClick={() => openInventory(p.name)}>
+                    {t.inventory}
                   </button>
                 </div>
               </div>
@@ -933,6 +978,35 @@ export function App() {
           ))}
         </ul>
       </section>
+
+      {inventoryOpen ? (
+        <div className="modal-overlay" onClick={() => setInventoryOpen(false)}>
+          <div className="modal" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <h3>
+                {t.inventory} - {inventoryPlayer}
+              </h3>
+              <button className="btn" onClick={() => setInventoryOpen(false)}>
+                {t.inventoryClose}
+              </button>
+            </div>
+            {!inventorySupported ? (
+              <p>{inventoryMessage || t.inventoryUnsupported}</p>
+            ) : inventoryItems.length ? (
+              <div className="inventory-grid">
+                {inventoryItems.map((item) => (
+                  <div key={`${item.slot}-${item.id}`} className="inventory-item">
+                    <div className="inventory-id">{item.id}</div>
+                    <div className="inventory-count">x{item.count}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p>{inventoryMessage || t.inventoryEmpty}</p>
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
