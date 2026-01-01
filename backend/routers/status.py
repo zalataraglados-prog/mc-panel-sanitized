@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from backend.auth import get_current_user
 from backend.models import StatusResponse
 from backend.runtime.metrics import gather_metrics
+from backend.runtime.mc_client import MCClient
 from backend.routers.instances import resolve_instance_dir
 
 router = APIRouter()
@@ -13,8 +14,9 @@ router = APIRouter()
 def status_endpoint(instance_dir: str | None = Query(None), user=Depends(get_current_user)):
     instance_dir = instance_dir or resolve_instance_dir()
     metrics = gather_metrics(instance_dir)
+    running = MCClient(instance_dir).status().get("running", False)
     return StatusResponse(
-        running=True,
+        running=bool(running),
         players=metrics["players"],
         tps=metrics["tps"],
         mspt=metrics["mspt"],
