@@ -25,6 +25,14 @@ MAP_PLUGIN_URLS = {
         "filename": "BlueMap.jar",
     },
 }
+INVENTORY_PLUGIN_URLS = {
+    "invsee": {
+        "filename": "InvSeePlusPlus.jar",
+    },
+    "openinv": {
+        "filename": "OpenInv.jar",
+    },
+}
 
 
 def _parse_int(value) -> int | None:
@@ -323,8 +331,26 @@ def build_execution_plan(
                         "template": "bluemap.storage.sql.conf.tpl",
                         "context": context,
                     },
-                )
             )
+        )
+
+    inventory_plugin = params.get("inventory.plugin")
+    inventory_url = params.get("inventory.plugin_url")
+    if inventory_plugin in INVENTORY_PLUGIN_URLS and inventory_url:
+        plugin_spec = INVENTORY_PLUGIN_URLS[inventory_plugin]
+        plugin_dir = posixpath.join(instance_dir, "data", "plugins")
+        plugin_target = posixpath.join(plugin_dir, plugin_spec["filename"])
+        actions.append(Action(type="mkdir", params={"path": plugin_dir}))
+        actions.append(
+            Action(
+                type="download_file",
+                params={
+                    "url": inventory_url,
+                    "target": plugin_target,
+                    "overwrite": False,
+                },
+            )
+        )
 
     map_file = params.get("map.file")
     if map_file:

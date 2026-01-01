@@ -269,6 +269,44 @@ if [ -z "$MAP_RENDER_EXISTS" ]; then
   fi
 fi
 
+INVENTORY_PLUGIN_EXISTS=$(PARAM_KEY="inventory.plugin" get_param "inventory.plugin")
+INVENTORY_PLUGIN=""
+if [ -z "$INVENTORY_PLUGIN_EXISTS" ]; then
+  echo ""
+  echo "Inventory plugin (optional):"
+  echo "1) none"
+  echo "2) InvSee++ (recommended)"
+  echo "3) OpenInv"
+  INV_PLUGIN_CHOICE=$(read_tty "Enter [1-3]: ")
+  case "$INV_PLUGIN_CHOICE" in
+    2) INVENTORY_PLUGIN="invsee" ;;
+    3) INVENTORY_PLUGIN="openinv" ;;
+    *) INVENTORY_PLUGIN="" ;;
+  esac
+  if [ -n "$INVENTORY_PLUGIN" ]; then
+    INVENTORY_URL=$(read_tty "Inventory plugin download URL (required): ")
+    if [ -n "$INVENTORY_URL" ]; then
+      PARAM_KEY="inventory.plugin" PARAM_VALUE="$INVENTORY_PLUGIN" set_param "inventory.plugin" "$INVENTORY_PLUGIN"
+      PARAM_KEY="inventory.plugin_url" PARAM_VALUE="$INVENTORY_URL" set_param "inventory.plugin_url" "$INVENTORY_URL"
+    else
+      echo "[WARN] No plugin URL provided; inventory plugin will not be installed."
+      INVENTORY_PLUGIN=""
+    fi
+  fi
+else
+  INVENTORY_PLUGIN="$INVENTORY_PLUGIN_EXISTS"
+fi
+
+INVENTORY_URL_EXISTS=$(PARAM_KEY="inventory.plugin_url" get_param "inventory.plugin_url")
+if [ -n "$INVENTORY_PLUGIN" ] && [ -z "$INVENTORY_URL_EXISTS" ]; then
+  INVENTORY_URL=$(read_tty "Inventory plugin download URL (required): ")
+  if [ -n "$INVENTORY_URL" ]; then
+    PARAM_KEY="inventory.plugin_url" PARAM_VALUE="$INVENTORY_URL" set_param "inventory.plugin_url" "$INVENTORY_URL"
+  else
+    echo "[WARN] No plugin URL provided; inventory plugin will not be installed."
+  fi
+fi
+
 MAP_FILE_EXISTS=$(PARAM_KEY="map.file" get_param "map.file")
 if [ -z "$MAP_FILE_EXISTS" ]; then
   MAP_FILE=$(read_tty "Optional map file (world zip/dir path): ")

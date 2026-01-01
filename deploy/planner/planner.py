@@ -68,6 +68,8 @@ def _is_reserved_param(key: str) -> bool:
         "map.file",
         "map.target",
         "map.overwrite",
+        "inventory.plugin",
+        "inventory.plugin_url",
     }
 
 

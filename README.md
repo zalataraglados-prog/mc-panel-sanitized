@@ -50,6 +50,11 @@ During deploy, you can optionally enable Dynmap or BlueMap. The deployer can con
 - render interval (`map.render_interval`)
 - optional world file copy (`map.file`, `map.target`, `map.overwrite`)
 
+## Inventory plugins
+
+During deploy, you can optionally install an inventory plugin for richer inventory editing.
+Supported choices: InvSee++ or OpenInv. Provide a download URL when prompted.
+
 ### Uninstall panel from an instance
 
 ```
