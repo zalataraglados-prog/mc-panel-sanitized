@@ -4,6 +4,8 @@ __pycache__/
 deploy-program/
 build/
 dist/
+frontend/dist/
+frontend/node_modules/
 local-misc/
 deploy/relay.txt
 deploy/relay_watch.ps1

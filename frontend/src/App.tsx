@@ -161,6 +161,8 @@ export function App() {
   const logRef = useRef<HTMLDivElement | null>(null);
   const [logConnected, setLogConnected] = useState(false);
   const [logError, setLogError] = useState("");
+  const [serverRunning, setServerRunning] = useState<boolean | null>(null);
+  const [controlStatus, setControlStatus] = useState("");
   const [mapStatus, setMapStatus] = useState<MapStatus | null>(null);
   const [mapConfig, setMapConfig] = useState<MapConfig | null>(null);
   const [mapConfigOpen, setMapConfigOpen] = useState(false);
@@ -215,6 +217,7 @@ export function App() {
           { label: "Memory", value: `${data.memory_usage ?? 0}%` },
           { label: "Disk", value: `${data.disk_usage ?? 0}%` },
         ]);
+        setServerRunning(typeof data.running === "boolean" ? data.running : null);
       })
       .catch(() => {});
     fetch("/api/instances", { headers: authHeader })
@@ -430,7 +433,18 @@ export function App() {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeader },
       body: JSON.stringify({ action, instance_dir: instanceDir || undefined }),
-    }).catch(() => {});
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.status) {
+          setControlStatus(String(data.status));
+          appendLogLine(`Control: ${data.status}`);
+        }
+      })
+      .catch(() => {
+        setControlStatus("control failed");
+        appendLogLine("Control: request failed");
+      });
   };
 
   const addTemplate = () => {
@@ -617,6 +631,10 @@ export function App() {
             {t.restart}
           </button>
           <span className="tag">Role: {role || "guest"}</span>
+          <span className={`tag ${serverRunning ? "status-live" : "status-offline"}`}>
+            {serverRunning === null ? "UNKNOWN" : serverRunning ? "RUNNING" : "STOPPED"}
+          </span>
+          {controlStatus ? <span className="tag">{controlStatus}</span> : null}
         </div>
       </section>
       <section className="section">
