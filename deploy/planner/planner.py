@@ -2,7 +2,8 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Set
 
 from deploy.capacity_guard import capacity_status, estimate_capacity
-from deploy.compat.modpack_matrix import MODPACK_STACK_COMPAT, normalize_loader
+from deploy.compat.modpack_index import MODPACK_INDEX
+from deploy.compat.modpack_matrix import MODPACK_STACK_COMPAT, normalize_loader, slugify_name
 from deploy.mapper.mappings import (
     PARAMETER_MAPPINGS,
     is_mod_param,
@@ -242,9 +243,43 @@ def _read_modpack_loader(params: dict) -> str | None:
     return None
 
 
+def _infer_modpack_loader(params: dict) -> tuple[str | None, str | None]:
+    name = params.get("modpack.name") or params.get("modpack.slug")
+    slug = slugify_name(name)
+    if not slug:
+        return None, None
+    entry = MODPACK_INDEX.get(slug)
+    if not entry:
+        return None, slug
+    loaders = entry.get("loaders") or []
+    compat = [loader for loader in loaders if loader in MODPACK_STACK_COMPAT]
+    if len(compat) == 1:
+        return compat[0], slug
+    return None, slug
+
+
 def _validate_modpack_rules(params: dict) -> List[PlanMessage]:
     blocks = []
     loader = _read_modpack_loader(params)
+    inferred, slug = _infer_modpack_loader(params)
+    if loader is None and inferred is not None:
+        loader = inferred
+    elif loader is None and params.get("modpack.name"):
+        if slug is None:
+            return [
+                PlanMessage(
+                    code="modpack_name_invalid",
+                    message="Modpack name provided but cannot be normalized.",
+                    taxonomy={"category": "compatibility", "scope": "world"},
+                )
+            ]
+        return [
+            PlanMessage(
+                code="modpack_name_unknown",
+                message=f"Modpack '{slug}' not found in compatibility index.",
+                taxonomy={"category": "compatibility", "scope": "world"},
+            )
+        ]
     if not loader:
         if params.get("modpack.name"):
             return [

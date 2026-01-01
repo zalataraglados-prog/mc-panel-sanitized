@@ -19,3 +19,8 @@ def normalize_loader(value: str | None) -> str | None:
         return None
     return value.strip().lower()
 
+
+def slugify_name(value: str | None) -> str | None:
+    if not isinstance(value, str):
+        return None
+    return value.strip().lower().replace(" ", "-")

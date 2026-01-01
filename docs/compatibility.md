@@ -10,6 +10,7 @@ Set one of the following in claims params (via `--set` or import-string):
 - `modpack.loader` (preferred)
 - `modpack.type`
 - `modpack.stack`
+- `modpack.name` or `modpack.slug` (optional; for lookup)
 
 Example:
 
@@ -29,6 +30,8 @@ Example:
 | neoforge      | neoforge              |
 
 If `modpack.loader` is provided without `stack.type`, the planner blocks.
+If `modpack.name` is provided without a loader, the planner will attempt to map
+the name to a loader using the Modrinth top-400 index (by downloads).
 
 ## Notes
 

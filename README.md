@@ -61,6 +61,7 @@ Supported choices: InvSee++ or OpenInv. Defaults point to the `vanilla_catalog` 
 
 If you provide `modpack.loader` (or `modpack.type`/`modpack.stack`) in claims params,
 the planner validates it against the stack compatibility matrix. See `docs/compatibility.md`.
+You can also provide `modpack.name`/`modpack.slug` to infer loader from the Modrinth top-400 index.
 
 ## Plugin download logging
 
