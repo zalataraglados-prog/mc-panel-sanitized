@@ -28,6 +28,7 @@ backend/
   runtime/              # runtime helpers for metrics/logs/RCON
     mc_client.py
     metrics.py
+    inventory.py
     rcon_client.py
     log_streamer.py
 ```
@@ -43,8 +44,8 @@ backend/
 | `GET /api/map/status?instance_dir=...` | report map tile availability and Y-range |
 | `GET /api/map/tile?dimension=...&x=...&z=...&zoom=...&y=...` | fetch a map tile or placeholder |
 | `GET /api/players` | return player list (avatar, coord, session) |
-| `GET /api/players/inventory?name=...` | inventory preview (requires plugin; placeholder) |
-| `POST /api/players/inventory` | inventory update (placeholder) |
+| `GET /api/players/inventory?name=...` | inventory preview (RCON-based; detects plugins if present) |
+| `POST /api/players/inventory` | inventory update (RCON-based; owner/admin only) |
 | `POST /api/command` | enqueue console or player command (owner/admin/mod) |
 | `POST /api/control` | start/stop/restart server (owner/admin) |
 | `POST /api/rcon` | send custom RCON command (owner/admin) |

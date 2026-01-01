@@ -457,6 +457,21 @@ body {
   color: var(--muted);
 }
 
+.inventory-item input {
+  width: 100%;
+  margin-top: 4px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--muted);
+  background: transparent;
+  color: var(--fg);
+  font-size: 12px;
+}
+
+.inventory-slot {
+  margin-top: 6px;
+}
+
 .map-area {
   min-width: 0;
 }

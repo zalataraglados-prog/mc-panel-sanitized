@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class LoginRequest(BaseModel):
@@ -55,7 +55,9 @@ class InventoryItem(BaseModel):
 class PlayerInventoryResponse(BaseModel):
     player: str
     supported: bool
-    items: List[InventoryItem] = []
+    provider: Optional[str] = None
+    editable: bool = False
+    items: List[InventoryItem] = Field(default_factory=list)
     message: Optional[str] = None
 
 

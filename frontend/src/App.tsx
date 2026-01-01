@@ -59,6 +59,8 @@ const translations = {
     inventoryClose: "Close",
     inventoryEmpty: "No inventory data.",
     inventoryUnsupported: "Inventory editing requires a compatible plugin.",
+    inventoryProvider: "Provider",
+    inventoryReadOnly: "Read-only",
   },
   zh: {
     title: "MC \u9762\u677f",
@@ -107,6 +109,8 @@ const translations = {
     inventoryClose: "\u5173\u95ed",
     inventoryEmpty: "\u6682\u65e0\u80cc\u5305\u6570\u636e\u3002",
     inventoryUnsupported: "\u80cc\u5305\u7f16\u8f91\u9700\u8981\u76f8\u5bb9\u63d2\u4ef6\u3002",
+    inventoryProvider: "\u63d0\u4f9b\u65b9",
+    inventoryReadOnly: "\u4ec5\u53ef\u67e5\u770b",
   },
 };
 
@@ -191,6 +195,10 @@ export function App() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [inventoryMessage, setInventoryMessage] = useState("");
   const [inventorySupported, setInventorySupported] = useState(false);
+  const [inventoryProvider, setInventoryProvider] = useState("");
+  const [inventoryEditable, setInventoryEditable] = useState(false);
+  const [inventoryEditing, setInventoryEditing] = useState(false);
+  const [inventoryDraft, setInventoryDraft] = useState<InventoryItem[]>([]);
 
   const t = translations[lang];
   const canControl = role === "owner" || role === "admin";
@@ -607,16 +615,62 @@ export function App() {
       .then((data) => {
         setInventoryPlayer(name);
         setInventoryItems(data.items || []);
+        setInventoryDraft(data.items || []);
         setInventorySupported(Boolean(data.supported));
+        setInventoryProvider(data.provider || "");
+        setInventoryEditable(Boolean(data.editable));
         setInventoryMessage(data.message || "");
+        setInventoryEditing(false);
         setInventoryOpen(true);
       })
       .catch(() => {
         setInventoryPlayer(name);
         setInventoryItems([]);
+        setInventoryDraft([]);
         setInventorySupported(false);
+        setInventoryProvider("");
+        setInventoryEditable(false);
         setInventoryMessage("Inventory request failed.");
+        setInventoryEditing(false);
         setInventoryOpen(true);
+      });
+  };
+
+  const updateInventoryDraft = (index: number, field: keyof InventoryItem, value: string) => {
+    setInventoryDraft((prev) =>
+      prev.map((item, idx) => {
+        if (idx !== index) {
+          return item;
+        }
+        if (field === "slot" || field === "count") {
+          return { ...item, [field]: Number(value) };
+        }
+        return { ...item, [field]: value };
+      })
+    );
+  };
+
+  const saveInventory = () => {
+    if (!inventoryEditable) {
+      return;
+    }
+    fetch("/api/players/inventory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeader },
+      body: JSON.stringify({
+        player: inventoryPlayer,
+        items: inventoryDraft,
+        instance_dir: instanceDir || undefined,
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setInventoryMessage(data.message || "Inventory updated.");
+        setInventoryItems(inventoryDraft);
+        setInventoryEditing(false);
+      })
+      .catch(() => {
+        setInventoryMessage("Inventory update failed.");
       });
   };
 
@@ -990,14 +1044,60 @@ export function App() {
                 {t.inventoryClose}
               </button>
             </div>
+            <div className="rules-actions">
+              {inventoryProvider ? (
+                <span className="tag">
+                  {t.inventoryProvider}: {inventoryProvider}
+                </span>
+              ) : null}
+              {!inventoryEditable ? <span className="tag">{t.inventoryReadOnly}</span> : null}
+              {inventoryEditable ? (
+                <button className="btn" onClick={() => setInventoryEditing((value) => !value)}>
+                  {t.edit}
+                </button>
+              ) : null}
+              {inventoryEditable ? (
+                <button className="btn" disabled={!inventoryEditing} onClick={saveInventory}>
+                  {t.save}
+                </button>
+              ) : null}
+            </div>
             {!inventorySupported ? (
               <p>{inventoryMessage || t.inventoryUnsupported}</p>
             ) : inventoryItems.length ? (
               <div className="inventory-grid">
-                {inventoryItems.map((item) => (
-                  <div key={`${item.slot}-${item.id}`} className="inventory-item">
-                    <div className="inventory-id">{item.id}</div>
-                    <div className="inventory-count">x{item.count}</div>
+                {(inventoryEditing ? inventoryDraft : inventoryItems).map((item, index) => (
+                  <div key={`${item.slot}-${item.id}-${index}`} className="inventory-item">
+                    <div className="inventory-id">
+                      {inventoryEditing ? (
+                        <input
+                          value={item.id}
+                          onChange={(event) => updateInventoryDraft(index, "id", event.target.value)}
+                        />
+                      ) : (
+                        item.id
+                      )}
+                    </div>
+                    <div className="inventory-count">
+                      {inventoryEditing ? (
+                        <input
+                          type="number"
+                          value={item.count}
+                          onChange={(event) => updateInventoryDraft(index, "count", event.target.value)}
+                        />
+                      ) : (
+                        `x${item.count}`
+                      )}
+                    </div>
+                    {inventoryEditing ? (
+                      <div className="inventory-slot">
+                        <input
+                          type="number"
+                          value={item.slot}
+                          onChange={(event) => updateInventoryDraft(index, "slot", event.target.value)}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>
