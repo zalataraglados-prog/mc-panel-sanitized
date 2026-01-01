@@ -53,7 +53,7 @@ During deploy, you can optionally enable Dynmap or BlueMap. The deployer can con
 ## Inventory plugins
 
 During deploy, you can optionally install an inventory plugin for richer inventory editing.
-Supported choices: InvSee++ or OpenInv. Provide a download URL when prompted.
+Supported choices: InvSee++ or OpenInv. Defaults point to the `vanilla_catalog` repository, but you can override the URL.
 
 ## Plugin download logging
 

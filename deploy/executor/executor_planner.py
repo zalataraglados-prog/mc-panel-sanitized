@@ -27,11 +27,11 @@ MAP_PLUGIN_URLS = {
 }
 INVENTORY_PLUGIN_URLS = {
     "invsee": {
-        "url": "https://github.com/Jannyboy11/InvSee-plus-plus/releases/latest/download/InvSee%2B%2B.jar",
+        "url": "https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/deps/plugins/invsee/InvSeePlusPlus.jar",
         "filename": "InvSeePlusPlus.jar",
     },
     "openinv": {
-        "url": "https://dev.bukkit.org/projects/openinv/files/latest/download",
+        "url": "https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/deps/plugins/openinv/OpenInv.jar",
         "filename": "OpenInv.jar",
     },
 }

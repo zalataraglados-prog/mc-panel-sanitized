@@ -290,9 +290,9 @@ if [ -z "$INVENTORY_PLUGIN_EXISTS" ]; then
   if [ -n "$INVENTORY_PLUGIN" ]; then
     DEFAULT_INV_URL=""
     if [ "$INVENTORY_PLUGIN" = "invsee" ]; then
-      DEFAULT_INV_URL="https://github.com/Jannyboy11/InvSee-plus-plus/releases/latest/download/InvSee%2B%2B.jar"
+      DEFAULT_INV_URL="https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/deps/plugins/invsee/InvSeePlusPlus.jar"
     elif [ "$INVENTORY_PLUGIN" = "openinv" ]; then
-      DEFAULT_INV_URL="https://dev.bukkit.org/projects/openinv/files/latest/download"
+      DEFAULT_INV_URL="https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/deps/plugins/openinv/OpenInv.jar"
     fi
     if [ -n "$DEFAULT_INV_URL" ]; then
       INVENTORY_URL=$(read_tty "Inventory plugin download URL [default: ${DEFAULT_INV_URL}]: ")
@@ -318,9 +318,9 @@ INVENTORY_URL_EXISTS=$(PARAM_KEY="inventory.plugin_url" get_param "inventory.plu
 if [ -n "$INVENTORY_PLUGIN" ] && [ -z "$INVENTORY_URL_EXISTS" ]; then
   DEFAULT_INV_URL=""
   if [ "$INVENTORY_PLUGIN" = "invsee" ]; then
-    DEFAULT_INV_URL="https://github.com/Jannyboy11/InvSee-plus-plus/releases/latest/download/InvSee%2B%2B.jar"
+    DEFAULT_INV_URL="https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/deps/plugins/invsee/InvSeePlusPlus.jar"
   elif [ "$INVENTORY_PLUGIN" = "openinv" ]; then
-    DEFAULT_INV_URL="https://dev.bukkit.org/projects/openinv/files/latest/download"
+    DEFAULT_INV_URL="https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/deps/plugins/openinv/OpenInv.jar"
   fi
   if [ -n "$DEFAULT_INV_URL" ]; then
     INVENTORY_URL=$(read_tty "Inventory plugin download URL [default: ${DEFAULT_INV_URL}]: ")
