@@ -4,6 +4,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional
 
+NETHER_MARKERS = ("the_nether", "minecraft:the_nether", "nether")
+END_MARKERS = ("the_end", "minecraft:the_end", "end")
+
 
 @dataclass
 class MapStatus:
@@ -36,6 +39,8 @@ def get_map_status(instance_dir: str) -> MapStatus:
     root, source = find_map_root(instance_dir)
     available = {"overworld": False, "nether": False, "end": False}
     if not root:
+        available["overworld"] = True
+        _apply_log_visibility(instance_dir, available)
         return MapStatus(source=None, available=available, y_min=DEFAULT_Y_MIN, y_max=DEFAULT_Y_MAX, supports_y=True)
 
     if source == "dynmap":
@@ -47,7 +52,24 @@ def get_map_status(instance_dir: str) -> MapStatus:
     for key, folder in mapping.items():
         if (root / folder).exists():
             available[key] = True
+    if not available["overworld"]:
+        available["overworld"] = True
+    _apply_log_visibility(instance_dir, available)
     return MapStatus(source=source, available=available, y_min=DEFAULT_Y_MIN, y_max=DEFAULT_Y_MAX, supports_y=True)
+
+
+def _apply_log_visibility(instance_dir: str, available: Dict[str, bool]) -> None:
+    log_path = Path(instance_dir) / "logs" / "latest.log"
+    if not log_path.exists():
+        return
+    try:
+        text = log_path.read_text(encoding="utf-8", errors="ignore").lower()
+    except Exception:
+        return
+    if not available["nether"] and any(marker in text for marker in NETHER_MARKERS):
+        available["nether"] = True
+    if not available["end"] and any(marker in text for marker in END_MARKERS):
+        available["end"] = True
 
 
 def resolve_tile_path(

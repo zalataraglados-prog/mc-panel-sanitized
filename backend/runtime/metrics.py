@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+import socket
 import time
 from pathlib import Path
 
@@ -49,6 +50,28 @@ def _parse_tps_response(response: str) -> tuple[float | None, float | None]:
     return tps, mspt
 
 
+def _read_server_properties(instance_dir: Path) -> dict:
+    path = instance_dir / "data" / "server.properties"
+    if not path.exists():
+        return {}
+    result = {}
+    for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        result[key.strip()] = value.strip()
+    return result
+
+
+def _ping_latency(host: str, port: int, timeout: float = 1.5) -> float:
+    start = time.time()
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return round((time.time() - start) * 1000, 2)
+    except OSError:
+        return 0.0
+
+
 def gather_metrics(instance_dir: str | None = None) -> dict:
     """
     Collect host-level metrics; if instance_dir provided, disk is measured on its mount path.
@@ -67,10 +90,14 @@ def gather_metrics(instance_dir: str | None = None) -> dict:
     ping = 0.0
 
     if instance_dir and Path(instance_dir).exists():
+        instance_path = Path(instance_dir)
         client = RCONClient.from_instance_dir(instance_dir)
         tps_response = client.execute("tps")
         tps, mspt = _parse_tps_response(tps_response)
         players = len(client.list_players())
+        props = _read_server_properties(instance_path)
+        port = int(props.get("server-port", "25565"))
+        ping = _ping_latency("127.0.0.1", port)
 
     return {
         "timestamp": time.time(),

@@ -1,63 +1,132 @@
+#!/usr/bin/env python3
+import argparse
 import os
+import sys
+from pathlib import Path
 
-from core.environment import EnvironmentChecker
-from core.instance_namer import InstanceNamer
-from core.config_model import ConfigModel
-from core.composer import Composer
-from core.systemd_gen import SystemdGenerator
-from core.deployer import Deployer
+
+def _bootstrap_path() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    sys.path.insert(0, str(repo_root))
+
+
+_bootstrap_path()
+
+from deploy.core.environment import EnvironmentChecker  # noqa: E402
+from deploy.core.instance_namer import InstanceNamer  # noqa: E402
+from deploy.core.port_scanner import PortScanner  # noqa: E402
+from deploy.core.config_model import ConfigModel  # noqa: E402
+from deploy.core.composer import Composer  # noqa: E402
+from deploy.core.systemd_gen import SystemdGenerator  # noqa: E402
+from deploy.core.deployer import Deployer  # noqa: E402
 
 
 BASE_INST_DIR = "/opt/mc-instances"
-PANEL_SRC_DIR = "/opt/mc-panel-sanitized/web-panel"
+DEFAULT_PANEL_SRC = "/opt/mc-panel-sanitized/web-panel"
 
 
-def main():
-    print("[INFO] Minecraft 自动部署器启动")
+def _read_input(prompt: str) -> str:
+    if sys.stdin and sys.stdin.isatty():
+        try:
+            return input(prompt)
+        except EOFError:
+            return ""
+    tty_path = "CON" if os.name == "nt" else "/dev/tty"
+    try:
+        with open(tty_path, "r") as tty:
+            print(prompt, end="", flush=True)
+            return tty.readline()
+    except Exception:
+        return ""
 
-    # 1. 环境检查：Docker + Compose
+
+def _require_root() -> None:
+    if hasattr(os, "geteuid"):
+        if os.geteuid() != 0:
+            print("Please run with sudo/root privileges.")
+            sys.exit(1)
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Minecraft instance setup")
+    parser.add_argument("--name", help="Instance name")
+    parser.add_argument("--auto", action="store_true", help="Auto-assign ports")
+    parser.add_argument("--mc-port", type=int, help="Minecraft server port")
+    parser.add_argument("--panel-port", type=int, help="Panel port")
+    parser.add_argument("--panel-path", default=DEFAULT_PANEL_SRC, help="Web panel source path")
+    parser.add_argument("--base-dir", default=BASE_INST_DIR, help="Base instance directory")
+    return parser.parse_args()
+
+
+def _choose_instance_name(base_dir: str, name_arg: str | None) -> str:
+    if name_arg:
+        clean = InstanceNamer.sanitize(name_arg)
+        if not clean:
+            clean = InstanceNamer.auto_generate(base_dir)
+        return InstanceNamer.handle_conflict(base_dir, clean)
+    return InstanceNamer.ask_name(base_dir)
+
+
+def _choose_ports(args: argparse.Namespace) -> tuple[int, int]:
+    if args.auto:
+        mc_port = PortScanner.find_free()
+        panel_port = PortScanner.find_free(start_port=15000)
+        return mc_port, panel_port
+
+    mc_port = args.mc_port
+    panel_port = args.panel_port
+
+    if mc_port is None:
+        auto_choice = _read_input("Auto-assign ports? [Y/n]: ").strip().lower()
+        if auto_choice in ("", "y", "yes"):
+            mc_port = PortScanner.find_free()
+            panel_port = PortScanner.find_free(start_port=15000)
+            return mc_port, panel_port
+        val = _read_input("Minecraft port [25565]: ").strip()
+        mc_port = int(val) if val.isdigit() else 25565
+
+    if panel_port is None:
+        val = _read_input("Panel port [15000]: ").strip()
+        panel_port = int(val) if val.isdigit() else 15000
+
+    return mc_port, panel_port
+
+
+def main() -> None:
+    _require_root()
+    args = _parse_args()
+
+    print("[INFO] Minecraft setup starting")
+
     env = EnvironmentChecker()
-    print("[INFO] 开始检查运行环境...")
+    print("[INFO] Checking runtime environment...")
     env.ensure_all()
-    print("[INFO] 环境检查完成！Docker 与 Compose 已就绪。\n")
+    print("[INFO] Environment OK")
 
-    # 2. 创建实例根目录
-    os.makedirs(BASE_INST_DIR, exist_ok=True)
+    base_dir = args.base_dir
+    os.makedirs(base_dir, exist_ok=True)
 
-    # 3. 获取实例名（正确入口）
-    instance_name = InstanceNamer.ask_name(BASE_INST_DIR)
+    instance_name = _choose_instance_name(base_dir, args.name)
+    mc_port, panel_port = _choose_ports(args)
 
-    # 4. 创建实例目录
-    inst_dir = os.path.join(BASE_INST_DIR, instance_name)
+    inst_dir = os.path.join(base_dir, instance_name)
     os.makedirs(inst_dir, exist_ok=True)
-    print(f"[INFO] 实例目录已创建：{inst_dir}")
+    print(f"[INFO] Instance directory created: {inst_dir}")
 
-    # 5. 自动生成配置文件
-    cfg_obj = ConfigModel.auto_generate(inst_dir, instance_name)
-
-    # 设置 web-panel 构建路径
+    cfg_obj = ConfigModel.auto_generate(inst_dir, instance_name, mc_port, panel_port)
     cfg_obj.data.setdefault("panel", {})
-    cfg_obj.data["panel"]["build_path"] = PANEL_SRC_DIR
+    cfg_obj.data["panel"]["build_path"] = args.panel_path
     cfg_obj.save()
-    print(f"[INFO] Config 已保存：{cfg_obj.path}")
 
-    # 6. 生成 docker-compose.yml
-    composer = Composer(
-        cfg=cfg_obj,
-        instance_dir=inst_dir,
-        web_panel_path=PANEL_SRC_DIR,
-    )
+    composer = Composer(cfg=cfg_obj, instance_dir=inst_dir, web_panel_path=args.panel_path)
     composer.generate()
 
-    # 7. 生成 systemd 服务
     systemd = SystemdGenerator(cfg_obj.instance_name, inst_dir)
     systemd.generate()
 
-    # 8. 部署（使用正确的参数）
-    dp = Deployer(cfg_obj.instance_name,inst_dir)
-    print("[INFO] 开始部署实例...")
+    dp = Deployer(cfg_obj.instance_name, inst_dir)
+    print("[INFO] Deploying instance...")
     dp.run()
-
 
 
 if __name__ == "__main__":
