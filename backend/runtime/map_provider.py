@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional
 
+from backend.runtime.cache import TTLCache
+
 NETHER_MARKERS = ("the_nether", "minecraft:the_nether", "nether")
 END_MARKERS = ("the_end", "minecraft:the_end", "end")
 
@@ -19,6 +21,7 @@ class MapStatus:
 
 DEFAULT_Y_MIN = -64
 DEFAULT_Y_MAX = 320
+_MAP_STATUS_CACHE = TTLCache(ttl_seconds=3.0)
 
 
 def find_map_root(instance_dir: str) -> tuple[Optional[Path], Optional[str]]:
@@ -36,12 +39,17 @@ def find_map_root(instance_dir: str) -> tuple[Optional[Path], Optional[str]]:
 
 
 def get_map_status(instance_dir: str) -> MapStatus:
+    cached = _MAP_STATUS_CACHE.get(instance_dir)
+    if cached:
+        return cached
     root, source = find_map_root(instance_dir)
     available = {"overworld": False, "nether": False, "end": False}
     if not root:
         available["overworld"] = True
         _apply_log_visibility(instance_dir, available)
-        return MapStatus(source=None, available=available, y_min=DEFAULT_Y_MIN, y_max=DEFAULT_Y_MAX, supports_y=True)
+        status = MapStatus(source=None, available=available, y_min=DEFAULT_Y_MIN, y_max=DEFAULT_Y_MAX, supports_y=True)
+        _MAP_STATUS_CACHE.set(instance_dir, status)
+        return status
 
     if source == "dynmap":
         mapping = {"overworld": "world", "nether": "DIM-1", "end": "DIM1"}
@@ -55,7 +63,9 @@ def get_map_status(instance_dir: str) -> MapStatus:
     if not available["overworld"]:
         available["overworld"] = True
     _apply_log_visibility(instance_dir, available)
-    return MapStatus(source=source, available=available, y_min=DEFAULT_Y_MIN, y_max=DEFAULT_Y_MAX, supports_y=True)
+    status = MapStatus(source=source, available=available, y_min=DEFAULT_Y_MIN, y_max=DEFAULT_Y_MAX, supports_y=True)
+    _MAP_STATUS_CACHE.set(instance_dir, status)
+    return status
 
 
 def _apply_log_visibility(instance_dir: str, available: Dict[str, bool]) -> None:

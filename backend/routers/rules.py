@@ -6,8 +6,10 @@ from backend.auth import get_current_user, require_roles
 from backend.logging import log_action
 from backend.models import RuleEntry, RulesResponse, RulesUpdateRequest
 from backend.routers.instances import resolve_instance_dir
+from backend.runtime.cache import TTLCache
 
 router = APIRouter()
+_RULES_CACHE = TTLCache(ttl_seconds=5.0)
 
 
 def _read_server_properties(path: Path) -> list[RuleEntry]:
@@ -27,7 +29,12 @@ def rules_endpoint(instance_dir: str | None = Query(None), user=Depends(get_curr
     require_roles(user, ["owner", "admin", "mod", "viewer"])
     instance_dir = instance_dir or resolve_instance_dir()
     server_properties = Path(instance_dir) / "data" / "server.properties"
+    cache_key = str(server_properties)
+    cached = _RULES_CACHE.get(cache_key)
+    if cached:
+        return RulesResponse(entries=cached)
     entries = _read_server_properties(server_properties)
+    _RULES_CACHE.set(cache_key, entries)
     return RulesResponse(entries=entries)
 
 
@@ -43,5 +50,6 @@ def update_rules(payload: RulesUpdateRequest, user=Depends(get_current_user)):
     server_properties.parent.mkdir(parents=True, exist_ok=True)
     server_properties.write_text("\n".join(lines) + "\n", encoding="utf-8")
     log_action(user.username, "rules_update", instance_dir)
+    _RULES_CACHE.invalidate(str(server_properties))
     updated_entries = [RuleEntry(key=key, value=current[key]) for key in sorted(current.keys())]
     return RulesResponse(entries=updated_entries)

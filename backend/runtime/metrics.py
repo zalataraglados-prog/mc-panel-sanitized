@@ -5,7 +5,10 @@ import socket
 import time
 from pathlib import Path
 
+from backend.runtime.cache import TTLCache
 from backend.runtime.rcon_client import RCONClient
+
+_METRICS_CACHE = TTLCache(ttl_seconds=2.0)
 
 
 def _cpu_usage() -> float:
@@ -76,6 +79,10 @@ def gather_metrics(instance_dir: str | None = None) -> dict:
     """
     Collect host-level metrics; if instance_dir provided, disk is measured on its mount path.
     """
+    cache_key = instance_dir or "__host__"
+    cached = _METRICS_CACHE.get(cache_key)
+    if cached:
+        return cached
     disk_path = instance_dir or "/"
     if instance_dir and not Path(instance_dir).exists():
         disk_path = "/"
@@ -99,7 +106,7 @@ def gather_metrics(instance_dir: str | None = None) -> dict:
         port = int(props.get("server-port", "25565"))
         ping = _ping_latency("127.0.0.1", port)
 
-    return {
+    payload = {
         "timestamp": time.time(),
         "tps": tps if tps is not None else 20.0,
         "mspt": mspt if mspt is not None else 50.0,
@@ -109,3 +116,5 @@ def gather_metrics(instance_dir: str | None = None) -> dict:
         "disk": disk,
         "players": players,
     }
+    _METRICS_CACHE.set(cache_key, payload)
+    return payload
