@@ -225,7 +225,7 @@ export function App() {
 
   const authHeader = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
-  const refreshData = () => {
+  const refreshPrimaryData = () => {
     if (!token) {
       return;
     }
@@ -244,38 +244,9 @@ export function App() {
         setServerRunning(typeof data.running === "boolean" ? data.running : null);
       })
       .catch(() => {});
-    fetch("/api/instances", { headers: authHeader })
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data.instances)) {
-          setInstances(data.instances);
-          if (!instanceDir && data.instances.length > 0) {
-            setInstanceDir(data.instances[0].path || "");
-          }
-        }
-      })
-      .catch(() => {});
     fetch(`/api/players${instanceQuery}`, { headers: authHeader })
       .then((res) => res.json())
       .then((data) => setPlayers(data))
-      .catch(() => {});
-    fetch(`/api/rules${instanceQuery}`, { headers: authHeader })
-      .then((res) => res.json())
-      .then((data) => {
-        const entries = data.entries || [];
-        setRules(entries);
-        if (!rulesEditing) {
-          const draft: Record<string, string> = {};
-          entries.forEach((entry: Rule) => {
-            draft[entry.key] = entry.value;
-          });
-          setRulesDraft(draft);
-        }
-      })
-      .catch(() => {});
-    fetch("/api/command-templates", { headers: authHeader })
-      .then((res) => res.json())
-      .then((data) => setTemplates(data.templates || []))
       .catch(() => {});
     fetch(`/api/metrics?window=60${instanceDir ? `&instance_dir=${encodeURIComponent(instanceDir)}` : ""}`, {
       headers: authHeader,
@@ -304,6 +275,61 @@ export function App() {
         }
       })
       .catch(() => {});
+  };
+
+  const refreshInstances = () => {
+    if (!token) {
+      return;
+    }
+    fetch("/api/instances", { headers: authHeader })
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.instances)) {
+          setInstances(data.instances);
+          if (!instanceDir && data.instances.length > 0) {
+            setInstanceDir(data.instances[0].path || "");
+          }
+        }
+      })
+      .catch(() => {});
+  };
+
+  const refreshTemplates = () => {
+    if (!token) {
+      return;
+    }
+    fetch("/api/command-templates", { headers: authHeader })
+      .then((res) => res.json())
+      .then((data) => setTemplates(data.templates || []))
+      .catch(() => {});
+  };
+
+  const refreshRules = () => {
+    if (!token) {
+      return;
+    }
+    const instanceQuery = instanceDir ? `?instance_dir=${encodeURIComponent(instanceDir)}` : "";
+    fetch(`/api/rules${instanceQuery}`, { headers: authHeader })
+      .then((res) => res.json())
+      .then((data) => {
+        const entries = data.entries || [];
+        setRules(entries);
+        if (!rulesEditing) {
+          const draft: Record<string, string> = {};
+          entries.forEach((entry: Rule) => {
+            draft[entry.key] = entry.value;
+          });
+          setRulesDraft(draft);
+        }
+      })
+      .catch(() => {});
+  };
+
+  const refreshMapConfig = () => {
+    if (!token || !mapConfigOpen) {
+      return;
+    }
+    const instanceQuery = instanceDir ? `?instance_dir=${encodeURIComponent(instanceDir)}` : "";
     fetch(`/api/map/config${instanceQuery}`, { headers: authHeader })
       .then((res) => res.json())
       .then((data) => {
@@ -319,15 +345,27 @@ export function App() {
       .catch(() => {});
   };
 
+  const refreshAll = () => {
+    refreshPrimaryData();
+    refreshInstances();
+    refreshTemplates();
+    refreshRules();
+    refreshMapConfig();
+  };
+
   useEffect(() => {
     if (token) {
-      refreshData();
+      refreshPrimaryData();
+      refreshInstances();
+      refreshTemplates();
+      refreshRules();
     }
   }, [token]);
 
   useEffect(() => {
     if (token) {
-      refreshData();
+      refreshPrimaryData();
+      refreshRules();
     }
   }, [instanceDir]);
 
@@ -336,10 +374,28 @@ export function App() {
       return;
     }
     const interval = window.setInterval(() => {
-      refreshData();
+      refreshPrimaryData();
     }, 10000);
     return () => window.clearInterval(interval);
   }, [token, instanceDir]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+    const interval = window.setInterval(() => {
+      if (!rulesEditing) {
+        refreshRules();
+      }
+    }, 30000);
+    return () => window.clearInterval(interval);
+  }, [token, instanceDir, rulesEditing]);
+
+  useEffect(() => {
+    if (token && mapConfigOpen) {
+      refreshMapConfig();
+    }
+  }, [token, instanceDir, mapConfigOpen]);
 
   useEffect(() => {
     if (!token) {
@@ -486,7 +542,7 @@ export function App() {
       .then((res) => res.json())
       .then(() => {
         setNewTemplate({ name: "", command: "" });
-        refreshData();
+        refreshTemplates();
       })
       .catch(() => {});
   };
@@ -1022,7 +1078,7 @@ export function App() {
               </option>
             ))}
           </select>
-          <button className="btn" onClick={refreshData}>
+          <button className="btn" onClick={refreshAll}>
             Refresh
           </button>
         </div>

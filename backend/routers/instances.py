@@ -5,9 +5,11 @@ from fastapi import APIRouter, Depends
 
 from backend.auth import get_current_user
 from deploy.executor.host_inspector import HostInspector
+from backend.runtime.cache import TTLCache
 from backend.models import InstancesResponse
 
 router = APIRouter()
+_INSTANCES_CACHE = TTLCache(ttl_seconds=5.0)
 
 DEFAULT_BASE_DIR = "/opt/mc-instances"
 
@@ -32,8 +34,14 @@ def resolve_instance_dir(base_dir: str = DEFAULT_BASE_DIR) -> str:
 @router.get("/api/instances", response_model=InstancesResponse)
 def instances_endpoint(base_dir: str = DEFAULT_BASE_DIR, user=Depends(get_current_user)):
     base_dir = os.environ.get("MC_PANEL_BASE_DIR", base_dir)
+    cache_key = base_dir
+    cached = _INSTANCES_CACHE.get(cache_key)
+    if cached:
+        return InstancesResponse(instances=cached)
     inspector = HostInspector()
     result = inspector.list_instances(base_dir)
     if not result.get("ok"):
         return InstancesResponse(instances=[])
-    return InstancesResponse(instances=result.get("instances", []))
+    instances = result.get("instances", [])
+    _INSTANCES_CACHE.set(cache_key, instances)
+    return InstancesResponse(instances=instances)
