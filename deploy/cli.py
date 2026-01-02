@@ -26,6 +26,7 @@ from deploy.loader import load_rules_bundle
 from deploy.panel_manager import install_panel, uninstall_panel
 from deploy.planner.planner import plan as plan_apply
 from deploy.web.review_adapter import review_to_dict
+from deploy.utils.cli_log import log_event
 
 
 def load_claims_from_args(args) -> Claims:
@@ -290,6 +291,7 @@ def main():
     # 3) Review
     print_review(apply_plan, claims=claims)
     review_payload = review_to_dict(apply_plan)
+    log_event("review", review_payload)
 
     if args.command == "plan":
         return 0
@@ -333,6 +335,7 @@ def main():
         mode=mode,
     )
     print_execution_plan(plan)
+    log_event("execution_plan", plan.to_dict())
 
     if not args.apply:
         return 0

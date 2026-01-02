@@ -230,50 +230,48 @@ export function App() {
       return;
     }
     const instanceQuery = instanceDir ? `?instance_dir=${encodeURIComponent(instanceDir)}` : "";
-    fetch(`/api/status${instanceQuery}`, { headers: authHeader })
+    fetch(`/api/summary${instanceQuery}`, { headers: authHeader })
       .then((res) => res.json())
       .then((data) => {
+        const status = data?.status || {};
         setMetrics([
-          { label: "Players", value: String(data.players ?? 0) },
-          { label: "TPS", value: String(data.tps ?? 0) },
-          { label: "MSPT", value: String(data.mspt ?? 0) },
-          { label: "CPU", value: `${data.cpu_usage ?? 0}%` },
-          { label: "Memory", value: `${data.memory_usage ?? 0}%` },
-          { label: "Disk", value: `${data.disk_usage ?? 0}%` },
+          { label: "Players", value: String(status.players ?? 0) },
+          { label: "TPS", value: String(status.tps ?? 0) },
+          { label: "MSPT", value: String(status.mspt ?? 0) },
+          { label: "CPU", value: `${status.cpu_usage ?? 0}%` },
+          { label: "Memory", value: `${status.memory_usage ?? 0}%` },
+          { label: "Disk", value: `${status.disk_usage ?? 0}%` },
         ]);
-        setServerRunning(typeof data.running === "boolean" ? data.running : null);
+        setServerRunning(typeof status.running === "boolean" ? status.running : null);
+        if (Array.isArray(data?.players)) {
+          setPlayers(data.players);
+        }
+        if (data?.map_status) {
+          const mapData = data.map_status;
+          setMapStatus(mapData);
+          if (mapData.available) {
+            if (!mapData.available[mapDimension]) {
+              const fallback = mapData.available.overworld
+                ? "overworld"
+                : mapData.available.nether
+                  ? "nether"
+                  : mapData.available.end
+                    ? "end"
+                    : "overworld";
+              setMapDimension(fallback as "overworld" | "nether" | "end");
+            }
+          }
+          if (mapData.supports_y) {
+            setMapY((prev) => Math.min(mapData.y_max, Math.max(mapData.y_min, prev)));
+          }
+        }
       })
-      .catch(() => {});
-    fetch(`/api/players${instanceQuery}`, { headers: authHeader })
-      .then((res) => res.json())
-      .then((data) => setPlayers(data))
       .catch(() => {});
     fetch(`/api/metrics?window=60${instanceDir ? `&instance_dir=${encodeURIComponent(instanceDir)}` : ""}`, {
       headers: authHeader,
     })
       .then((res) => res.json())
       .then((data) => setTpsHistory(data || []))
-      .catch(() => {});
-    fetch(`/api/map/status${instanceQuery}`, { headers: authHeader })
-      .then((res) => res.json())
-      .then((data) => {
-        setMapStatus(data);
-        if (data && data.available) {
-          if (!data.available[mapDimension]) {
-            const fallback = data.available.overworld
-              ? "overworld"
-              : data.available.nether
-                ? "nether"
-                : data.available.end
-                  ? "end"
-                  : "overworld";
-            setMapDimension(fallback as "overworld" | "nether" | "end");
-          }
-        }
-        if (data && data.supports_y) {
-          setMapY((prev) => Math.min(data.y_max, Math.max(data.y_min, prev)));
-        }
-      })
       .catch(() => {});
   };
 

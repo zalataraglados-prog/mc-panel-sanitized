@@ -124,3 +124,9 @@ class MapConfigUpdateRequest(BaseModel):
 class MapReloadResponse(BaseModel):
     plugin: Optional[str]
     status: str
+
+
+class SummaryResponse(BaseModel):
+    status: StatusResponse
+    players: List[PlayerInfo]
+    map_status: MapStatusResponse
