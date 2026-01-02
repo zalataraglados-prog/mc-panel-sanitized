@@ -16,6 +16,7 @@ backend/
   routers/              # REST & WS routers
     auth.py
     status.py
+    summary.py
     metrics.py
     logs.py
     command.py
@@ -39,10 +40,14 @@ backend/
 |----------|-------------|
 | `POST /api/auth/login` | exchange username/password for bearer token |
 | `GET /api/status?instance_dir=...` | read overall metrics (TPS/MSPT/CPU/memory/disk/players) |
+| `GET /api/summary?instance_dir=...` | aggregated snapshot of status + players + map status |
 | `GET /api/metrics?window=60&instance_dir=...` | return historic TPS points over window seconds |
 | `GET /api/instances` | list MC instances under `/opt/mc-instances` |
 | `GET /api/map/status?instance_dir=...` | report map tile availability and Y-range |
 | `GET /api/map/tile?dimension=...&x=...&z=...&zoom=...&y=...` | fetch a map tile or placeholder |
+| `GET /api/map/config?instance_dir=...` | read map plugin config files (dynmap/bluemap) |
+| `PUT /api/map/config` | update map plugin config files |
+| `POST /api/map/reload?instance_dir=...` | reload map plugin via RCON |
 | `GET /api/players` | return player list (avatar, coord, session) |
 | `GET /api/players/inventory?name=...` | inventory preview (RCON-based; detects plugins if present) |
 | `POST /api/players/inventory` | inventory update (RCON-based; owner/admin only) |

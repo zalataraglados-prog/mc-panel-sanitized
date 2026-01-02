@@ -68,6 +68,11 @@ You can also provide `modpack.name`/`modpack.slug` to infer loader from the Modr
 Download failures are appended to `logs/plugin_download.log`. If log push is enabled,
 the deployer will attempt to push updates to the `logs` branch in the repo.
 
+## CLI event logging (optional)
+
+Set `MC_PANEL_CLI_LOG=1` to append review + execution plan events to `logs/cli_events.jsonl`.
+You can override the log directory with `MC_PANEL_LOG_DIR`.
+
 ### Uninstall panel from an instance
 
 ```
