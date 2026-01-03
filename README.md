@@ -11,7 +11,7 @@ This project is a configuration decision engine for Minecraft deployments with a
 ## Quick start (plan + dry-run)
 
 ```
-curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/demon1.1/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/v1.0.1/install.sh | sudo bash
 ```
 
 ## Optional Web Panel
