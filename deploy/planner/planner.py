@@ -569,11 +569,19 @@ def _evaluate_taxonomy(claims) -> tuple[List[PlanMessage], List[PlanMessage], Li
         changed = value != default
 
         if scope == "player" and ctx["section"] != "gamerule":
-            blocks.append(
+            warnings.append(
                 PlanMessage(
                     code="scope_conflict",
-                    message=f"Player-scope parameter '{ctx['catalog_key']}' must be set via gamerule.",
+                    message=f"Player-scope parameter '{ctx['catalog_key']}' should be set via gamerule.",
                     param=ctx["catalog_key"],
+                    taxonomy=tax,
+                )
+            )
+            recommendations.append(
+                PlanRecommendation(
+                    param=ctx["catalog_key"],
+                    suggested=default,
+                    reason="Prefer gamerule for player-scope parameters.",
                     taxonomy=tax,
                 )
             )

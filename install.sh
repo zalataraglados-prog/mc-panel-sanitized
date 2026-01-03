@@ -59,20 +59,103 @@ read_tty() {
 }
 
 # ------------------------------
+# Language selection
+# ------------------------------
+LANGUAGE=$(read_tty "Select language / 选择语言 [1=EN, 2=中文]: ")
+case "$LANGUAGE" in
+  2) LANGUAGE="zh" ;;
+  *) LANGUAGE="en" ;;
+esac
+
+msg() {
+  local key="$1"
+  case "$LANGUAGE" in
+    zh)
+      case "$key" in
+        panel_maintenance) echo "面板维护（已有实例）：" ;;
+        panel_install) echo "1) 为已有实例安装面板" ;;
+        panel_uninstall) echo "2) 卸载已有实例面板" ;;
+        panel_continue) echo "回车继续正常部署。" ;;
+        panel_prompt) echo "输入 [1-2] 或留空：" ;;
+        instances) echo "可用实例：" ;;
+        instance_dir) echo "实例目录（可选，用于查端口）：" ;;
+        import_string) echo "粘贴配置串（回车跳过）：" ;;
+        version_menu) echo "选择 Minecraft 版本：" ;;
+        version_custom) echo "自定义版本号：" ;;
+        edition_menu) echo "选择 Minecraft 版本类型：" ;;
+        edition_java) echo "1) Java 版" ;;
+        edition_bedrock) echo "2) Bedrock 版" ;;
+        bedrock_notice) echo "当前仅支持 Java 版，Bedrock 暂未实现。" ;;
+        profile_menu) echo "选择配置档位：" ;;
+        profile_beginner) echo "1) 新手" ;;
+        profile_normal) echo "2) 标准（默认）" ;;
+        profile_advanced) echo "3) 高级" ;;
+        map_menu) echo "地图插件（可选）：" ;;
+        map_none) echo "1) 不安装" ;;
+        map_dynmap) echo "2) Dynmap" ;;
+        map_bluemap) echo "3) BlueMap" ;;
+        map_url_prompt) echo "地图插件下载地址 [默认]：" ;;
+        map_url_fail) echo "[WARN] 下载地址不可达，请重试或选择不安装。" ;;
+        plan_run) echo "[INFO] 正在执行 plan..." ;;
+        plan_block) echo "[INFO] 被阻拦，可调整参数后重试。" ;;
+        plan_warn) echo "存在警告，是否继续？[y/N] " ;;
+        plan_ok) echo "[INFO] Review 通过，生成执行计划..." ;;
+        edit_params) echo "调整参数（key=value，空行结束）：" ;;
+        *) echo "$key" ;;
+      esac
+      ;;
+    *)
+      case "$key" in
+        panel_maintenance) echo "Panel maintenance (existing instance):" ;;
+        panel_install) echo "1) Install panel for an existing instance" ;;
+        panel_uninstall) echo "2) Uninstall panel from an existing instance" ;;
+        panel_continue) echo "Enter to continue normal deployment." ;;
+        panel_prompt) echo "Enter [1-2] or blank: " ;;
+        instances) echo "Available instances:" ;;
+        instance_dir) echo "Instance dir (optional, for panel port lookup): " ;;
+        import_string) echo "Paste claims string (or press Enter to continue): " ;;
+        version_menu) echo "Select Minecraft version:" ;;
+        version_custom) echo "Custom version: " ;;
+        edition_menu) echo "Select Minecraft edition:" ;;
+        edition_java) echo "1) Java Edition" ;;
+        edition_bedrock) echo "2) Bedrock Edition" ;;
+        bedrock_notice) echo "Sorry, this deployer currently supports Java Edition only." ;;
+        profile_menu) echo "Select profile:" ;;
+        profile_beginner) echo "1) beginner" ;;
+        profile_normal) echo "2) normal (default)" ;;
+        profile_advanced) echo "3) advanced" ;;
+        map_menu) echo "Map plugin (optional):" ;;
+        map_none) echo "1) none" ;;
+        map_dynmap) echo "2) Dynmap" ;;
+        map_bluemap) echo "3) BlueMap" ;;
+        map_url_prompt) echo "Map plugin URL [default]: " ;;
+        map_url_fail) echo "[WARN] URL unreachable; retry or choose none." ;;
+        plan_run) echo "[INFO] Running plan..." ;;
+        plan_block) echo "[INFO] Review blocked. You can adjust params and retry." ;;
+        plan_warn) echo "Review contains warnings. Continue? [y/N] " ;;
+        plan_ok) echo "[INFO] Review passed. Generating execution plan..." ;;
+        edit_params) echo "Adjust params (key=value, blank to finish): " ;;
+        *) echo "$key" ;;
+      esac
+      ;;
+  esac
+}
+
+# ------------------------------
 # Optional panel maintenance mode
 # ------------------------------
 echo ""
-echo "Panel maintenance (existing instance):"
-echo "1) Install panel for an existing instance"
-echo "2) Uninstall panel from an existing instance"
-echo "Enter to continue normal deployment."
-PANEL_MAINT=$(read_tty "Enter [1-2] or blank: ")
+echo "$(msg panel_maintenance)"
+echo "$(msg panel_install)"
+echo "$(msg panel_uninstall)"
+echo "$(msg panel_continue)"
+PANEL_MAINT=$(read_tty "$(msg panel_prompt)")
 
 if [ "$PANEL_MAINT" = "1" ] || [ "$PANEL_MAINT" = "2" ]; then
   echo ""
-  echo "[INFO] Available instances:"
+  echo "[INFO] $(msg instances)"
   python3 -m deploy.cli instances || true
-  INSTANCE_DIR=$(read_tty "Instance dir (optional, for panel port lookup): ")
+  INSTANCE_DIR=$(read_tty "$(msg instance_dir)")
   if [ "$PANEL_MAINT" = "1" ]; then
     BUILD_PANEL="y"
     if [ -f "$INSTALL_DIR/frontend/dist/index.html" ]; then
@@ -90,7 +173,7 @@ if [ "$PANEL_MAINT" = "1" ] || [ "$PANEL_MAINT" = "2" ]; then
 fi
 
 echo ""
-IMPORT_STRING=$(read_tty "Paste claims string (or press Enter to continue): ")
+IMPORT_STRING=$(read_tty "$(msg import_string)")
 export IMPORT_STRING
 
 cd "$INSTALL_DIR"
@@ -101,16 +184,35 @@ export MC_PANEL_LOG_WORKTREE="$INSTALL_DIR/.logs-worktree"
 export MC_PANEL_LOG_PUSH="1"
 
 echo ""
-VERSION=$(read_tty "Minecraft version (e.g. 1.21.4): ")
+echo "$(msg version_menu)"
+echo "1) 1.21.4"
+echo "2) 1.21.1"
+echo "3) 1.20.6"
+echo "4) 1.20.4"
+echo "5) 1.19.4"
+echo "6) custom"
+VERSION_CHOICE=$(read_tty "Enter [1-6]: ")
+case "$VERSION_CHOICE" in
+  1) VERSION="1.21.4" ;;
+  2) VERSION="1.21.1" ;;
+  3) VERSION="1.20.6" ;;
+  4) VERSION="1.20.4" ;;
+  5) VERSION="1.19.4" ;;
+  6) VERSION=$(read_tty "$(msg version_custom)") ;;
+  *) VERSION="1.21.4" ;;
+esac
+while [ -n "$VERSION" ] && ! [[ "$VERSION" =~ ^[0-9]+\\.[0-9]+(\\.[0-9]+)?$ ]]; do
+  VERSION=$(read_tty "$(msg version_custom)")
+done
 if [ -z "$VERSION" ]; then
   VERSION="1.21.4"
 fi
 export VERSION
 
 echo ""
-echo "Select Minecraft edition:"
-echo "1) Java Edition"
-echo "2) Bedrock Edition"
+echo "$(msg edition_menu)"
+echo "$(msg edition_java)"
+echo "$(msg edition_bedrock)"
 EDITION_CHOICE=$(read_tty "Enter [1-2]: ")
 
 case "$EDITION_CHOICE" in
@@ -119,18 +221,17 @@ case "$EDITION_CHOICE" in
 esac
 
 if [ "$EDITION" = "bedrock" ]; then
-  echo "[INFO] Selected: Bedrock Edition"
   echo ""
-  echo "Sorry, this deployer currently supports Java Edition only."
+  echo "[INFO] $(msg bedrock_notice)"
   echo "Bedrock execution is not implemented yet."
   exit 0
 fi
 
 echo ""
-echo "Select profile:"
-echo "1) beginner"
-echo "2) normal (default)"
-echo "3) advanced"
+echo "$(msg profile_menu)"
+echo "$(msg profile_beginner)"
+echo "$(msg profile_normal)"
+echo "$(msg profile_advanced)"
 PROFILE_CHOICE=$(read_tty "Enter [1-3]: ")
 
 case "$PROFILE_CHOICE" in
@@ -229,19 +330,43 @@ fi
 MAP_PLUGIN_EXISTS=$(PARAM_KEY="map.plugin" get_param "map.plugin")
 if [ -z "$MAP_PLUGIN_EXISTS" ]; then
   echo ""
-  echo "Map plugin (optional):"
-  echo "1) none"
-  echo "2) Dynmap"
-  echo "3) BlueMap"
+  echo "$(msg map_menu)"
+  echo "$(msg map_none)"
+  echo "$(msg map_dynmap)"
+  echo "$(msg map_bluemap)"
   PLUGIN_CHOICE=$(read_tty "Enter [1-3]: ")
-  case "$PLUGIN_CHOICE" in
-    2) MAP_PLUGIN="dynmap" ;;
-    3) MAP_PLUGIN="bluemap" ;;
-    *) MAP_PLUGIN="" ;;
-  esac
-  if [ -n "$MAP_PLUGIN" ]; then
+  while true; do
+    case "$PLUGIN_CHOICE" in
+      2) MAP_PLUGIN="dynmap" ;;
+      3) MAP_PLUGIN="bluemap" ;;
+      *) MAP_PLUGIN="" ;;
+    esac
+    if [ -z "$MAP_PLUGIN" ]; then
+      break
+    fi
+    DEFAULT_MAP_URL=""
+    if [ "$MAP_PLUGIN" = "dynmap" ]; then
+      DEFAULT_MAP_URL="https://dynmap.us/builds/dynmap/Dynmap-HEAD-spigot.jar"
+    elif [ "$MAP_PLUGIN" = "bluemap" ]; then
+      DEFAULT_MAP_URL="https://github.com/BlueMap-Minecraft/BlueMap/releases/latest/download/BlueMap.jar"
+    fi
+    MAP_URL=$(read_tty "$(msg map_url_prompt) ${DEFAULT_MAP_URL} ")
+    if [ -z "$MAP_URL" ]; then
+      MAP_URL="$DEFAULT_MAP_URL"
+    fi
+    if [ -n "$MAP_URL" ] && command -v curl >/dev/null 2>&1; then
+      if ! curl -fsSLI --max-time 10 "$MAP_URL" >/dev/null; then
+        echo "$(msg map_url_fail)"
+        PLUGIN_CHOICE=$(read_tty "Enter [1-3]: ")
+        continue
+      fi
+    fi
     PARAM_KEY="map.plugin" PARAM_VALUE="$MAP_PLUGIN" set_param "map.plugin" "$MAP_PLUGIN"
-  fi
+    if [ -n "$MAP_URL" ]; then
+      PARAM_KEY="map.plugin_url" PARAM_VALUE="$MAP_URL" set_param "map.plugin_url" "$MAP_URL"
+    fi
+    break
+  done
 fi
 
 MAP_PORT_EXISTS=$(PARAM_KEY="map.plugin_port" get_param "map.plugin_port")
@@ -486,7 +611,7 @@ PY
 )
 
 echo ""
-echo "[INFO] Running plan..."
+echo "$(msg plan_run)"
 PLAN_OUTPUT=$(python3 -m deploy.cli plan \
   --version "$VERSION" \
   --profile "$PROFILE" \
@@ -496,18 +621,51 @@ LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
 
 case "$LEVEL" in
   block)
-    echo "[INFO] Review blocked. Execution plan not generated."
-    exit 1
+    echo "$(msg plan_block)"
+    echo "$(msg edit_params)"
+    while true; do
+      ENTRY=$(read_tty "")
+      if [ -z "$ENTRY" ]; then
+        break
+      fi
+      if ! echo "$ENTRY" | grep -q "="; then
+        echo "[WARN] Invalid format, use key=value."
+        continue
+      fi
+      KEY="${ENTRY%%=*}"
+      VALUE="${ENTRY#*=}"
+      PARAM_KEY="$KEY" PARAM_VALUE="$VALUE" set_param "$KEY" "$VALUE"
+    done
+    CLAIMS_STRING=$(python3 - <<'PY'
+import json
+import os
+from deploy.claims_codec.encode import encode_claims
+with open(os.environ["PARAMS_JSON"], "r", encoding="utf-8") as handle:
+    params = json.load(handle)
+print(encode_claims(params))
+PY
+)
+    echo "$(msg plan_run)"
+    PLAN_OUTPUT=$(python3 -m deploy.cli plan \
+      --version "$VERSION" \
+      --profile "$PROFILE" \
+      --import-string "$CLAIMS_STRING")
+    echo "$PLAN_OUTPUT"
+    LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
+    if [ "$LEVEL" = "block" ]; then
+      echo "[INFO] Review still blocked. Exiting."
+      exit 1
+    fi
     ;;
   warn)
-    CONFIRM=$(read_tty "Review contains warnings. Continue? [y/N] ")
+    CONFIRM=$(read_tty "$(msg plan_warn)")
     case "$CONFIRM" in
-      y|Y) echo "[INFO] Warnings accepted. Generating execution plan..." ;;
+      y|Y) echo "$(msg plan_ok)" ;;
       *) echo "[INFO] Operation canceled."; exit 0 ;;
     esac
     ;;
   *)
-    echo "[INFO] Review passed. Generating execution plan..."
+    echo "$(msg plan_ok)"
     ;;
 esac
 
