@@ -86,6 +86,7 @@ msg() {
         edition_java) echo "1) Java 版" ;;
         edition_bedrock) echo "2) Bedrock 版" ;;
         bedrock_notice) echo "当前仅支持 Java 版，Bedrock 暂未实现。" ;;
+        bedrock_detail) echo "Bedrock 执行层尚未实现。" ;;
         profile_menu) echo "选择配置档位：" ;;
         profile_beginner) echo "1) 新手" ;;
         profile_normal) echo "2) 标准（默认）" ;;
@@ -101,6 +102,13 @@ msg() {
         plan_warn) echo "存在警告，是否继续？[y/N] " ;;
         plan_ok) echo "[INFO] Review 通过，生成执行计划..." ;;
         edit_params) echo "调整参数（key=value，空行结束）：" ;;
+        frontend_missing) echo "[WARN] 缺少 frontend/dist，面板需要构建。" ;;
+        frontend_build_now) echo "是否现在构建前端？[y/N] " ;;
+        frontend_build_skip) echo "[WARN] 已跳过前端构建，面板可能无法启动。" ;;
+        npm_missing) echo "[WARN] 未检测到 npm，请安装 Node.js 后再构建。" ;;
+        review_blocked) echo "[INFO] Review 被阻拦，可调整参数后重试。" ;;
+        review_still_block) echo "[INFO] 仍被阻拦，已退出。" ;;
+        review_canceled) echo "[INFO] 已取消。" ;;
         *) echo "$key" ;;
       esac
       ;;
@@ -120,6 +128,7 @@ msg() {
         edition_java) echo "1) Java Edition" ;;
         edition_bedrock) echo "2) Bedrock Edition" ;;
         bedrock_notice) echo "Sorry, this deployer currently supports Java Edition only." ;;
+        bedrock_detail) echo "Bedrock execution is not implemented yet." ;;
         profile_menu) echo "Select profile:" ;;
         profile_beginner) echo "1) beginner" ;;
         profile_normal) echo "2) normal (default)" ;;
@@ -135,6 +144,13 @@ msg() {
         plan_warn) echo "Review contains warnings. Continue? [y/N] " ;;
         plan_ok) echo "[INFO] Review passed. Generating execution plan..." ;;
         edit_params) echo "Adjust params (key=value, blank to finish): " ;;
+        frontend_missing) echo "[WARN] frontend/dist not found. Panel will require a frontend build." ;;
+        frontend_build_now) echo "Build frontend now? [y/N] " ;;
+        frontend_build_skip) echo "[WARN] Skipped frontend build. Panel service may fail until built." ;;
+        npm_missing) echo "[WARN] npm not found. Install Node.js then run npm install && npm run build." ;;
+        review_blocked) echo "[INFO] Review blocked. You can adjust params and retry." ;;
+        review_still_block) echo "[INFO] Review still blocked. Exiting." ;;
+        review_canceled) echo "[INFO] Operation canceled." ;;
         *) echo "$key" ;;
       esac
       ;;
@@ -184,28 +200,70 @@ export MC_PANEL_LOG_WORKTREE="$INSTALL_DIR/.logs-worktree"
 export MC_PANEL_LOG_PUSH="1"
 
 echo ""
+VERSIONS_FILE="/tmp/mc_versions.txt"
+python3 - <<'PY' > "$VERSIONS_FILE"
+import json
+import re
+import sys
+import urllib.request
+
+url = "https://api.github.com/repos/zalataraglados-prog/vanilla_catalog/contents/catalog"
+fallback = ["1.21.4", "1.21.1", "1.20.6", "1.20.4", "1.19.4"]
+
+def version_key(v: str):
+    parts = v.split(".")
+    nums = []
+    for part in parts:
+        try:
+            nums.append(int(part))
+        except ValueError:
+            nums.append(0)
+    return tuple(nums + [0] * (3 - len(nums)))
+
+try:
+    with urllib.request.urlopen(url, timeout=10) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    versions = []
+    for item in data:
+        name = item.get("name", "")
+        match = re.match(r"vanilla_(.+)\\.json$", name)
+        if match:
+            versions.append(match.group(1))
+    versions = sorted(set(versions), key=version_key, reverse=True)
+    if not versions:
+        versions = fallback
+except Exception:
+    versions = fallback
+
+for v in versions:
+    print(v)
+PY
+
+mapfile -t VERSIONS < "$VERSIONS_FILE"
+if [ "${#VERSIONS[@]}" -eq 0 ]; then
+  VERSIONS=("1.21.4")
+fi
+
 echo "$(msg version_menu)"
-echo "1) 1.21.4"
-echo "2) 1.21.1"
-echo "3) 1.20.6"
-echo "4) 1.20.4"
-echo "5) 1.19.4"
-echo "6) custom"
-VERSION_CHOICE=$(read_tty "Enter [1-6]: ")
-case "$VERSION_CHOICE" in
-  1) VERSION="1.21.4" ;;
-  2) VERSION="1.21.1" ;;
-  3) VERSION="1.20.6" ;;
-  4) VERSION="1.20.4" ;;
-  5) VERSION="1.19.4" ;;
-  6) VERSION=$(read_tty "$(msg version_custom)") ;;
-  *) VERSION="1.21.4" ;;
-esac
+i=1
+for v in "${VERSIONS[@]}"; do
+  echo "${i}) ${v}"
+  i=$((i + 1))
+done
+echo "${i}) custom"
+VERSION_CHOICE=$(read_tty "Enter [1-${i}]: ")
+if [[ "$VERSION_CHOICE" =~ ^[0-9]+$ ]] && [ "$VERSION_CHOICE" -ge 1 ] && [ "$VERSION_CHOICE" -le "${#VERSIONS[@]}" ]; then
+  VERSION="${VERSIONS[$((VERSION_CHOICE - 1))]}"
+elif [[ "$VERSION_CHOICE" =~ ^[0-9]+$ ]] && [ "$VERSION_CHOICE" -eq "${i}" ]; then
+  VERSION=$(read_tty "$(msg version_custom)")
+else
+  VERSION="${VERSIONS[0]}"
+fi
 while [ -n "$VERSION" ] && ! [[ "$VERSION" =~ ^[0-9]+\\.[0-9]+(\\.[0-9]+)?$ ]]; do
   VERSION=$(read_tty "$(msg version_custom)")
 done
 if [ -z "$VERSION" ]; then
-  VERSION="1.21.4"
+  VERSION="${VERSIONS[0]}"
 fi
 export VERSION
 
@@ -223,7 +281,7 @@ esac
 if [ "$EDITION" = "bedrock" ]; then
   echo ""
   echo "[INFO] $(msg bedrock_notice)"
-  echo "Bedrock execution is not implemented yet."
+  echo "$(msg bedrock_detail)"
   exit 0
 fi
 
@@ -260,6 +318,35 @@ params = decode_claims(os.environ["IMPORT_STRING"])
 with open(os.environ["PARAMS_JSON"], "w", encoding="utf-8") as handle:
     json.dump(params, handle)
 PY
+  echo ""
+  echo "[INFO] 已导入配置："
+  python3 - <<'PY'
+import json
+import os
+with open(os.environ["PARAMS_JSON"], "r", encoding="utf-8") as handle:
+    params = json.load(handle)
+print(json.dumps(params, indent=2, ensure_ascii=False))
+PY
+  EDIT_IMPORTED=$(read_tty "是否修改导入配置？[y/N] ")
+  case "$EDIT_IMPORTED" in
+    y|Y)
+      echo "$(msg edit_params)"
+      while true; do
+        ENTRY=$(read_tty "")
+        if [ -z "$ENTRY" ]; then
+          break
+        fi
+        if ! echo "$ENTRY" | grep -q "="; then
+          echo "[WARN] Invalid format, use key=value."
+          continue
+        fi
+        KEY="${ENTRY%%=*}"
+        VALUE="${ENTRY#*=}"
+        PARAM_KEY="$KEY" PARAM_VALUE="$VALUE" set_param "$KEY" "$VALUE"
+      done
+      ;;
+    *) : ;;
+  esac
 fi
 
 get_param() {
@@ -313,16 +400,16 @@ fi
 if [ "$PANEL_ENABLED" = "true" ]; then
   if [ ! -f "$INSTALL_DIR/frontend/dist/index.html" ]; then
     echo ""
-    echo "[WARN] frontend/dist not found. Panel will require a frontend build."
+    echo "$(msg frontend_missing)"
     if command -v npm >/dev/null 2>&1; then
-      BUILD_PANEL=$(read_tty "Build frontend now? [y/N] ")
+      BUILD_PANEL=$(read_tty "$(msg frontend_build_now)")
       if [ "$BUILD_PANEL" = "y" ] || [ "$BUILD_PANEL" = "Y" ]; then
         (cd "$INSTALL_DIR/frontend" && npm install && npm run build)
       else
-        echo "[WARN] Skipped frontend build. Panel service may fail until built."
+        echo "$(msg frontend_build_skip)"
       fi
     else
-      echo "[WARN] npm not found. Install Node.js then run npm install && npm run build."
+      echo "$(msg npm_missing)"
     fi
   fi
 fi
@@ -621,7 +708,7 @@ LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
 
 case "$LEVEL" in
   block)
-    echo "$(msg plan_block)"
+    echo "$(msg review_blocked)"
     echo "$(msg edit_params)"
     while true; do
       ENTRY=$(read_tty "")
@@ -653,7 +740,7 @@ PY
     echo "$PLAN_OUTPUT"
     LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
     if [ "$LEVEL" = "block" ]; then
-      echo "[INFO] Review still blocked. Exiting."
+      echo "$(msg review_still_block)"
       exit 1
     fi
     ;;
@@ -661,7 +748,7 @@ PY
     CONFIRM=$(read_tty "$(msg plan_warn)")
     case "$CONFIRM" in
       y|Y) echo "$(msg plan_ok)" ;;
-      *) echo "[INFO] Operation canceled."; exit 0 ;;
+      *) echo "$(msg review_canceled)"; exit 0 ;;
     esac
     ;;
   *)
