@@ -2,6 +2,9 @@
 
 This release marks the first stable, publishable version of the Minecraft Configuration Decision Engine with an optional runtime panel.
 
+AI Usage Notice
+This project was developed by a single person (freshman year). Due to limited time and technical resources, AI assistance was heavily used throughout the implementation.
+
 Highlights
 - Rules-driven planning: catalog + taxonomy + planner -> allow/warn/block/recommend.
 - Loader: pulls rules from the remote rules repository.
