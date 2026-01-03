@@ -1,5 +1,11 @@
 # MC Panel (demon1.1)
 
+## Release
+
+- Current release: `v1.0.0`
+- Tag: `https://github.com/zalataraglados-prog/mc-panel-sanitized/releases/tag/v1.0.0`
+- Notes: see `RELEASE_NOTES.md`
+
 This project is a configuration decision engine for Minecraft deployments with an optional runtime panel.
 
 ## Quick start (plan + dry-run)
