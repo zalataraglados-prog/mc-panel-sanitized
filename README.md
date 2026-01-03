@@ -2,9 +2,9 @@
 
 ## Release
 
-- Current release: `v1.0.0`
-- Tag: `https://github.com/zalataraglados-prog/mc-panel-sanitized/releases/tag/v1.0.0`
-- Notes: see `RELEASE_NOTES.md`
+- Current release: `v1.0.1`
+- Tag: `https://github.com/zalataraglados-prog/mc-panel-sanitized/releases/tag/v1.0.1`
+- Notes: see `RELEASE_DRAFT_v1.0.1.md`
 
 This project is a configuration decision engine for Minecraft deployments with an optional runtime panel.
 
