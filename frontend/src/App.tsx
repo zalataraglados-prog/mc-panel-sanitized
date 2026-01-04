@@ -28,6 +28,7 @@ const translations = {
     username: "Username",
     password: "Password",
     roleLabel: "Role",
+    guest: "guest",
     refreshButton: "Refresh",
     templates: "Command Templates",
     addTemplate: "Add Template",
@@ -91,6 +92,11 @@ const translations = {
     unknown: "UNKNOWN",
     live: "LIVE",
     offline: "OFFLINE",
+    loginFailed: "Login failed",
+    noData: "No data",
+    defaultInstance: "default",
+    instancesEmpty: "No instances found or still loading",
+    loginRequired: "Please login first",
     logStreamError: "Log stream error",
     logConnected: "Log stream connected",
     logDisconnected: "Log stream disconnected",
@@ -115,6 +121,7 @@ const translations = {
     username: "\u8d26\u53f7",
     password: "\u5bc6\u7801",
     roleLabel: "\u89d2\u8272",
+    guest: "\u8bbf\u5ba2",
     refreshButton: "\u5237\u65b0",
     templates: "\u5e38\u7528\u6307\u4ee4",
     addTemplate: "\u6dfb\u52a0\u6a21\u677f",
@@ -178,6 +185,11 @@ const translations = {
     unknown: "\u672a\u77e5",
     live: "\u5728\u7ebf",
     offline: "\u79bb\u7ebf",
+    loginFailed: "\u767b\u5f55\u5931\u8d25",
+    noData: "\u6682\u65e0\u6570\u636e",
+    defaultInstance: "\u9ed8\u8ba4",
+    instancesEmpty: "\u672a\u53d1\u73b0\u5b9e\u4f8b\u6216\u4ecd\u5728\u52a0\u8f7d",
+    loginRequired: "\u8bf7\u5148\u767b\u5f55",
     logStreamError: "\u5b9e\u65f6\u65e5\u5fd7\u8fde\u63a5\u9519\u8bef",
     logConnected: "\u5b9e\u65f6\u65e5\u5fd7\u5df2\u8fde\u63a5",
     logDisconnected: "\u5b9e\u65f6\u65e5\u5fd7\u5df2\u65ad\u5f00",
@@ -189,6 +201,42 @@ const translations = {
   },
 };
 
+const ruleLabelMapZh: Record<string, string> = {
+  "accepts-transfers": "接受转移",
+  "allow-flight": "允许飞行",
+  "allow-nether": "允许地狱",
+  "broadcast-console-to-ops": "控制台消息广播给OP",
+  "broadcast-rcon-to-ops": "RCON消息广播给OP",
+  "bug-report-link": "错误报告链接",
+  debug: "调试模式",
+  difficulty: "难度",
+  "enable-command-block": "允许命令方块",
+  "enable-jmx-monitoring": "启用JMX监控",
+  "enable-query": "启用查询",
+  "enable-rcon": "启用RCON",
+  "enforce-whitelist": "强制白名单",
+  gamemode: "默认游戏模式",
+  hardcore: "极限模式",
+  "max-players": "最大玩家数",
+  motd: "服务器描述",
+  "online-mode": "正版验证",
+  pvp: "玩家对战",
+  "server-ip": "服务器绑定IP",
+  "server-port": "服务器端口",
+  "simulation-distance": "模拟距离",
+  "view-distance": "视距",
+  "white-list": "白名单",
+  "spawn-monsters": "生成怪物",
+  "spawn-protection": "出生点保护",
+  "keepInventory": "死亡不掉落",
+  "doDaylightCycle": "昼夜循环",
+  "doMobSpawning": "生物生成",
+  "mobGriefing": "生物破坏方块",
+  "randomTickSpeed": "随机刻速度",
+  "forgiveDeadPlayers": "死亡玩家不被追杀",
+  "doImmediateRespawn": "死亡立即重生",
+};
+
 function StatCard({ title, value }: { title: string; value: string }) {
   return (
     <div className="card">
@@ -198,9 +246,9 @@ function StatCard({ title, value }: { title: string; value: string }) {
   );
 }
 
-function Sparkline({ points }: { points: MetricPoint[] }) {
+function Sparkline({ points, emptyLabel }: { points: MetricPoint[]; emptyLabel: string }) {
   if (!points.length) {
-    return <div className="sparkline-empty">No data</div>;
+    return <div className="sparkline-empty">{emptyLabel}</div>;
   }
   const values = points.map((p) => p.value);
   const min = Math.min(...values);
@@ -279,6 +327,7 @@ export function App() {
   const [userForm, setUserForm] = useState({ username: "", password: "", role: "viewer" });
 
   const t = translations[lang];
+  const formatRuleKey = (key: string) => (lang === "zh" ? ruleLabelMapZh[key] || key : key);
   const canControl = role === "owner" || role === "admin";
   const canCommand = role === "owner" || role === "admin" || role === "mod";
   const canRcon = role === "owner" || role === "admin";
@@ -928,7 +977,7 @@ export function App() {
               {t.login}
             </button>
           </form>
-          {authError ? <div className="tag">{authError}</div> : null}
+          {authError ? <div className="tag">{t.loginFailed}</div> : null}
         </section>
       ) : null}
 
@@ -941,7 +990,7 @@ export function App() {
         </div>
         <div className="sparkline-wrap">
           <div className="card-title">{t.tpsTrend}</div>
-          <Sparkline points={tpsHistory} />
+          <Sparkline points={tpsHistory} emptyLabel={t.noData} />
         </div>
       </section>
 
@@ -958,7 +1007,7 @@ export function App() {
             {t.restart}
           </button>
           <span className="tag">
-            {t.roleLabel}: {role || "guest"}
+            {t.roleLabel}: {role || t.guest}
           </span>
           <span className={`tag ${serverRunning ? "status-live" : "status-offline"}`}>
             {serverRunning === null ? t.unknown : serverRunning ? t.running : t.stopped}
@@ -1031,7 +1080,10 @@ export function App() {
         <div className="rules">
           {rules.map((r) => (
             <div key={r.key} className="rule-row">
-              <span>{r.key}</span>
+              <div className="rule-key">
+                <div>{formatRuleKey(r.key)}</div>
+                {lang === "zh" && ruleLabelMapZh[r.key] ? <div className="rule-key-sub">{r.key}</div> : null}
+              </div>
               {rulesEditing ? (
                 <input
                   value={rulesDraft[r.key] ?? ""}
@@ -1255,11 +1307,11 @@ export function App() {
 
       <section className="section">
         <h2>{t.instances}</h2>
-        {!token ? <div className="tag">请先登录</div> : null}
-        {token && instances.length === 0 ? <div className="tag">未发现实例或仍在加载</div> : null}
+        {!token ? <div className="tag">{t.loginRequired}</div> : null}
+        {token && instances.length === 0 ? <div className="tag">{t.instancesEmpty}</div> : null}
         <div className="instance-select">
           <select value={instanceDir} onChange={(event) => setInstanceDir(event.target.value)}>
-            <option value="">default</option>
+            <option value="">{t.defaultInstance}</option>
             {instances.map((item) => (
               <option key={item.path || item.name} value={item.path || ""}>
                 {item.name || item.path}

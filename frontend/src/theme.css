@@ -4,6 +4,11 @@
   --card: #1e293b;
   --accent: #38bdf8;
   --muted: #94a3b8;
+  --btn-bg: #1f2937;
+  --btn-fg: #e2e8f0;
+  --btn-border: #334155;
+  --input-bg: #0b1224;
+  --input-border: #334155;
 }
 
 body[data-theme="light"] {
@@ -12,6 +17,11 @@ body[data-theme="light"] {
   --card: #ffffff;
   --accent: #0ea5e9;
   --muted: #475569;
+  --btn-bg: #f1f5f9;
+  --btn-fg: #0f172a;
+  --btn-border: #cbd5e1;
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
 }
 
 body {
@@ -34,15 +44,22 @@ body {
 
 .actions .btn {
   margin-left: 8px;
-  background: transparent;
-  border: 1px solid var(--accent);
-  color: var(--fg);
+}
+
+.btn {
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  border: 1px solid var(--btn-border);
   padding: 6px 10px;
   cursor: pointer;
+  border-radius: 6px;
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 1;
+  color: var(--muted);
+  background: var(--btn-bg);
+  border-color: var(--btn-border);
   cursor: not-allowed;
 }
 
@@ -106,8 +123,8 @@ body {
   flex: 1;
   padding: 6px 8px;
   border-radius: 6px;
-  border: 1px solid var(--muted);
-  background: transparent;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
   color: var(--fg);
 }
 
@@ -119,8 +136,8 @@ body {
 .login input {
   padding: 6px 8px;
   border-radius: 6px;
-  border: 1px solid var(--muted);
-  background: transparent;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
   color: var(--fg);
 }
 
@@ -204,6 +221,18 @@ body {
   background: var(--card);
   padding: 6px 10px;
   border-radius: 6px;
+  gap: 12px;
+  align-items: center;
+}
+
+.rule-key {
+  min-width: 0;
+}
+
+.rule-key-sub {
+  font-size: 11px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .rule-row input {
@@ -211,8 +240,8 @@ body {
   margin-left: 12px;
   padding: 4px 6px;
   border-radius: 6px;
-  border: 1px solid var(--muted);
-  background: transparent;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
   color: var(--fg);
 }
 
@@ -396,8 +425,8 @@ body {
 .template-form input {
   padding: 6px 8px;
   border-radius: 6px;
-  border: 1px solid var(--muted);
-  background: transparent;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
   color: var(--fg);
 }
 
@@ -417,8 +446,8 @@ body {
 .instance-select select {
   padding: 6px 8px;
   border-radius: 6px;
-  border: 1px solid var(--muted);
-  background: transparent;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
   color: var(--fg);
 }
 
@@ -514,8 +543,8 @@ body {
 .command-bar input {
   padding: 8px 10px;
   border-radius: 6px;
-  border: 1px solid var(--muted);
-  background: transparent;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
   color: var(--fg);
 }
 
@@ -539,8 +568,8 @@ body {
 .user-form select {
   padding: 6px 8px;
   border-radius: 6px;
-  border: 1px solid var(--muted);
-  background: transparent;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
   color: var(--fg);
 }
 
