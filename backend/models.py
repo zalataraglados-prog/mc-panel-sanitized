@@ -14,6 +14,26 @@ class LoginResponse(BaseModel):
     role: str
 
 
+class UserEntry(BaseModel):
+    username: str
+    role: str
+
+
+class UserCreateRequest(BaseModel):
+    username: str
+    password: str
+    role: str
+
+
+class UserUpdateRequest(BaseModel):
+    password: Optional[str] = None
+    role: Optional[str] = None
+
+
+class UserListResponse(BaseModel):
+    users: List[UserEntry]
+
+
 class StatusResponse(BaseModel):
     running: bool
     players: int

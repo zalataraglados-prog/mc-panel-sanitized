@@ -10,3 +10,4 @@ local-misc/
 deploy/relay.txt
 deploy/relay_watch.ps1
 deploy/taxonomy/
+backend/backend.log

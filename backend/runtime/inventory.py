@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import json
+from backend.runtime.nbt import TAG_BYTE, TAG_COMPOUND, TAG_LIST, TAG_STRING, read_nbt, write_nbt
 from backend.runtime.rcon_client import RCONClient
 
 
@@ -36,6 +38,127 @@ def _detect_provider(instance_dir: Path) -> str | None:
             if any(sig in name for name in files):
                 return provider
     return None
+
+
+def _load_usercache(instance_dir: Path) -> dict:
+    path = instance_dir / "data" / "usercache.json"
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8", errors="ignore"))
+    except json.JSONDecodeError:
+        return {}
+    mapping = {}
+    for entry in data:
+        name = entry.get("name")
+        uuid = entry.get("uuid")
+        if name and uuid:
+            mapping[name] = uuid
+    return mapping
+
+
+def _resolve_playerdata(instance_dir: Path, player: str) -> Path | None:
+    usercache = _load_usercache(instance_dir)
+    uuid = usercache.get(player)
+    if not uuid:
+        return None
+    playerdata = instance_dir / "data" / "world" / "playerdata" / f"{uuid}.dat"
+    if playerdata.exists():
+        return playerdata
+    return None
+
+
+def _extract_inventory_list(root: dict) -> list[dict]:
+    if root.get("type") != TAG_COMPOUND:
+        return []
+    compound = root.get("value", {})
+    inv_tag = compound.get("Inventory")
+    if not inv_tag or inv_tag.get("type") != TAG_LIST:
+        return []
+    inv_value = inv_tag.get("value", {})
+    if inv_value.get("item_type") != TAG_COMPOUND:
+        return []
+    return inv_value.get("items", [])
+
+
+def _inventory_items_from_tags(items: list[dict]) -> list[dict]:
+    result = []
+    for entry in items:
+        if not isinstance(entry, dict):
+            continue
+        slot_tag = entry.get("Slot")
+        id_tag = entry.get("id")
+        count_tag = entry.get("Count")
+        if not slot_tag or not id_tag or not count_tag:
+            continue
+        result.append(
+            {
+                "slot": int(slot_tag["value"]),
+                "id": id_tag["value"],
+                "count": int(count_tag["value"]),
+            }
+        )
+    return result
+
+
+def _update_inventory_tags(items: list[dict], desired: list[dict]) -> list[dict]:
+    existing_by_slot = {}
+    for entry in items:
+        slot_tag = entry.get("Slot")
+        if slot_tag:
+            existing_by_slot[int(slot_tag["value"])] = entry
+
+    updated = []
+    for item in desired:
+        slot = item.get("slot")
+        item_id = item.get("id")
+        count = item.get("count", 1)
+        if slot is None or not item_id:
+            continue
+        entry = existing_by_slot.get(int(slot))
+        if entry is None:
+            entry = {
+                "Slot": {"type": TAG_BYTE, "value": int(slot)},
+                "id": {"type": TAG_STRING, "value": str(item_id)},
+                "Count": {"type": TAG_BYTE, "value": int(count)},
+            }
+        else:
+            entry["Slot"] = {"type": TAG_BYTE, "value": int(slot)}
+            entry["id"] = {"type": TAG_STRING, "value": str(item_id)}
+            entry["Count"] = {"type": TAG_BYTE, "value": int(count)}
+        updated.append(entry)
+    return updated
+
+
+def _get_offline_inventory(instance_dir: Path, player: str) -> dict | None:
+    playerdata = _resolve_playerdata(instance_dir, player)
+    if not playerdata:
+        return None
+    root = read_nbt(str(playerdata))
+    items = _extract_inventory_list(root)
+    if not items:
+        return {"items": [], "root": root, "path": playerdata}
+    return {"items": items, "root": root, "path": playerdata}
+
+
+def _set_offline_inventory(instance_dir: Path, player: str, desired: list[dict]) -> dict | None:
+    payload = _get_offline_inventory(instance_dir, player)
+    if not payload:
+        return None
+    root = payload["root"]
+    compound = root.get("value", {})
+    inv_tag = compound.get("Inventory")
+    if not inv_tag:
+        inv_tag = {"type": TAG_LIST, "value": {"item_type": TAG_COMPOUND, "items": []}}
+        compound["Inventory"] = inv_tag
+    inv_value = inv_tag["value"]
+    if inv_value.get("item_type") != TAG_COMPOUND:
+        inv_value["item_type"] = TAG_COMPOUND
+        inv_value["items"] = []
+    inv_value["items"] = _update_inventory_tags(inv_value.get("items", []), desired)
+    root["value"] = compound
+    write_nbt(str(payload["path"]), root)
+    return {"applied": len(inv_value["items"])}
 
 
 def _parse_inventory_payload(payload: str) -> list[dict]:
@@ -77,13 +200,41 @@ def get_inventory(instance_dir: str, player: str) -> dict:
 
     client = RCONClient.from_instance_dir(instance_dir)
     response = client.execute(f"data get entity {player} Inventory")
+    if response.startswith("RCON ") or "No entity was found" in response:
+        if provider:
+            offline = _get_offline_inventory(instance_path, player)
+            if offline is not None:
+                items = _inventory_items_from_tags(offline["items"])
+                return {
+                    "supported": True,
+                    "provider": provider,
+                    "editable": True,
+                    "items": items,
+                    "message": None if items else "Offline inventory loaded.",
+                }
+        message = "Player is offline. Install OpenInv to access offline inventories."
+        return {
+            "supported": False,
+            "provider": provider or "vanilla_rcon",
+            "editable": False,
+            "items": [],
+            "message": message,
+        }
     items = _parse_inventory_payload(response)
+    if not items:
+        return {
+            "supported": False,
+            "provider": provider or "vanilla_rcon",
+            "editable": False,
+            "items": [],
+            "message": "No inventory data available.",
+        }
     return {
         "supported": True,
         "provider": provider or "vanilla_rcon",
         "editable": True,
         "items": items,
-        "message": None if items else "No inventory data available.",
+        "message": None,
     }
 
 
@@ -100,6 +251,15 @@ def set_inventory(instance_dir: str, player: str, items: list[dict]) -> dict:
             "message": "RCON disabled in server.properties",
         }
     client = RCONClient.from_instance_dir(instance_dir)
+    if player not in client.list_players() and provider:
+        offline = _set_offline_inventory(instance_path, player, items)
+        if offline is not None:
+            return {
+                "supported": True,
+                "provider": provider,
+                "editable": True,
+                "message": f"Offline inventory updated ({offline['applied']} items).",
+            }
     applied = 0
     for item in items:
         slot = item.get("slot")

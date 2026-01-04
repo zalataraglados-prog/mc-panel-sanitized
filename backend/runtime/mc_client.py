@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 from typing import Dict
 
+from backend.runtime.log_paths import resolve_latest_log
 from backend.runtime.rcon_client import RCONClient
 
 
@@ -35,7 +36,8 @@ class MCClient:
         """
         Best-effort runtime detection using recent logs and RCON if enabled.
         """
-        running = _log_recent(self.instance_dir / "logs" / "latest.log")
+        log_path = resolve_latest_log(str(self.instance_dir))
+        running = _log_recent(log_path)
         props = _read_server_properties(self.instance_dir)
         rcon_enabled = props.get("enable-rcon", "false").lower() == "true"
         if rcon_enabled:

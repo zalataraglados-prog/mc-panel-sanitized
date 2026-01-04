@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from backend.runtime.cache import TTLCache
+from backend.runtime.log_paths import resolve_latest_log
 from backend.runtime.player_tracker import get_session_seconds
 from backend.runtime.rcon_client import RCONClient
 
@@ -16,7 +15,7 @@ def get_players_snapshot(instance_dir: str) -> list[dict]:
 
     client = RCONClient.from_instance_dir(instance_dir)
     names = client.list_players()
-    log_path = Path(instance_dir) / "logs" / "latest.log"
+    log_path = resolve_latest_log(instance_dir)
     players: list[dict] = []
     for name in names:
         position = client.get_player_position(name)

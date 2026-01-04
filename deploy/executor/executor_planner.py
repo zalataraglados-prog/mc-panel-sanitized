@@ -21,7 +21,7 @@ MAP_PLUGIN_URLS = {
         "filename": "Dynmap.jar",
     },
     "bluemap": {
-        "url": "https://github.com/BlueMap-Minecraft/BlueMap/releases/latest/download/BlueMap.jar",
+        "url": "https://github.com/BlueMap-Minecraft/BlueMap/releases/latest/download/bluemap-5.15-spigot.jar",
         "filename": "BlueMap.jar",
     },
 }
@@ -151,6 +151,10 @@ def build_execution_plan(
     mode: str = "dry-run",
 ) -> ExecutionPlan:
     params = getattr(claims, "params", {}) or {}
+    map_plugin = params.get("map.plugin")
+    if map_plugin in ("dynmap", "bluemap") and "docker.env.TYPE" not in params:
+        params = dict(params)
+        params["docker.env.TYPE"] = "PAPER"
     review_level = None
     if isinstance(review, dict):
         review_level = review.get("level")

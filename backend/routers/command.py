@@ -16,4 +16,5 @@ def command_endpoint(payload: CommandRequest, user=Depends(get_current_user)):
     log_action(user.username, "command", payload.command)
     client = RCONClient.from_instance_dir(instance_dir)
     response = client.execute(payload.command)
-    return {"result": response}
+    error = response.startswith("RCON ")
+    return {"result": response, "ok": not error, "error": response if error else None}

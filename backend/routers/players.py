@@ -11,6 +11,7 @@ router = APIRouter()
 
 @router.get("/api/players")
 def players_endpoint(instance_dir: str | None = Query(None), user=Depends(get_current_user)):
+    require_roles(user, ["owner", "admin", "mod", "viewer"])
     instance_dir = instance_dir or resolve_instance_dir()
     players = get_players_snapshot(instance_dir)
     return [PlayerInfo(**entry) for entry in players]

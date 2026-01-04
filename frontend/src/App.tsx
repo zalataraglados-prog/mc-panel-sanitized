@@ -10,6 +10,7 @@ type MapStatus = { source: string | null; available: Record<string, boolean>; y_
 type MapConfigFile = { name: string; content: string };
 type MapConfig = { plugin: string | null; files: MapConfigFile[] };
 type InventoryItem = { slot: number; id: string; count: number };
+type UserEntry = { username: string; role: string };
 
 const translations = {
   en: {
@@ -26,6 +27,8 @@ const translations = {
     login: "Login",
     username: "Username",
     password: "Password",
+    roleLabel: "Role",
+    refreshButton: "Refresh",
     templates: "Command Templates",
     addTemplate: "Add Template",
     start: "Start",
@@ -36,6 +39,9 @@ const translations = {
     clear: "Clear",
     session: "Session",
     deop: "DeOP",
+    op: "OP",
+    kick: "Kick",
+    teleport: "Teleport",
     tpsTrend: "TPS Trend",
     mapStatus: "Map Status",
     mapSettings: "Map Settings",
@@ -49,9 +55,14 @@ const translations = {
     height: "Y Level",
     refresh: "Refresh (s)",
     mapHint: "Tiles are read-only. Provide tiles via map-tiles/ in instance dir.",
+    mapPluginMissing: "No map plugin detected.",
     edit: "Edit",
     save: "Save",
     cancel: "Cancel",
+    up: "Up",
+    down: "Down",
+    left: "Left",
+    right: "Right",
     theme: "Dark / Light",
     language: "\u4e2d\u6587 / EN",
     inventory: "Inventory",
@@ -61,6 +72,33 @@ const translations = {
     inventoryUnsupported: "Inventory editing requires a compatible plugin.",
     inventoryProvider: "Provider",
     inventoryReadOnly: "Read-only",
+    inventoryRequestFailed: "Inventory request failed.",
+    inventoryUpdateFailed: "Inventory update failed.",
+    users: "Users",
+    userName: "Username",
+    userRole: "Role",
+    userPassword: "Password",
+    addUser: "Add User",
+    updateUser: "Update",
+    deleteUser: "Delete",
+    ownerRole: "owner",
+    adminRole: "admin",
+    modRole: "mod",
+    viewerRole: "viewer",
+    userDeleteConfirm: "Delete this user?",
+    running: "RUNNING",
+    stopped: "STOPPED",
+    unknown: "UNKNOWN",
+    live: "LIVE",
+    offline: "OFFLINE",
+    logStreamError: "Log stream error",
+    logConnected: "Log stream connected",
+    logDisconnected: "Log stream disconnected",
+    commandFailed: "Command failed",
+    controlFailed: "Control request failed",
+    mapConfigEmpty: "No config files found.",
+    templateName: "name",
+    templateCommand: "command",
   },
   zh: {
     title: "MC \u9762\u677f",
@@ -76,6 +114,8 @@ const translations = {
     login: "\u767b\u5f55",
     username: "\u8d26\u53f7",
     password: "\u5bc6\u7801",
+    roleLabel: "\u89d2\u8272",
+    refreshButton: "\u5237\u65b0",
     templates: "\u5e38\u7528\u6307\u4ee4",
     addTemplate: "\u6dfb\u52a0\u6a21\u677f",
     start: "\u542f\u52a8",
@@ -86,6 +126,9 @@ const translations = {
     clear: "\u6e05\u7a7a",
     session: "\u5728\u7ebf\u65f6\u957f",
     deop: "\u53d6\u6d88OP",
+    op: "\u6388\u4e88OP",
+    kick: "\u8e22\u51fa",
+    teleport: "\u4f20\u9001",
     tpsTrend: "TPS \u8d8b\u52bf",
     mapStatus: "\u5730\u56fe\u72b6\u6001",
     mapSettings: "\u5730\u56fe\u8bbe\u7f6e",
@@ -99,9 +142,14 @@ const translations = {
     height: "\u9ad8\u5ea6",
     refresh: "\u5237\u65b0\u95f4\u9694(\u79d2)",
     mapHint: "\u53ea\u8bfb\u74e6\u7247\u3002\u5c06\u74e6\u7247\u653e\u5165\u5b9e\u4f8b\u76ee\u5f55 map-tiles/ \u3002",
+    mapPluginMissing: "\u672a\u68c0\u6d4b\u5230\u5730\u56fe\u63d2\u4ef6\u3002",
     edit: "\u7f16\u8f91",
     save: "\u4fdd\u5b58",
     cancel: "\u53d6\u6d88",
+    up: "\u4e0a",
+    down: "\u4e0b",
+    left: "\u5de6",
+    right: "\u53f3",
     theme: "\u6df1\u8272 / \u6d45\u8272",
     language: "\u4e2d\u6587 / EN",
     inventory: "\u80cc\u5305",
@@ -111,6 +159,33 @@ const translations = {
     inventoryUnsupported: "\u80cc\u5305\u7f16\u8f91\u9700\u8981\u76f8\u5bb9\u63d2\u4ef6\u3002",
     inventoryProvider: "\u63d0\u4f9b\u65b9",
     inventoryReadOnly: "\u4ec5\u53ef\u67e5\u770b",
+    inventoryRequestFailed: "\u80cc\u5305\u8bf7\u6c42\u5931\u8d25\u3002",
+    inventoryUpdateFailed: "\u80cc\u5305\u66f4\u65b0\u5931\u8d25\u3002",
+    users: "\u8d26\u53f7\u7ba1\u7406",
+    userName: "\u7528\u6237\u540d",
+    userRole: "\u89d2\u8272",
+    userPassword: "\u5bc6\u7801",
+    addUser: "\u6dfb\u52a0\u7528\u6237",
+    updateUser: "\u66f4\u65b0",
+    deleteUser: "\u5220\u9664",
+    ownerRole: "\u670d\u4e3b",
+    adminRole: "\u7ba1\u7406\u5458",
+    modRole: "\u7248\u4e3b",
+    viewerRole: "\u89c2\u5bdf\u8005",
+    userDeleteConfirm: "\u786e\u8ba4\u5220\u9664\u8be5\u7528\u6237\uff1f",
+    running: "\u8fd0\u884c\u4e2d",
+    stopped: "\u5df2\u505c\u6b62",
+    unknown: "\u672a\u77e5",
+    live: "\u5728\u7ebf",
+    offline: "\u79bb\u7ebf",
+    logStreamError: "\u5b9e\u65f6\u65e5\u5fd7\u8fde\u63a5\u9519\u8bef",
+    logConnected: "\u5b9e\u65f6\u65e5\u5fd7\u5df2\u8fde\u63a5",
+    logDisconnected: "\u5b9e\u65f6\u65e5\u5fd7\u5df2\u65ad\u5f00",
+    commandFailed: "\u6307\u4ee4\u53d1\u9001\u5931\u8d25",
+    controlFailed: "\u63a7\u5236\u8bf7\u6c42\u5931\u8d25",
+    mapConfigEmpty: "\u672a\u627e\u5230\u914d\u7f6e\u6587\u4ef6\u3002",
+    templateName: "\u540d\u79f0",
+    templateCommand: "\u6307\u4ee4",
   },
 };
 
@@ -166,7 +241,7 @@ export function App() {
   const [newTemplate, setNewTemplate] = useState({ name: "", command: "" });
   const [token, setToken] = useState("");
   const [role, setRole] = useState("");
-  const [lang, setLang] = useState<"en" | "zh">("en");
+  const [lang, setLang] = useState<"en" | "zh">("zh");
   const [dark, setDark] = useState(true);
   const [logLines, setLogLines] = useState<string[]>([]);
   const [command, setCommand] = useState("");
@@ -199,6 +274,8 @@ export function App() {
   const [inventoryEditable, setInventoryEditable] = useState(false);
   const [inventoryEditing, setInventoryEditing] = useState(false);
   const [inventoryDraft, setInventoryDraft] = useState<InventoryItem[]>([]);
+  const [users, setUsers] = useState<UserEntry[]>([]);
+  const [userForm, setUserForm] = useState({ username: "", password: "", role: "viewer" });
 
   const t = translations[lang];
   const canControl = role === "owner" || role === "admin";
@@ -208,15 +285,16 @@ export function App() {
   const canTemplateWrite = role === "owner" || role === "admin";
   const canEditRules = role === "owner" || role === "admin";
   const canEditMapConfig = role === "owner" || role === "admin";
-
-  const formatTimestamp = () => {
-    const now = new Date();
-    return now.toLocaleTimeString();
+  const canEditUsers = role === "owner";
+  const roleLabels: Record<string, string> = {
+    owner: t.ownerRole,
+    admin: t.adminRole,
+    mod: t.modRole,
+    viewer: t.viewerRole,
   };
 
   const appendLogLine = (message: string) => {
-    const line = `[${formatTimestamp()}] ${message}`;
-    setLogLines((prev) => [...prev.slice(-200), line]);
+    setLogLines((prev) => [...prev.slice(-200), message]);
   };
 
   useEffect(() => {
@@ -343,12 +421,23 @@ export function App() {
       .catch(() => {});
   };
 
+  const refreshUsers = () => {
+    if (!token) {
+      return;
+    }
+    fetch("/api/users", { headers: authHeader })
+      .then((res) => res.json())
+      .then((data) => setUsers(data.users || []))
+      .catch(() => {});
+  };
+
   const refreshAll = () => {
     refreshPrimaryData();
     refreshInstances();
     refreshTemplates();
     refreshRules();
     refreshMapConfig();
+    refreshUsers();
   };
 
   useEffect(() => {
@@ -357,6 +446,7 @@ export function App() {
       refreshInstances();
       refreshTemplates();
       refreshRules();
+      refreshUsers();
     }
   }, [token]);
 
@@ -430,8 +520,10 @@ export function App() {
       return;
     }
     const query = instanceDir ? `&instance_dir=${encodeURIComponent(instanceDir)}` : "";
+    const scheme = window.location.protocol === "https:" ? "wss" : "ws";
+    const host = window.location.host;
     const ws = new WebSocket(
-      `ws://localhost:8000/api/logs/ws?token=${token}${query}&max_lines=200&max_per_second=50`
+      `${scheme}://${host}/api/logs/ws?token=${token}${query}&max_lines=200&max_per_second=50`
     );
     ws.onmessage = (event) => {
       appendLogLine(event.data);
@@ -441,13 +533,13 @@ export function App() {
       setLogConnected(false);
     };
     ws.onerror = () => {
-      setLogError("Log stream error");
-      appendLogLine("Log stream error");
+      setLogError(t.logStreamError);
+      appendLogLine(t.logStreamError);
     };
     ws.onopen = () => {
       setLogConnected(true);
       setLogError("");
-      appendLogLine("Log stream connected");
+      appendLogLine(t.logConnected);
     };
     wsRef.current = ws;
   };
@@ -458,7 +550,7 @@ export function App() {
       wsRef.current = null;
     }
     setLogConnected(false);
-    appendLogLine("Log stream disconnected");
+    appendLogLine(t.logDisconnected);
   };
 
   const clearLogs = () => {
@@ -488,6 +580,11 @@ export function App() {
     })
       .then((res) => res.json())
       .then((data) => {
+        if (data?.ok === false || data?.error) {
+          setLogError(data.error || t.commandFailed);
+          appendLogLine(data.error || t.commandFailed);
+          return;
+        }
         const response = data.result || data.response;
         if (response) {
           appendLogLine(`> ${command}`);
@@ -495,8 +592,8 @@ export function App() {
         }
       })
       .catch(() => {
-        setLogError("Command failed");
-        appendLogLine("Command failed");
+        setLogError(t.commandFailed);
+        appendLogLine(t.commandFailed);
       });
     setCommandHistory((prev) => [command, ...prev].slice(0, 20));
     setCommand("");
@@ -520,8 +617,8 @@ export function App() {
         }
       })
       .catch(() => {
-        setControlStatus("control failed");
-        appendLogLine("Control: request failed");
+        setControlStatus(t.controlFailed);
+        appendLogLine(`Control: ${t.controlFailed}`);
       });
   };
 
@@ -553,7 +650,15 @@ export function App() {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeader },
       body: JSON.stringify({ command: cmd, instance_dir: instanceDir || undefined }),
-    }).catch(() => {});
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.ok === false || data?.error) {
+          setLogError(data.error || t.commandFailed);
+          appendLogLine(data.error || t.commandFailed);
+        }
+      })
+      .catch(() => {});
   };
 
   const startEditRules = () => {
@@ -684,7 +789,7 @@ export function App() {
         setInventorySupported(false);
         setInventoryProvider("");
         setInventoryEditable(false);
-        setInventoryMessage("Inventory request failed.");
+        setInventoryMessage(t.inventoryRequestFailed);
         setInventoryEditing(false);
         setInventoryOpen(true);
       });
@@ -724,8 +829,54 @@ export function App() {
         setInventoryEditing(false);
       })
       .catch(() => {
-        setInventoryMessage("Inventory update failed.");
+        setInventoryMessage(t.inventoryUpdateFailed);
       });
+  };
+
+  const createUser = () => {
+    if (!canEditUsers || !userForm.username.trim() || !userForm.password.trim()) {
+      return;
+    }
+    fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeader },
+      body: JSON.stringify(userForm),
+    })
+      .then((res) => res.json())
+      .then(() => {
+        setUserForm({ username: "", password: "", role: "viewer" });
+        refreshUsers();
+      })
+      .catch(() => {});
+  };
+
+  const updateUser = (username: string, roleValue: string) => {
+    if (!canEditUsers) {
+      return;
+    }
+    fetch(`/api/users/${encodeURIComponent(username)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeader },
+      body: JSON.stringify({ role: roleValue }),
+    })
+      .then((res) => res.json())
+      .then(() => refreshUsers())
+      .catch(() => {});
+  };
+
+  const deleteUser = (username: string) => {
+    if (!canEditUsers) {
+      return;
+    }
+    if (!window.confirm(t.userDeleteConfirm)) {
+      return;
+    }
+    fetch(`/api/users/${encodeURIComponent(username)}`, {
+      method: "DELETE",
+      headers: { ...authHeader },
+    })
+      .then(() => refreshUsers())
+      .catch(() => {});
   };
 
   return (
@@ -780,9 +931,11 @@ export function App() {
           <button className="btn" disabled={!canControl} onClick={() => sendControl("restart")}>
             {t.restart}
           </button>
-          <span className="tag">Role: {role || "guest"}</span>
+          <span className="tag">
+            {t.roleLabel}: {role || "guest"}
+          </span>
           <span className={`tag ${serverRunning ? "status-live" : "status-offline"}`}>
-            {serverRunning === null ? "UNKNOWN" : serverRunning ? "RUNNING" : "STOPPED"}
+            {serverRunning === null ? t.unknown : serverRunning ? t.running : t.stopped}
           </span>
           {controlStatus ? <span className="tag">{controlStatus}</span> : null}
         </div>
@@ -803,7 +956,7 @@ export function App() {
                 </div>
                 <div className="player-actions">
                   <button className="btn" disabled={!canManagePlayers} onClick={() => sendPlayerCommand(`op ${p.name}`)}>
-                    OP
+                    {t.op}
                   </button>
                   <button
                     className="btn"
@@ -817,14 +970,14 @@ export function App() {
                     disabled={!canManagePlayers}
                     onClick={() => sendPlayerCommand(`kick ${p.name}`)}
                   >
-                    Kick
+                    {t.kick}
                   </button>
                   <button
                     className="btn"
                     disabled={!canManagePlayers}
-                    onClick={() => sendPlayerCommand(`tp ${p.name} @s`)}
+                    onClick={() => sendPlayerCommand(`tp ${p.name} 0 64 0`)}
                   >
-                    Teleport
+                    {t.teleport}
                   </button>
                   <button className="btn" disabled={!canManagePlayers} onClick={() => openInventory(p.name)}>
                     {t.inventory}
@@ -925,31 +1078,40 @@ export function App() {
               </div>
             </div>
             <div className="map-canvas">
-              <img
-                alt="map"
-                src={`/api/map/tile?dimension=${mapDimension}&x=${mapX}&z=${mapZ}&zoom=${mapZoom}&y=${mapY}&instance_dir=${encodeURIComponent(
-                  instanceDir || ""
-                )}&tick=${mapTick}`}
-              />
+              {mapStatus?.source === "bluemap" ? (
+                <iframe
+                  title="bluemap"
+                  src={`/api/map/bluemap/?instance_dir=${encodeURIComponent(instanceDir || "")}&token=${encodeURIComponent(
+                    token
+                  )}`}
+                />
+              ) : (
+                <img
+                  alt="map"
+                  src={`/api/map/tile?dimension=${mapDimension}&x=${mapX}&z=${mapZ}&zoom=${mapZoom}&y=${mapY}&instance_dir=${encodeURIComponent(
+                    instanceDir || ""
+                  )}&tick=${mapTick}&token=${encodeURIComponent(token)}`}
+                />
+              )}
             </div>
             <div className="map-pan">
               <button className="btn" onClick={() => setMapZ((value) => value - 1)}>
-                Up
+                {t.up}
               </button>
               <div className="map-pan-row">
                 <button className="btn" onClick={() => setMapX((value) => value - 1)}>
-                  Left
+                  {t.left}
                 </button>
                 <button className="btn" onClick={() => setMapX((value) => value + 1)}>
-                  Right
+                  {t.right}
                 </button>
               </div>
               <button className="btn" onClick={() => setMapZ((value) => value + 1)}>
-                Down
+                {t.down}
               </button>
             </div>
             <div className="map-hint">
-              {t.mapStatus}: {mapStatus?.source ?? "none"} - {t.mapHint}
+              {t.mapStatus}: {mapStatus?.source ?? "none"} - {mapStatus?.source ? t.mapHint : t.mapPluginMissing}
             </div>
             <div className="map-config-actions">
               <button className="btn" onClick={toggleMapConfig}>
@@ -990,7 +1152,7 @@ export function App() {
                     </div>
                   ))
                 ) : (
-                  <div className="map-config-empty">No config files found.</div>
+                  <div className="map-config-empty">{t.mapConfigEmpty}</div>
                 )}
               </div>
             ) : null}
@@ -1015,7 +1177,7 @@ export function App() {
               {t.clear}
             </button>
             <span className={`tag status ${logConnected ? "status-live" : "status-offline"}`}>
-              {logConnected ? "LIVE" : "OFFLINE"}
+              {logConnected ? t.live : t.offline}
             </span>
           </div>
           <div className="command-bar">
@@ -1044,12 +1206,12 @@ export function App() {
             <input
               value={newTemplate.name}
               onChange={(event) => setNewTemplate({ ...newTemplate, name: event.target.value })}
-              placeholder="name"
+              placeholder={t.templateName}
             />
             <input
               value={newTemplate.command}
               onChange={(event) => setNewTemplate({ ...newTemplate, command: event.target.value })}
-              placeholder="command"
+              placeholder={t.templateCommand}
             />
             <button className="btn" disabled={!canTemplateWrite} onClick={addTemplate}>
               {t.addTemplate}
@@ -1077,7 +1239,7 @@ export function App() {
             ))}
           </select>
           <button className="btn" onClick={refreshAll}>
-            Refresh
+            {t.refreshButton}
           </button>
         </div>
         <ul>
@@ -1085,6 +1247,58 @@ export function App() {
             <li key={item.path || item.name}>{item.name || item.path}</li>
           ))}
         </ul>
+      </section>
+
+      <section className="section">
+        <h2>{t.users}</h2>
+        <div className="users-panel">
+          <div className="user-form">
+            <input
+              value={userForm.username}
+              onChange={(event) => setUserForm({ ...userForm, username: event.target.value })}
+              placeholder={t.userName}
+            />
+            <input
+              value={userForm.password}
+              onChange={(event) => setUserForm({ ...userForm, password: event.target.value })}
+              placeholder={t.userPassword}
+              type="password"
+            />
+            <select
+              value={userForm.role}
+              onChange={(event) => setUserForm({ ...userForm, role: event.target.value })}
+            >
+              <option value="owner">{t.ownerRole}</option>
+              <option value="admin">{t.adminRole}</option>
+              <option value="mod">{t.modRole}</option>
+              <option value="viewer">{t.viewerRole}</option>
+            </select>
+            <button className="btn" disabled={!canEditUsers} onClick={createUser}>
+              {t.addUser}
+            </button>
+          </div>
+          <div className="user-list">
+            {users.map((entry) => (
+              <div key={entry.username} className="user-row">
+                <span>{entry.username}</span>
+                <select
+                  value={entry.role}
+                  disabled={!canEditUsers}
+                  onChange={(event) => updateUser(entry.username, event.target.value)}
+                >
+                  <option value="owner">{t.ownerRole}</option>
+                  <option value="admin">{t.adminRole}</option>
+                  <option value="mod">{t.modRole}</option>
+                  <option value="viewer">{t.viewerRole}</option>
+                </select>
+                <span className="tag">{roleLabels[entry.role] || entry.role}</span>
+                <button className="btn" disabled={!canEditUsers} onClick={() => deleteUser(entry.username)}>
+                  {t.deleteUser}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {inventoryOpen ? (

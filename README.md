@@ -58,10 +58,24 @@ During deploy, you can optionally enable Dynmap or BlueMap. The deployer can con
 - render interval (`map.render_interval`)
 - optional world file copy (`map.file`, `map.target`, `map.overwrite`)
 
+### BlueMap (Paper required)
+
+If `map.plugin=bluemap` is selected, the deployer forces `docker.env.TYPE=PAPER` to ensure plugin loading.
+BlueMap requires accepting resource download in `core.conf` and will not render until it has generated tiles.
+The deployer sets `accept-download: true` by default.
+
+Map tiles are served by the panel API when BlueMap is detected.
+
 ## Inventory plugins
 
 During deploy, you can optionally install an inventory plugin for richer inventory editing.
 Supported choices: InvSee++ or OpenInv. Defaults point to the `vanilla_catalog` repository, but you can override the URL.
+
+### Offline inventory editing
+
+If OpenInv is installed and the player has joined at least once (so `usercache.json` exists),
+the panel can read/write the offline inventory directly from `world/playerdata/*.dat`.
+Online players are still handled via RCON.
 
 ## Modpack compatibility
 

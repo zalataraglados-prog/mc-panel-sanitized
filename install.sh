@@ -435,7 +435,7 @@ if [ -z "$MAP_PLUGIN_EXISTS" ]; then
     if [ "$MAP_PLUGIN" = "dynmap" ]; then
       DEFAULT_MAP_URL="https://dynmap.us/builds/dynmap/Dynmap-HEAD-spigot.jar"
     elif [ "$MAP_PLUGIN" = "bluemap" ]; then
-      DEFAULT_MAP_URL="https://github.com/BlueMap-Minecraft/BlueMap/releases/latest/download/BlueMap.jar"
+      DEFAULT_MAP_URL="https://github.com/BlueMap-Minecraft/BlueMap/releases/latest/download/bluemap-5.15-spigot.jar"
     fi
     MAP_URL=$(read_tty "$(msg map_url_prompt) ${DEFAULT_MAP_URL} ")
     if [ -z "$MAP_URL" ]; then

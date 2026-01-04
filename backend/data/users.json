@@ -1,0 +1,22 @@
+{
+  "owner": {
+    "password": "ownerpass",
+    "role": "owner",
+    "token": "owner-token"
+  },
+  "admin": {
+    "password": "adminpass",
+    "role": "admin",
+    "token": "admin-token"
+  },
+  "mod": {
+    "password": "modpass",
+    "role": "mod",
+    "token": "mod-token"
+  },
+  "viewer": {
+    "password": "viewerpass",
+    "role": "viewer",
+    "token": "viewer-token"
+  }
+}

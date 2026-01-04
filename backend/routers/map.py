@@ -2,9 +2,10 @@ from pathlib import Path
 
 from backend.logging import log_action
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+import mimetypes
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
 
-from backend.auth import get_current_user, require_roles
+from backend.auth import get_current_user, get_user_from_optional, require_roles
 from backend.models import (
     MapConfigFile,
     MapConfigResponse,
@@ -17,6 +18,7 @@ from backend.runtime.map_provider import get_map_status, resolve_tile_path
 from backend.runtime.rcon_client import RCONClient
 
 router = APIRouter()
+_BLUE_MAP_WEB_INDEX = "index.html"
 
 
 @router.get("/api/map/status", response_model=MapStatusResponse)
@@ -41,8 +43,10 @@ def map_tile(
     zoom: int = Query(0, ge=0, le=6),
     y: int = Query(64),
     instance_dir: str | None = Query(None),
-    user=Depends(get_current_user),
+    token: str | None = Query(None),
+    authorization: str | None = Header(None),
 ):
+    user = get_user_from_optional(authorization, token)
     require_roles(user, ["owner", "admin", "mod", "viewer"])
     target_dir = instance_dir or resolve_instance_dir()
     path = resolve_tile_path(target_dir, dimension, x, z, zoom, y)
@@ -61,6 +65,30 @@ def map_tile(
     </svg>
     """.strip()
     return Response(svg, media_type="image/svg+xml")
+
+
+@router.get("/api/map/bluemap/{path:path}")
+def bluemap_web(
+    path: str,
+    instance_dir: str | None = Query(None),
+    token: str | None = Query(None),
+    authorization: str | None = Header(None),
+):
+    user = get_user_from_optional(authorization, token)
+    require_roles(user, ["owner", "admin", "mod", "viewer"])
+    target_dir = instance_dir or resolve_instance_dir()
+    base = Path(target_dir) / "data" / "bluemap" / "web"
+    if not base.exists():
+        raise HTTPException(status_code=404, detail="BlueMap web not found")
+    safe_path = (base / path).resolve()
+    if not str(safe_path).startswith(str(base.resolve())):
+        raise HTTPException(status_code=400, detail="Invalid path")
+    if safe_path.is_dir():
+        safe_path = safe_path / _BLUE_MAP_WEB_INDEX
+    if not safe_path.exists():
+        raise HTTPException(status_code=404, detail="Not found")
+    media_type, _ = mimetypes.guess_type(str(safe_path))
+    return Response(safe_path.read_bytes(), media_type=media_type or "application/octet-stream")
 
 
 @router.get("/api/map/config", response_model=MapConfigResponse)

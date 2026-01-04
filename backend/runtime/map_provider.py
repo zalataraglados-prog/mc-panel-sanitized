@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from backend.runtime.cache import TTLCache
+from backend.runtime.log_paths import resolve_latest_log
 
 NETHER_MARKERS = ("the_nether", "minecraft:the_nether", "nether")
 END_MARKERS = ("the_end", "minecraft:the_end", "end")
@@ -29,6 +30,7 @@ def find_map_root(instance_dir: str) -> tuple[Optional[Path], Optional[str]]:
     candidates = [
         ("dynmap", base / "data" / "plugins" / "dynmap" / "web" / "tiles"),
         ("bluemap", base / "data" / "plugins" / "BlueMap" / "web" / "tiles"),
+        ("bluemap", base / "data" / "bluemap" / "web" / "maps"),
         ("map-tiles", base / "map-tiles"),
         ("maps", base / "maps"),
     ]
@@ -69,7 +71,7 @@ def get_map_status(instance_dir: str) -> MapStatus:
 
 
 def _apply_log_visibility(instance_dir: str, available: Dict[str, bool]) -> None:
-    log_path = Path(instance_dir) / "logs" / "latest.log"
+    log_path = resolve_latest_log(instance_dir)
     if not log_path.exists():
         return
     try:
