@@ -241,6 +241,7 @@ export function App() {
   const [newTemplate, setNewTemplate] = useState({ name: "", command: "" });
   const [token, setToken] = useState("");
   const [role, setRole] = useState("");
+  const [authError, setAuthError] = useState("");
   const [lang, setLang] = useState<"en" | "zh">("zh");
   const [dark, setDark] = useState(true);
   const [logLines, setLogLines] = useState<string[]>([]);
@@ -300,6 +301,25 @@ export function App() {
   useEffect(() => {
     document.body.dataset.theme = dark ? "dark" : "light";
   }, [dark]);
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem("mc_panel_token") || "";
+    const storedRole = localStorage.getItem("mc_panel_role") || "";
+    if (storedToken) {
+      setToken(storedToken);
+      setRole(storedRole);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem("mc_panel_token", token);
+      localStorage.setItem("mc_panel_role", role || "");
+    } else {
+      localStorage.removeItem("mc_panel_token");
+      localStorage.removeItem("mc_panel_role");
+    }
+  }, [token, role]);
 
   const authHeader = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
@@ -497,6 +517,7 @@ export function App() {
 
   const handleLogin = (event: React.FormEvent) => {
     event.preventDefault();
+    setAuthError("");
     const form = event.target as HTMLFormElement;
     const payload = {
       username: (form.elements.namedItem("username") as HTMLInputElement).value,
@@ -509,10 +530,14 @@ export function App() {
     })
       .then((res) => res.json())
       .then((data) => {
-        setToken(data.token || "");
+        if (!data.token) {
+          setAuthError("Login failed");
+          return;
+        }
+        setToken(data.token);
         setRole(data.role || "");
       })
-      .catch(() => {});
+      .catch(() => setAuthError("Login failed"));
   };
 
   const connectLogs = () => {
@@ -903,6 +928,7 @@ export function App() {
               {t.login}
             </button>
           </form>
+          {authError ? <div className="tag">{authError}</div> : null}
         </section>
       ) : null}
 
@@ -1229,6 +1255,8 @@ export function App() {
 
       <section className="section">
         <h2>{t.instances}</h2>
+        {!token ? <div className="tag">请先登录</div> : null}
+        {token && instances.length === 0 ? <div className="tag">未发现实例或仍在加载</div> : null}
         <div className="instance-select">
           <select value={instanceDir} onChange={(event) => setInstanceDir(event.target.value)}>
             <option value="">default</option>
