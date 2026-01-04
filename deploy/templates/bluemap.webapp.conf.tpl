@@ -10,7 +10,7 @@ enabled: true
 # The webroot where the webapp files will be created.
 # Usually this should be set to the same directory like in the webserver.conf!
 # Default is "bluemap/web"
-webroot: "${webroot}"
+webroot: "bluemap/web"
 
 # Whether the settings.json of the webapp should be updated/synchronized with the current BlueMap settings.
 # If this is set to "false", BlueMap will only add maps to the settings.json but never remove unknown ones or update other settings.

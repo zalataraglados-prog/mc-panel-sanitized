@@ -11,7 +11,7 @@ enabled: true
 # The webroot that the server will host to the web.
 # Usually this should be set to the same directory like in the webapp.conf!
 # Default is "bluemap/web"
-webroot: "${webroot}"
+webroot: "bluemap/web"
 
 # The port that the webserver listens to.
 # Default is 8100
@@ -23,8 +23,7 @@ log: {
   # Comment out to disable the logging completely.
   # Java String formatting syntax can be used to add timestamps, see: https://docs.oracle.com/javase/8/docs/api/java/util/Formatter.html
   # Default is no logging.
-  file: "${logfile}"
-  #file: "${logfile-with-time}"
+  file: "bluemap-webserver.log"
 
   # Whether the logger should append to an existing file, or overwrite it.
   # Default is false (overwrite the file).

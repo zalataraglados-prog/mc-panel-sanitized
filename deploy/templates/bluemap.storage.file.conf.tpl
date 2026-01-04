@@ -10,7 +10,7 @@ storage-type: file
 
 # The path to the folder on your file system where BlueMap will save the rendered map.
 # The default is: "bluemap/web/maps"
-root: "${root}"
+root: "bluemap/web/maps"
 
 # The compression type that BlueMap will use to compress generated map data.
 # Available compression types are:

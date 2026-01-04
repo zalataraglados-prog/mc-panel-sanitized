@@ -6,22 +6,22 @@
 # The path to the save folder of the world to render.
 # If this is not defined (commented out or removed), the map will be only registered to the webserver and the webapp
 # but not rendered or loaded by BlueMap. This can be used to display a map that has been rendered somewhere else.
-world: "${world}"
+world: "world"
 
 # The dimension of the world. Can be "minecraft:overworld", "minecraft:the_nether", "minecraft:the_end",
 # or any dimension key introduced by a mod or datapack.
-dimension: "${dimension}"
+dimension: "minecraft:overworld"
 
 # The display name of this map (how this map will be named on the webapp).
 # You can change this at any time.
 # Default is the id of this map
-name: "${name}"
+name: "world"
 
 # A lower value makes the map appear first (in lists and menus), a higher value makes it appear later.
 # The value needs to be an integer but it can be negative.
 # You can change this at any time.
 # Default is 0
-sorting: ${sorting}
+sorting: 0
 
 # The position in the world where the map will be centered on when you open it.
 # You can change this at any time.
@@ -31,12 +31,12 @@ start-pos: { x: 0, z: 0 }
 # The color of the sky as a hex-color.
 # You can change this at any time.
 # Default is "#7dabff"
-sky-color: "${sky-color}"
+sky-color: "#7dabff"
 
 # The color of the void as a hex-color.
 # You can change this at any time.
 # Default is "#000000"
-void-color: "${void-color}"
+void-color: "#000000"
 
 # Defines the initial sky light strength the map will be set to when it is opened.
 # 0 is no sky light, 1 is fully lit up.
@@ -48,7 +48,7 @@ sky-light: 1
 # 0 is no ambient light, 1 is fully lit up.
 # You can change this at any time.
 # Default is 0
-ambient-light: ${ambient-light}
+ambient-light: 0
 
 # BlueMap tries to omit all blocks that are below this Y-level and are not visible from above ground.
 # More specifically, block faces that have a sunlight/skylight value of 0 are removed.
@@ -57,7 +57,7 @@ ambient-light: ${ambient-light}
 # Set to a very high value to remove caves everywhere (e.g. 10000).
 # Set to a very low value to remove nothing and render all caves (e.g. -10000).
 # Default is 55 (slightly below water-level).
-remove-caves-below-y: ${remove-caves-below-y}
+remove-caves-below-y: 55
 
 # This is the amount of blocks relative to the "ocean floor" heightmap that the cave detection will start at.
 # Everything above that (heightmap relative) y-level will not be removed.
@@ -96,14 +96,7 @@ render-mask: [
     #max-z: 4000
     #min-y: 50
     #max-y: 100
-  }${remove-nether-ceiling<<
-  {
-    # This removes everything at and between y 90 and 127 (the Nether's ceiling).
-    # Structures above the bedrock ceiling remain visible.
-    subtract: true
-    min-y: 90
-    max-y: 127
-  }>>}
+  }
 ]
 
 # Using this, BlueMap pretends that every Block outside of the defined render-mask is AIR,
@@ -116,7 +109,7 @@ render-edges: true
 # The sun-light strength that blocks at map edges will receive if render-edges is enabled.
 # Should be a value between 0 and 15.
 # Default is 15
-edge-light-strength: 8
+edge-light-strength: 15
 
 # Whether the perspective view will be enabled for this map.
 # Changing this to true requires a re-render of the map, only if the hires-layer is enabled and free-flight view is disabled.
