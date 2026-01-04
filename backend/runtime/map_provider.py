@@ -54,14 +54,20 @@ def get_map_status(instance_dir: str) -> MapStatus:
         return status
 
     if source == "dynmap":
-        mapping = {"overworld": "world", "nether": "DIM-1", "end": "DIM1"}
+        mapping = {"overworld": ("world",), "nether": ("DIM-1",), "end": ("DIM1",)}
     elif source == "bluemap":
-        mapping = {"overworld": "world", "nether": "world_nether", "end": "world_the_end"}
+        mapping = {
+            "overworld": ("world", "map"),
+            "nether": ("world_nether", "map_nether", "the_nether"),
+            "end": ("world_the_end", "map_end", "the_end"),
+        }
     else:
-        mapping = {"overworld": "overworld", "nether": "nether", "end": "end"}
-    for key, folder in mapping.items():
-        if (root / folder).exists():
-            available[key] = True
+        mapping = {"overworld": ("overworld",), "nether": ("nether",), "end": ("end",)}
+    for key, folders in mapping.items():
+        for folder in folders:
+            if (root / folder).exists():
+                available[key] = True
+                break
     if not available["overworld"]:
         available["overworld"] = True
     _apply_log_visibility(instance_dir, available)
@@ -91,12 +97,24 @@ def resolve_tile_path(
     if not root:
         return None
     if source == "dynmap":
-        dim_map = {"overworld": "world", "nether": "DIM-1", "end": "DIM1"}
+        candidates = {"overworld": ("world",), "nether": ("DIM-1",), "end": ("DIM1",)}
     elif source == "bluemap":
-        dim_map = {"overworld": "world", "nether": "world_nether", "end": "world_the_end"}
+        candidates = {
+            "overworld": ("world", "map"),
+            "nether": ("world_nether", "map_nether", "the_nether"),
+            "end": ("world_the_end", "map_end", "the_end"),
+        }
     else:
-        dim_map = {"overworld": "overworld", "nether": "nether", "end": "end"}
-    dimension_dir = root / dim_map.get(dimension, dimension)
+        candidates = {"overworld": ("overworld",), "nether": ("nether",), "end": ("end",)}
+    folder_candidates = candidates.get(dimension, (dimension,))
+    dimension_dir = None
+    for folder in folder_candidates:
+        candidate = root / folder
+        if candidate.exists():
+            dimension_dir = candidate
+            break
+    if dimension_dir is None:
+        dimension_dir = root / folder_candidates[0]
     if not dimension_dir.exists():
         return None
     candidates = [
