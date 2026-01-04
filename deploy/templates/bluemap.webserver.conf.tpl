@@ -23,7 +23,7 @@ log: {
   # Comment out to disable the logging completely.
   # Java String formatting syntax can be used to add timestamps, see: https://docs.oracle.com/javase/8/docs/api/java/util/Formatter.html
   # Default is no logging.
-  file: "logs/bluemap-webserver.log"
+  file: "/data/logs/bluemap-webserver.log"
 
   # Whether the logger should append to an existing file, or overwrite it.
   # Default is false (overwrite the file).
