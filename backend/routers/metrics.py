@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Query
 from backend.auth import get_current_user
 from backend.models import MetricsPoint
 from backend.runtime import metrics as runtime_metrics
+from backend.runtime.mc_client import MCClient
 from backend.routers.instances import resolve_instance_dir
 
 router = APIRouter()
@@ -16,7 +17,13 @@ def metrics_endpoint(
     user=Depends(get_current_user),
 ):
     target_dir = instance_dir or resolve_instance_dir()
+    if not target_dir:
+        return []
+    if not MCClient(target_dir).status().get("running", False):
+        return []
     point = runtime_metrics.gather_metrics(target_dir)
+    if point["tps"] <= 0:
+        return []
     history.append({"timestamp": point["timestamp"], "value": point["tps"]})
     # keep only window worth of data
     history[:] = history[-window:]

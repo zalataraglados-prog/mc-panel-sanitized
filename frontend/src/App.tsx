@@ -57,6 +57,7 @@ const translations = {
     refresh: "Refresh (s)",
     mapHint: "Tiles are read-only. Provide tiles via map-tiles/ in instance dir.",
     mapPluginMissing: "No map plugin detected.",
+    mapSourceNone: "none",
     edit: "Edit",
     save: "Save",
     cancel: "Cancel",
@@ -150,6 +151,7 @@ const translations = {
     refresh: "\u5237\u65b0\u95f4\u9694(\u79d2)",
     mapHint: "\u53ea\u8bfb\u74e6\u7247\u3002\u5c06\u74e6\u7247\u653e\u5165\u5b9e\u4f8b\u76ee\u5f55 map-tiles/ \u3002",
     mapPluginMissing: "\u672a\u68c0\u6d4b\u5230\u5730\u56fe\u63d2\u4ef6\u3002",
+    mapSourceNone: "\u65e0",
     edit: "\u7f16\u8f91",
     save: "\u4fdd\u5b58",
     cancel: "\u53d6\u6d88",
@@ -235,6 +237,59 @@ const ruleLabelMapZh: Record<string, string> = {
   "randomTickSpeed": "随机刻速度",
   "forgiveDeadPlayers": "死亡玩家不被追杀",
   "doImmediateRespawn": "死亡立即重生",
+};
+
+const ruleWordMapZh: Record<string, string> = {
+  accept: "接受",
+  allow: "允许",
+  enable: "启用",
+  disable: "禁用",
+  max: "最大",
+  min: "最小",
+  player: "玩家",
+  players: "玩家",
+  server: "服务器",
+  port: "端口",
+  online: "在线",
+  mode: "模式",
+  difficulty: "难度",
+  view: "视距",
+  distance: "距离",
+  simulation: "模拟",
+  tick: "刻",
+  random: "随机",
+  spawn: "生成",
+  monsters: "怪物",
+  monster: "怪物",
+  mob: "生物",
+  griefing: "破坏",
+  whitelist: "白名单",
+  white: "白",
+  list: "名单",
+  pvp: "PVP",
+  rcon: "RCON",
+  query: "查询",
+  debug: "调试",
+  broadcast: "广播",
+  console: "控制台",
+  ops: "OP",
+  bug: "错误",
+  report: "报告",
+  link: "链接",
+  command: "指令",
+  block: "方块",
+  flight: "飞行",
+  nether: "地狱",
+  overworld: "主世界",
+  end: "末地",
+  world: "世界",
+  keep: "保留",
+  inventory: "背包",
+  immediate: "立即",
+  respawn: "重生",
+  forgive: "宽恕",
+  dead: "死亡",
+  transfer: "转移",
 };
 
 function StatCard({ title, value }: { title: string; value: string }) {
@@ -327,7 +382,6 @@ export function App() {
   const [userForm, setUserForm] = useState({ username: "", password: "", role: "viewer" });
 
   const t = translations[lang];
-  const formatRuleKey = (key: string) => (lang === "zh" ? ruleLabelMapZh[key] || key : key);
   const canControl = role === "owner" || role === "admin";
   const canCommand = role === "owner" || role === "admin" || role === "mod";
   const canRcon = role === "owner" || role === "admin";
@@ -341,6 +395,23 @@ export function App() {
     admin: t.adminRole,
     mod: t.modRole,
     viewer: t.viewerRole,
+  };
+  const mapSupported = mapStatus?.source === "bluemap" || mapStatus?.source === "dynmap";
+  const formatRuleKey = (key: string) => {
+    if (lang !== "zh") {
+      return key;
+    }
+    if (ruleLabelMapZh[key]) {
+      return ruleLabelMapZh[key];
+    }
+    const tokens = key
+      .replace(/[._-]/g, " ")
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .split(/\s+/)
+      .filter(Boolean);
+    const translated = tokens.map((token) => ruleWordMapZh[token.toLowerCase()] || token);
+    const unchanged = translated.every((value, index) => value === tokens[index]);
+    return unchanged ? key : translated.join("");
   };
 
   const appendLogLine = (message: string) => {
@@ -381,15 +452,18 @@ export function App() {
       .then((res) => res.json())
       .then((data) => {
         const status = data?.status || {};
+        const running = typeof status.running === "boolean" ? status.running : null;
+        const tpsValue = running && (status.tps ?? 0) > 0 ? String(status.tps) : t.noData;
+        const msptValue = running && (status.mspt ?? 0) > 0 ? String(status.mspt) : t.noData;
         setMetrics([
           { label: "Players", value: String(status.players ?? 0) },
-          { label: "TPS", value: String(status.tps ?? 0) },
-          { label: "MSPT", value: String(status.mspt ?? 0) },
+          { label: "TPS", value: tpsValue },
+          { label: "MSPT", value: msptValue },
           { label: "CPU", value: `${status.cpu_usage ?? 0}%` },
           { label: "Memory", value: `${status.memory_usage ?? 0}%` },
           { label: "Disk", value: `${status.disk_usage ?? 0}%` },
         ]);
-        setServerRunning(typeof status.running === "boolean" ? status.running : null);
+        setServerRunning(running);
         if (Array.isArray(data?.players)) {
           setPlayers(data.players);
         }
@@ -1100,7 +1174,12 @@ export function App() {
       <section className="section runtime-grid">
         <div className="map-area">
           <h2>{t.map}</h2>
-          <div className="map-panel">
+          {!mapSupported ? (
+            <div className="map-panel">
+              <div className="map-placeholder">{t.mapPluginMissing}</div>
+            </div>
+          ) : (
+            <div className="map-panel">
             <div className="map-toolbar">
               <div className="map-tabs">
                 <button
@@ -1189,7 +1268,7 @@ export function App() {
               </button>
             </div>
             <div className="map-hint">
-              {t.mapStatus}: {mapStatus?.source ?? "none"} - {mapStatus?.source ? t.mapHint : t.mapPluginMissing}
+              {t.mapStatus}: {mapStatus?.source ?? t.mapSourceNone} - {mapStatus?.source ? t.mapHint : t.mapPluginMissing}
             </div>
             <div className="map-config-actions">
               <button className="btn" onClick={toggleMapConfig}>
@@ -1234,7 +1313,8 @@ export function App() {
                 )}
               </div>
             ) : null}
-          </div>
+            </div>
+          )}
         </div>
         <div className="log-area">
           <h2>{t.logs}</h2>

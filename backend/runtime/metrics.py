@@ -108,8 +108,8 @@ def gather_metrics(instance_dir: str | None = None) -> dict:
 
     payload = {
         "timestamp": time.time(),
-        "tps": tps if tps is not None else 20.0,
-        "mspt": mspt if mspt is not None else 50.0,
+        "tps": tps if tps is not None else 0.0,
+        "mspt": mspt if mspt is not None else 0.0,
         "ping": ping,
         "cpu": cpu,
         "memory": memory,
