@@ -43,6 +43,13 @@ const translations = {
     op: "OP",
     kick: "Kick",
     teleport: "Teleport",
+    teleportTitle: "Teleport Player",
+    teleportToCoords: "Teleport to coordinates",
+    teleportConfirm: "Teleport",
+    teleportCancel: "Cancel",
+    coordX: "X",
+    coordY: "Y",
+    coordZ: "Z",
     tpsTrend: "TPS Trend",
     mapStatus: "Map Status",
     mapSettings: "Map Settings",
@@ -137,6 +144,13 @@ const translations = {
     op: "\u6388\u4e88OP",
     kick: "\u8e22\u51fa",
     teleport: "\u4f20\u9001",
+    teleportTitle: "\u4f20\u9001\u73a9\u5bb6",
+    teleportToCoords: "\u4f20\u9001\u5230\u5750\u6807",
+    teleportConfirm: "\u786e\u8ba4\u4f20\u9001",
+    teleportCancel: "\u53d6\u6d88",
+    coordX: "X",
+    coordY: "Y",
+    coordZ: "Z",
     tpsTrend: "TPS \u8d8b\u52bf",
     mapStatus: "\u5730\u56fe\u72b6\u6001",
     mapSettings: "\u5730\u56fe\u8bbe\u7f6e",
@@ -378,6 +392,9 @@ export function App() {
   const [inventoryEditable, setInventoryEditable] = useState(false);
   const [inventoryEditing, setInventoryEditing] = useState(false);
   const [inventoryDraft, setInventoryDraft] = useState<InventoryItem[]>([]);
+  const [teleportOpen, setTeleportOpen] = useState(false);
+  const [teleportTarget, setTeleportTarget] = useState<Player | null>(null);
+  const [teleportPos, setTeleportPos] = useState({ x: "", y: "", z: "" });
   const [users, setUsers] = useState<UserEntry[]>([]);
   const [userForm, setUserForm] = useState({ username: "", password: "", role: "viewer" });
 
@@ -809,6 +826,30 @@ export function App() {
       .catch(() => {});
   };
 
+  const openTeleport = (player: Player) => {
+    setTeleportTarget(player);
+    setTeleportPos({
+      x: String(player.position.x),
+      y: String(player.position.y),
+      z: String(player.position.z),
+    });
+    setTeleportOpen(true);
+  };
+
+  const submitTeleport = () => {
+    if (!teleportTarget || !canManagePlayers) {
+      return;
+    }
+    const x = teleportPos.x.trim();
+    const y = teleportPos.y.trim();
+    const z = teleportPos.z.trim();
+    if (!x || !y || !z) {
+      return;
+    }
+    sendPlayerCommand(`tp ${teleportTarget.name} ${x} ${y} ${z}`);
+    setTeleportOpen(false);
+  };
+
   const startEditRules = () => {
     if (!canEditRules) {
       return;
@@ -1124,7 +1165,7 @@ export function App() {
                   <button
                     className="btn"
                     disabled={!canManagePlayers}
-                    onClick={() => sendPlayerCommand(`tp ${p.name} 0 64 0`)}
+                    onClick={() => openTeleport(p)}
                   >
                     {t.teleport}
                   </button>
@@ -1532,6 +1573,53 @@ export function App() {
             ) : (
               <p>{inventoryMessage || t.inventoryEmpty}</p>
             )}
+          </div>
+        </div>
+      ) : null}
+
+      {teleportOpen && teleportTarget ? (
+        <div className="modal-overlay" onClick={() => setTeleportOpen(false)}>
+          <div className="modal" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{t.teleportTitle}</h3>
+              <button className="btn" onClick={() => setTeleportOpen(false)}>
+                {t.teleportCancel}
+              </button>
+            </div>
+            <div className="modal-subtitle">
+              {teleportTarget.name} · {t.teleportToCoords}
+            </div>
+            <div className="modal-grid">
+              <label>
+                {t.coordX}
+                <input
+                  value={teleportPos.x}
+                  onChange={(event) => setTeleportPos({ ...teleportPos, x: event.target.value })}
+                />
+              </label>
+              <label>
+                {t.coordY}
+                <input
+                  value={teleportPos.y}
+                  onChange={(event) => setTeleportPos({ ...teleportPos, y: event.target.value })}
+                />
+              </label>
+              <label>
+                {t.coordZ}
+                <input
+                  value={teleportPos.z}
+                  onChange={(event) => setTeleportPos({ ...teleportPos, z: event.target.value })}
+                />
+              </label>
+            </div>
+            <div className="modal-actions">
+              <button className="btn" onClick={() => setTeleportOpen(false)}>
+                {t.teleportCancel}
+              </button>
+              <button className="btn" disabled={!canManagePlayers} onClick={submitTeleport}>
+                {t.teleportConfirm}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
