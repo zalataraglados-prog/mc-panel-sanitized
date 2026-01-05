@@ -37,7 +37,7 @@ class MCClient:
         Best-effort runtime detection using recent logs and RCON if enabled.
         """
         log_path = resolve_latest_log(str(self.instance_dir))
-        running = _log_recent(log_path)
+        running = False
         props = _read_server_properties(self.instance_dir)
         rcon_enabled = props.get("enable-rcon", "false").lower() == "true"
         if rcon_enabled:
@@ -45,4 +45,6 @@ class MCClient:
             response = client.execute("list")
             if "There are" in response:
                 running = True
+        else:
+            running = _log_recent(log_path)
         return {"running": running}
