@@ -8,6 +8,8 @@ def resolve_latest_log(instance_dir: str) -> Path:
     candidates = [
         base / "logs" / "latest.log",
         base / "data" / "logs" / "latest.log",
+        base / "logs" / "console.log",
+        base / "data" / "logs" / "console.log",
     ]
     for path in candidates:
         if path.exists():

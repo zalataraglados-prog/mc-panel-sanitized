@@ -46,8 +46,10 @@ def _disk_usage(path: str) -> float:
 def _parse_tps_response(response: str) -> tuple[float | None, float | None]:
     if not response:
         return None, None
-    tps_match = re.search(r"TPS[^:]*:\s*([0-9.]+)", response)
-    mspt_match = re.search(r"MSPT[^:]*:\s*([0-9.]+)", response)
+    clean = re.sub(r"\x1b\\[[0-9;]*m", "", response)
+    clean = re.sub(r"§.", "", clean)
+    tps_match = re.search(r"TPS[^:]*:\s*([0-9.]+)", clean)
+    mspt_match = re.search(r"MSPT[^:]*:\s*([0-9.]+)", clean)
     tps = float(tps_match.group(1)) if tps_match else None
     mspt = float(mspt_match.group(1)) if mspt_match else None
     return tps, mspt
