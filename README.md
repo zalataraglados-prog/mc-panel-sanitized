@@ -1,5 +1,10 @@
 # MC Panel (demon1.1)
 
+## 发布声明 / Release Notice
+
+- 重要：前两个正式版（v1.0.0 / v1.0.1）存在严重缺陷，请勿用于生产环境。
+- Important: The first two releases (v1.0.0 / v1.0.1) contain critical defects and must not be used in production.
+
 ## Release
 
 - Current release: `v1.0.1`
