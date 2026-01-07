@@ -568,7 +568,7 @@ def _evaluate_taxonomy(claims) -> tuple[List[PlanMessage], List[PlanMessage], Li
         value = _normalize_value(ctx["value"], default)
         changed = value != default
 
-        if scope == "player" and ctx["section"] != "gamerule":
+        if scope == "player" and ctx["section"] != "gamerule" and changed:
             warnings.append(
                 PlanMessage(
                     code="scope_conflict",
