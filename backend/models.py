@@ -122,6 +122,12 @@ class ClaimsExportResponse(BaseModel):
     instance_dir: str
 
 
+class RconHealthResponse(BaseModel):
+    ok: bool
+    message: str
+    instance_dir: str
+
+
 class InstancesResponse(BaseModel):
     instances: List[Dict[str, Any]]
 

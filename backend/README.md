@@ -54,6 +54,7 @@ backend/
 | `POST /api/command` | enqueue console or player command (owner/admin/mod) |
 | `POST /api/control` | start/stop/restart server (owner/admin) |
 | `POST /api/rcon` | send custom RCON command (owner/admin) |
+| `GET /api/rcon/health?instance_dir=...` | check RCON availability and error message |
 | `GET /api/rules?instance_dir=...` | read server.properties values |
 | `GET /api/claims/export?instance_dir=...` | export claims string with defaults + current server.properties |
 | `GET /api/command-templates` | list command templates |

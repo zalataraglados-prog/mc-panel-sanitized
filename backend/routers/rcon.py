@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 
 from backend.auth import get_current_user, require_roles
 from backend.logging import log_action
-from backend.models import CommandRequest
+from backend.models import CommandRequest, RconHealthResponse
 from backend.runtime.rcon_client import RCONClient
 from backend.routers.instances import resolve_instance_dir
 
@@ -18,3 +18,15 @@ def rcon_endpoint(payload: CommandRequest, user=Depends(get_current_user)):
     response = client.execute(payload.command)
     error = response.startswith("RCON ")
     return {"response": response, "ok": not error, "error": response if error else None}
+
+
+@router.get("/api/rcon/health", response_model=RconHealthResponse)
+def rcon_health(instance_dir: str | None = None, user=Depends(get_current_user)):
+    require_roles(user, ["owner", "admin", "mod", "viewer"])
+    resolved = instance_dir or resolve_instance_dir()
+    client = RCONClient.from_instance_dir(resolved)
+    if not client.enabled:
+        return RconHealthResponse(ok=False, message="RCON disabled", instance_dir=resolved)
+    response = client.execute("list")
+    ok = "There are" in response
+    return RconHealthResponse(ok=ok, message=response, instance_dir=resolved)

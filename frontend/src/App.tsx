@@ -116,6 +116,9 @@ const translations = {
     exportClaims: "Export Claims",
     exportTitle: "Claims String",
     exportCopy: "Copy",
+    rconStatus: "RCON Status",
+    rconOk: "RCON OK",
+    rconFail: "RCON ERROR",
   },
   zh: {
     title: "MC \u9762\u677f",
@@ -220,6 +223,9 @@ const translations = {
     exportClaims: "\u5bfc\u51fa\u914d\u7f6e\u4e32",
     exportTitle: "\u914d\u7f6e\u4e32",
     exportCopy: "\u590d\u5236",
+    rconStatus: "RCON\u72b6\u6001",
+    rconOk: "RCON\u6b63\u5e38",
+    rconFail: "RCON\u5f02\u5e38",
   },
 };
 
@@ -367,6 +373,8 @@ export function App() {
   const [authError, setAuthError] = useState("");
   const [lang, setLang] = useState<"en" | "zh">("zh");
   const [dark, setDark] = useState(true);
+  const [rconOk, setRconOk] = useState(false);
+  const [rconMessage, setRconMessage] = useState("");
   const [logLines, setLogLines] = useState<string[]>([]);
   const [command, setCommand] = useState("");
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -490,6 +498,8 @@ export function App() {
           { label: "Disk", value: `${status.disk_usage ?? 0}%` },
         ]);
         setServerRunning(running);
+        setRconOk(Boolean(status.rcon_ok));
+        setRconMessage(typeof status.rcon_message === "string" ? status.rcon_message : "");
         if (Array.isArray(data?.players)) {
           setPlayers(data.players);
         }
@@ -1151,8 +1161,16 @@ export function App() {
           <span className={`tag ${serverRunning ? "status-live" : "status-offline"}`}>
             {serverRunning === null ? t.unknown : serverRunning ? t.running : t.stopped}
           </span>
+          <span className={`tag ${rconOk ? "status-live" : "status-offline"}`}>
+            {rconOk ? t.rconOk : t.rconFail}
+          </span>
           {controlStatus ? <span className="tag">{controlStatus}</span> : null}
         </div>
+        {rconOk ? null : (
+          <div className="subtle">
+            {t.rconStatus}: {rconMessage || t.rconFail}
+          </div>
+        )}
       </section>
       <section className="section">
         <h2>{t.players}</h2>

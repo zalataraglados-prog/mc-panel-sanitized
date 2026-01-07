@@ -164,6 +164,12 @@ body {
   border: 1px solid #f9731633;
 }
 
+.subtle {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .players {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
