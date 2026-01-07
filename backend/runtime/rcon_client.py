@@ -59,7 +59,7 @@ class RCONClient:
     def from_instance_dir(cls, instance_dir: str) -> "RCONClient":
         props = _read_server_properties(Path(instance_dir))
         enabled = props.get("enable-rcon", "false").lower() == "true"
-        host = "localhost"
+        host = "127.0.0.1"
         port = int(props.get("rcon.port", "25575"))
         password = props.get("rcon.password", "change-me")
         return cls(host, port, password, enabled=enabled)
