@@ -5,6 +5,7 @@ from datetime import datetime
 from backend.runtime.cache import TTLCache
 from backend.runtime.mc_client import MCClient
 from backend.runtime.metrics import gather_metrics
+from backend.runtime.rcon_client import RCONClient
 
 _STATUS_CACHE = TTLCache(ttl_seconds=2.0)
 
@@ -16,6 +17,13 @@ def get_status_snapshot(instance_dir: str) -> dict:
 
     metrics = gather_metrics(instance_dir)
     running = MCClient(instance_dir).status().get("running", False)
+    rcon_client = RCONClient.from_instance_dir(instance_dir)
+    rcon_ok = False
+    rcon_message = "RCON disabled"
+    if rcon_client.enabled:
+        response = rcon_client.execute("list")
+        rcon_ok = "There are" in response
+        rcon_message = response
     payload = {
         "running": bool(running),
         "players": metrics["players"],
@@ -25,6 +33,8 @@ def get_status_snapshot(instance_dir: str) -> dict:
         "cpu_usage": metrics["cpu"],
         "memory_usage": metrics["memory"],
         "disk_usage": metrics["disk"],
+        "rcon_ok": rcon_ok,
+        "rcon_message": rcon_message,
         "instance_dir": instance_dir,
         "updated_at": datetime.utcnow(),
     }

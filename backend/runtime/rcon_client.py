@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 from pathlib import Path
 import socket
 import struct
@@ -57,10 +58,19 @@ class RCONClient:
 
     @classmethod
     def from_instance_dir(cls, instance_dir: str) -> "RCONClient":
-        props = _read_server_properties(Path(instance_dir))
+        base_dir = Path(instance_dir)
+        props = _read_server_properties(base_dir)
         enabled = props.get("enable-rcon", "false").lower() == "true"
         host = "127.0.0.1"
-        port = int(props.get("rcon.port", "25575"))
+        config = _read_instance_config(base_dir)
+        port = None
+        if isinstance(config.get("network"), dict):
+            port = config["network"].get("rcon_port")
+        if port is None:
+            port = _read_compose_rcon_port(base_dir)
+        if port is None:
+            port = props.get("rcon.port", "25575")
+        port = int(port)
         password = props.get("rcon.password", "change-me")
         return cls(host, port, password, enabled=enabled)
 
@@ -117,3 +127,28 @@ def _read_server_properties(instance_dir: Path) -> dict:
         key, value = line.split("=", 1)
         result[key.strip()] = value.strip()
     return result
+
+
+def _read_instance_config(instance_dir: Path) -> dict:
+    path = instance_dir / "config.json"
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+
+
+def _read_compose_rcon_port(instance_dir: Path) -> int | None:
+    path = instance_dir / "docker-compose.yml"
+    if not path.exists():
+        return None
+    pattern = re.compile(r'^\s*-\s*"?(\d+):25575"?')
+    for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        match = pattern.match(line)
+        if match:
+            try:
+                return int(match.group(1))
+            except ValueError:
+                return None
+    return None

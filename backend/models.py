@@ -43,6 +43,8 @@ class StatusResponse(BaseModel):
     cpu_usage: float
     memory_usage: float
     disk_usage: float
+    rcon_ok: bool
+    rcon_message: str
     instance_dir: str
     updated_at: datetime
 
