@@ -113,6 +113,9 @@ const translations = {
     mapConfigEmpty: "No config files found.",
     templateName: "name",
     templateCommand: "command",
+    exportClaims: "Export Claims",
+    exportTitle: "Claims String",
+    exportCopy: "Copy",
   },
   zh: {
     title: "MC \u9762\u677f",
@@ -214,6 +217,9 @@ const translations = {
     mapConfigEmpty: "\u672a\u627e\u5230\u914d\u7f6e\u6587\u4ef6\u3002",
     templateName: "\u540d\u79f0",
     templateCommand: "\u6307\u4ee4",
+    exportClaims: "\u5bfc\u51fa\u914d\u7f6e\u4e32",
+    exportTitle: "\u914d\u7f6e\u4e32",
+    exportCopy: "\u590d\u5236",
   },
 };
 
@@ -365,6 +371,9 @@ export function App() {
   const [command, setCommand] = useState("");
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportClaims, setExportClaims] = useState("");
+  const [exportParams, setExportParams] = useState<Record<string, unknown> | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const logRef = useRef<HTMLDivElement | null>(null);
   const [logConnected, setLogConnected] = useState(false);
@@ -950,6 +959,21 @@ export function App() {
     }
   };
 
+  const handleExportClaims = () => {
+    if (!token) {
+      return;
+    }
+    const instanceQuery = instanceDir ? `?instance_dir=${encodeURIComponent(instanceDir)}` : "";
+    fetch(`/api/claims/export${instanceQuery}`, { headers: authHeader })
+      .then((res) => res.json())
+      .then((data) => {
+        setExportClaims(data.claims_string || "");
+        setExportParams(data.params || null);
+        setExportOpen(true);
+      })
+      .catch(() => {});
+  };
+
   const openInventory = (name: string) => {
     if (!canManagePlayers) {
       return;
@@ -1190,6 +1214,9 @@ export function App() {
           </button>
           <button className="btn" disabled={!rulesEditing} onClick={cancelEditRules}>
             {t.cancel}
+          </button>
+          <button className="btn" onClick={handleExportClaims}>
+            {t.exportClaims}
           </button>
         </div>
         <div className="rules">
@@ -1618,6 +1645,49 @@ export function App() {
               </button>
               <button className="btn" disabled={!canManagePlayers} onClick={submitTeleport}>
                 {t.teleportConfirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {exportOpen ? (
+        <div className="modal-overlay" onClick={() => setExportOpen(false)}>
+          <div className="modal" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{t.exportTitle}</h3>
+              <button className="btn" onClick={() => setExportOpen(false)}>
+                {t.close}
+              </button>
+            </div>
+            <div className="modal-subtitle">{instanceDir || t.defaultInstance}</div>
+            <div className="modal-grid">
+              <label>
+                {t.exportTitle}
+                <textarea
+                  rows={4}
+                  value={exportClaims}
+                  readOnly
+                  onFocus={(event) => event.currentTarget.select()}
+                />
+              </label>
+            </div>
+            {exportParams ? (
+              <pre className="modal-pre">{JSON.stringify(exportParams, null, 2)}</pre>
+            ) : null}
+            <div className="modal-actions">
+              <button className="btn" onClick={() => setExportOpen(false)}>
+                {t.close}
+              </button>
+              <button
+                className="btn"
+                onClick={() => {
+                  if (exportClaims) {
+                    navigator.clipboard.writeText(exportClaims).catch(() => {});
+                  }
+                }}
+              >
+                {t.exportCopy}
               </button>
             </div>
           </div>

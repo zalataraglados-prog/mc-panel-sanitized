@@ -113,6 +113,13 @@ class RulesUpdateRequest(BaseModel):
     instance_dir: Optional[str] = None
 
 
+class ClaimsExportResponse(BaseModel):
+    claims_string: str
+    params: Dict[str, Any]
+    version: str
+    instance_dir: str
+
+
 class InstancesResponse(BaseModel):
     instances: List[Dict[str, Any]]
 

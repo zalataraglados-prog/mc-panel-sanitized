@@ -15,12 +15,14 @@ from backend.routers.rcon import router as rcon_router
 from backend.routers.status import router as status_router
 from backend.routers.summary import router as summary_router
 from backend.routers.auth import router as auth_router
+from backend.routers.claims import router as claims_router
 from backend.routers.rules import router as rules_router
 from backend.routers.templates import router as templates_router
 from backend.routers.users import router as users_router
 
 app = FastAPI(title="MC-Panel Runtime API")
 app.include_router(auth_router)
+app.include_router(claims_router)
 app.include_router(status_router)
 app.include_router(summary_router)
 app.include_router(metrics_router)

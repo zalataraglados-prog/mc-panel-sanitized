@@ -304,9 +304,22 @@ export PARAMS_JSON
 python3 - <<'PY'
 import json
 import os
+from deploy.loader import load_rules_bundle
 path = os.environ.get("PARAMS_JSON")
+version = os.environ.get("VERSION")
+base_url = os.environ.get("RULES_BASE_URL")
+rules_ref = os.environ.get("RULES_REF")
+params = {}
+if version:
+    bundle = load_rules_bundle(version, base_url=base_url, rules_ref=rules_ref)
+    catalog = bundle.get("catalog", {})
+    for section in ("server_properties", "gamerule"):
+        entries = catalog.get(section, {}).get("entries", {})
+        for key, meta in entries.items():
+            if "default" in meta:
+                params[key] = meta["default"]
 with open(path, "w", encoding="utf-8") as handle:
-    json.dump({}, handle)
+    json.dump(params, handle)
 PY
 
 if [ -n "$IMPORT_STRING" ]; then
@@ -314,8 +327,11 @@ if [ -n "$IMPORT_STRING" ]; then
 import json
 import os
 from deploy.claims_codec.decode import decode_claims
-params = decode_claims(os.environ["IMPORT_STRING"])
-with open(os.environ["PARAMS_JSON"], "w", encoding="utf-8") as handle:
+path = os.environ["PARAMS_JSON"]
+with open(path, "r", encoding="utf-8") as handle:
+    params = json.load(handle)
+params.update(decode_claims(os.environ["IMPORT_STRING"]))
+with open(path, "w", encoding="utf-8") as handle:
     json.dump(params, handle)
 PY
   echo ""
@@ -345,7 +361,7 @@ PY
         PARAM_KEY="$KEY" PARAM_VALUE="$VALUE" set_param "$KEY" "$VALUE"
       done
       ;;
-    *) : ;;
+    *) SKIP_PROMPTS="1" ;;
   esac
 fi
 
@@ -648,16 +664,21 @@ for section in ("server_properties", "gamerule"):
         print(f"{key}\t{'' if hint is None else hint}\t{dtype}\t{'' if min_val is None else min_val}\t{'' if max_val is None else max_val}")
 PY
 
-while IFS=$'\t' read -r key default_hint dtype min_val max_val; do
-  existing=$(PARAM_KEY="$key" get_param "$key")
-  if [ -n "$existing" ]; then
-    continue
-  fi
-  if [ -n "$default_hint" ]; then
-    prompt="Set ${key} [default: ${default_hint}]: "
-  else
-    prompt="Set ${key} (optional): "
-  fi
+if [ "$SKIP_PROMPTS" = "1" ]; then
+  : 
+else
+  while IFS=$'\t' read -r key default_hint dtype min_val max_val; do
+    existing=$(PARAM_KEY="$key" get_param "$key")
+    if [ -n "$existing" ]; then
+      prompt_default="$existing"
+    else
+      prompt_default="$default_hint"
+    fi
+    if [ -n "$prompt_default" ]; then
+      prompt="Set ${key} [default: ${prompt_default}]: "
+    else
+      prompt="Set ${key} (optional): "
+    fi
   value=$(read_tty "$prompt")
   if [ -z "$value" ]; then
     continue
@@ -684,8 +705,9 @@ while IFS=$'\t' read -r key default_hint dtype min_val max_val; do
       fi
     fi
   fi
-  PARAM_KEY="$key" PARAM_VALUE="$value" set_param "$key" "$value"
-done < /tmp/param_keys.txt
+    PARAM_KEY="$key" PARAM_VALUE="$value" set_param "$key" "$value"
+  done < /tmp/param_keys.txt
+fi
 
 CLAIMS_STRING=$(python3 - <<'PY'
 import json

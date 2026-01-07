@@ -55,6 +55,7 @@ backend/
 | `POST /api/control` | start/stop/restart server (owner/admin) |
 | `POST /api/rcon` | send custom RCON command (owner/admin) |
 | `GET /api/rules?instance_dir=...` | read server.properties values |
+| `GET /api/claims/export?instance_dir=...` | export claims string with defaults + current server.properties |
 | `GET /api/command-templates` | list command templates |
 | `POST /api/command-templates` | add new template |
 | `WS /api/logs/ws?token=...&instance_dir=...` | stream tail of server logs with rate limit |
