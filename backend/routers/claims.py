@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from backend.auth import get_current_user, require_roles
 from backend.models import ClaimsExportResponse
 from backend.routers.instances import resolve_instance_dir
+from backend.runtime.rcon_client import RCONClient
 from deploy.claims_codec import encode_claims
 from deploy.loader import load_rules_bundle
 
@@ -61,6 +62,38 @@ def _defaults_from_catalog(catalog: dict) -> dict:
     return params
 
 
+def _read_gamerules(instance_dir: str, catalog: dict) -> dict:
+    entries = catalog.get("gamerule", {}).get("entries", {})
+    if not entries:
+        return {}
+    client = RCONClient.from_instance_dir(instance_dir)
+    if not client.enabled:
+        return {}
+    values: dict = {}
+    for key in entries.keys():
+        response = client.execute(f"gamerule {key}")
+        if not response or response.startswith("RCON "):
+            return {}
+        if "No game rule" in response or "Unknown" in response:
+            continue
+        if ":" not in response:
+            continue
+        match = response.split(":")[-1].strip()
+        meta = entries.get(key, {})
+        default = meta.get("default")
+        if isinstance(default, bool):
+            parsed = _coerce_value(match, "bool")
+            if isinstance(parsed, bool):
+                values[key] = parsed
+        elif isinstance(default, int):
+            parsed = _coerce_value(match, "int")
+            if isinstance(parsed, int):
+                values[key] = parsed
+        else:
+            values[key] = match
+    return values
+
+
 @router.get("/api/claims/export", response_model=ClaimsExportResponse)
 def export_claims(instance_dir: str | None = Query(None), user=Depends(get_current_user)):
     require_roles(user, ["owner", "admin", "mod", "viewer"])
@@ -85,6 +118,9 @@ def export_claims(instance_dir: str | None = Query(None), user=Depends(get_curre
         else:
             dtype = "string"
         defaults[key] = _coerce_value(value, dtype)
+
+    gamerule_values = _read_gamerules(instance_dir, catalog)
+    defaults.update(gamerule_values)
 
     defaults["edition"] = "java"
     defaults["stack.type"] = stack_type
