@@ -83,6 +83,20 @@ msg() {
         import_mode) echo "导入方式：1) 粘贴配置串 2) 从文件导入（回车跳过）" ;;
         import_file) echo "配置串文件路径：" ;;
         import_file_missing) echo "[WARN] 文件不存在或不可读，将改为粘贴输入。" ;;
+        import_list_header) echo "已导入配置（编号）：" ;;
+        import_edit_prompt) echo "是否修改导入配置？输入行号（逗号分隔），回车跳过：" ;;
+        import_value_prompt) echo "设置新值" ;;
+        panel_install_prompt) echo "安装 Web 面板？[y/N] " ;;
+        panel_port_prompt) echo "面板端口 [默认: 15000]: " ;;
+        inventory_menu) echo "背包插件（可选）：" ;;
+        inventory_url_prompt) echo "背包插件下载地址 [默认]：" ;;
+        inventory_url_required) echo "背包插件下载地址（必填）：" ;;
+        map_port_prompt) echo "地图插件端口 [默认: " ;;
+        map_render_prompt) echo "地图渲染间隔（分钟）[默认: 5]: " ;;
+        java_override) echo "是否覆盖 Java 运行时？[y/N] " ;;
+        java_select) echo "选择 Java 版本：" ;;
+        memory_prompt) echo "内存（例如 2G / 4G）：" ;;
+        expected_players_prompt) echo "预期在线人数（可选）：" ;;
         version_menu) echo "选择 Minecraft 版本：" ;;
         version_custom) echo "自定义版本号：" ;;
         edition_menu) echo "选择 Minecraft 版本类型：" ;;
@@ -128,6 +142,20 @@ msg() {
         import_mode) echo "Import mode: 1) Paste string 2) From file (Enter to skip)" ;;
         import_file) echo "Claims file path: " ;;
         import_file_missing) echo "[WARN] File not found or not readable; falling back to paste." ;;
+        import_list_header) echo "Imported config (indexed):" ;;
+        import_edit_prompt) echo "Edit imported config? Enter line numbers (comma-separated) or Enter to skip: " ;;
+        import_value_prompt) echo "Set new value" ;;
+        panel_install_prompt) echo "Install Web Panel? [y/N] " ;;
+        panel_port_prompt) echo "Panel port [default: 15000]: " ;;
+        inventory_menu) echo "Inventory plugin (optional):" ;;
+        inventory_url_prompt) echo "Inventory plugin download URL [default]: " ;;
+        inventory_url_required) echo "Inventory plugin download URL (required): " ;;
+        map_port_prompt) echo "Map plugin port [default: " ;;
+        map_render_prompt) echo "Map render interval (minutes) [default: 5]: " ;;
+        java_override) echo "Override Java runtime? [y/N] " ;;
+        java_select) echo "Select Java runtime:" ;;
+        memory_prompt) echo "Memory (e.g. 2G / 4G): " ;;
+        expected_players_prompt) echo "Expected players (optional): " ;;
         version_menu) echo "Select Minecraft version:" ;;
         version_custom) echo "Custom version: " ;;
         edition_menu) echo "Select Minecraft edition:" ;;
@@ -161,6 +189,15 @@ msg() {
       esac
       ;;
   esac
+}
+
+choice_prompt() {
+  local range="$1"
+  if [ "$LANGUAGE" = "zh" ]; then
+    echo "输入 [${range}]："
+  else
+    echo "Enter [${range}]: "
+  fi
 }
 
 # ------------------------------
@@ -412,7 +449,7 @@ else
     i=$((i + 1))
   done
   echo "${i}) custom"
-  VERSION_CHOICE=$(read_tty "Enter [1-${i}]: ")
+  VERSION_CHOICE=$(read_tty "$(choice_prompt "1-${i}")")
   VERSION_CHOICE="${VERSION_CHOICE//$'\r'/}"
   VERSION_CHOICE="$(echo "$VERSION_CHOICE" | xargs)"
   if [[ "$VERSION_CHOICE" =~ ^[0-9]+$ ]] && [ "$VERSION_CHOICE" -ge 1 ] && [ "$VERSION_CHOICE" -le "${#VERSIONS[@]}" ]; then
@@ -439,7 +476,7 @@ echo ""
 echo "$(msg edition_menu)"
 echo "$(msg edition_java)"
 echo "$(msg edition_bedrock)"
-EDITION_CHOICE=$(read_tty "Enter [1-2]: ")
+EDITION_CHOICE=$(read_tty "$(choice_prompt "1-2")")
 
 case "$EDITION_CHOICE" in
   2) EDITION="bedrock" ;;
@@ -458,7 +495,7 @@ echo "$(msg profile_menu)"
 echo "$(msg profile_beginner)"
 echo "$(msg profile_normal)"
 echo "$(msg profile_advanced)"
-PROFILE_CHOICE=$(read_tty "Enter [1-3]: ")
+PROFILE_CHOICE=$(read_tty "$(choice_prompt "1-3")")
 
 case "$PROFILE_CHOICE" in
   1) PROFILE="beginner" ;;
@@ -535,34 +572,51 @@ PY
     continue
   fi
   echo ""
-  echo "[INFO] 已导入配置："
+  echo "$(msg import_list_header)"
   python3 - <<'PY'
 import json
 import os
 with open(os.environ["PARAMS_JSON"], "r", encoding="utf-8") as handle:
     params = json.load(handle)
-print(json.dumps(params, indent=2, ensure_ascii=False))
+items = sorted(params.items(), key=lambda item: item[0])
+for idx, (key, value) in enumerate(items, start=1):
+    print(f"{idx}\t{key}\t{value}")
 PY
-  EDIT_IMPORTED=$(read_tty "是否修改导入配置？[y/N] ")
-  case "$EDIT_IMPORTED" in
-    y|Y)
-      echo "$(msg edit_params)"
-      while true; do
-        ENTRY=$(read_tty "")
-        if [ -z "$ENTRY" ]; then
-          break
-        fi
-        if ! echo "$ENTRY" | grep -q "="; then
-          echo "[WARN] Invalid format, use key=value."
-          continue
-        fi
-        KEY="${ENTRY%%=*}"
-        VALUE="${ENTRY#*=}"
-        PARAM_KEY="$KEY" PARAM_VALUE="$VALUE" set_param "$KEY" "$VALUE"
-      done
-      ;;
-    *) SKIP_PROMPTS="1" ;;
-  esac
+  EDIT_LINES=$(read_tty "$(msg import_edit_prompt)")
+  if [ -n "$EDIT_LINES" ]; then
+    EDIT_LINES="${EDIT_LINES// /}"
+    IFS=',' read -r -a LINE_ITEMS <<< "$EDIT_LINES"
+    for line in "${LINE_ITEMS[@]}"; do
+      if ! [[ "$line" =~ ^[0-9]+$ ]]; then
+        echo "[WARN] Invalid line number: ${line}"
+        continue
+      fi
+      KEY=$(LINE_NO="$line" python3 - <<'PY'
+import json
+import os
+line = int(os.environ["LINE_NO"])
+with open(os.environ["PARAMS_JSON"], "r", encoding="utf-8") as handle:
+    params = json.load(handle)
+items = sorted(params.items(), key=lambda item: item[0])
+if line < 1 or line > len(items):
+    print("")
+else:
+    print(items[line-1][0])
+PY
+      )
+      if [ -z "$KEY" ]; then
+        echo "[WARN] Line out of range: ${line}"
+        continue
+      fi
+      CURRENT=$(PARAM_KEY="$KEY" get_param "$KEY")
+      VALUE=$(read_tty "$(msg import_value_prompt) ${KEY} [${CURRENT}]: ")
+      if [ -z "$VALUE" ]; then
+        continue
+      fi
+      PARAM_KEY="$KEY" PARAM_VALUE="$VALUE" set_param "$KEY" "$VALUE"
+    done
+  fi
+  SKIP_PROMPTS="1"
   break
 done
 
@@ -597,7 +651,7 @@ PY
 PANEL_ENABLED=$(PARAM_KEY="panel.enable" get_param "panel.enable")
 if [ -z "$PANEL_ENABLED" ]; then
   echo ""
-  PANEL_CHOICE=$(read_tty "Install Web Panel? [y/N] ")
+PANEL_CHOICE=$(read_tty "$(msg panel_install_prompt)")
   case "$PANEL_CHOICE" in
     y|Y) PARAM_KEY="panel.enable" PARAM_VALUE="true" set_param "panel.enable" "true" ;;
     *) : ;;
@@ -607,7 +661,7 @@ fi
 PANEL_PORT_EXISTS=$(PARAM_KEY="panel.port" get_param "panel.port")
 PANEL_ENABLED=$(PARAM_KEY="panel.enable" get_param "panel.enable")
 if [ -z "$PANEL_PORT_EXISTS" ] && [ "$PANEL_ENABLED" = "true" ]; then
-  PANEL_PORT=$(read_tty "Panel port [default: 15000]: ")
+  PANEL_PORT=$(read_tty "$(msg panel_port_prompt)")
   if [ -z "$PANEL_PORT" ]; then
     PANEL_PORT="15000"
   fi
@@ -638,7 +692,7 @@ if [ -z "$MAP_PLUGIN_EXISTS" ]; then
   echo "$(msg map_none)"
   echo "$(msg map_dynmap)"
   echo "$(msg map_bluemap)"
-  PLUGIN_CHOICE=$(read_tty "Enter [1-3]: ")
+  PLUGIN_CHOICE=$(read_tty "$(choice_prompt "1-3")")
   while true; do
     case "$PLUGIN_CHOICE" in
       2) MAP_PLUGIN="dynmap" ;;
@@ -661,7 +715,7 @@ if [ -z "$MAP_PLUGIN_EXISTS" ]; then
     if [ -n "$MAP_URL" ] && command -v curl >/dev/null 2>&1; then
       if ! curl -fsSLI --max-time 10 "$MAP_URL" >/dev/null; then
         echo "$(msg map_url_fail)"
-        PLUGIN_CHOICE=$(read_tty "Enter [1-3]: ")
+        PLUGIN_CHOICE=$(read_tty "$(choice_prompt "1-3")")
         continue
       fi
     fi
@@ -683,7 +737,7 @@ if [ -z "$MAP_PORT_EXISTS" ]; then
     DEFAULT_MAP_PORT=""
   fi
   if [ -n "$DEFAULT_MAP_PORT" ]; then
-    MAP_PORT=$(read_tty "Map plugin port [default: ${DEFAULT_MAP_PORT}]: ")
+    MAP_PORT=$(read_tty "$(msg map_port_prompt)${DEFAULT_MAP_PORT}]: ")
     if [ -z "$MAP_PORT" ]; then
       MAP_PORT="$DEFAULT_MAP_PORT"
     fi
@@ -694,7 +748,7 @@ fi
 MAP_RENDER_EXISTS=$(PARAM_KEY="map.render_interval" get_param "map.render_interval")
 if [ -z "$MAP_RENDER_EXISTS" ]; then
   if [ "$MAP_PLUGIN" = "dynmap" ] || [ "$MAP_PLUGIN_EXISTS" = "dynmap" ] || [ "$MAP_PLUGIN" = "bluemap" ] || [ "$MAP_PLUGIN_EXISTS" = "bluemap" ]; then
-    MAP_RENDER=$(read_tty "Map render interval (minutes) [default: 5]: ")
+    MAP_RENDER=$(read_tty "$(msg map_render_prompt)")
     if [ -z "$MAP_RENDER" ]; then
       MAP_RENDER="5"
     fi
@@ -706,11 +760,11 @@ INVENTORY_PLUGIN_EXISTS=$(PARAM_KEY="inventory.plugin" get_param "inventory.plug
 INVENTORY_PLUGIN=""
 if [ -z "$INVENTORY_PLUGIN_EXISTS" ]; then
   echo ""
-  echo "Inventory plugin (optional):"
+  echo "$(msg inventory_menu)"
   echo "1) none"
   echo "2) InvSee++ (recommended)"
   echo "3) OpenInv"
-  INV_PLUGIN_CHOICE=$(read_tty "Enter [1-3]: ")
+  INV_PLUGIN_CHOICE=$(read_tty "$(choice_prompt "1-3")")
   case "$INV_PLUGIN_CHOICE" in
     2) INVENTORY_PLUGIN="invsee" ;;
     3) INVENTORY_PLUGIN="openinv" ;;
@@ -724,12 +778,12 @@ if [ -z "$INVENTORY_PLUGIN_EXISTS" ]; then
       DEFAULT_INV_URL="https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/deps/plugins/openinv/OpenInv.jar"
     fi
     if [ -n "$DEFAULT_INV_URL" ]; then
-      INVENTORY_URL=$(read_tty "Inventory plugin download URL [default: ${DEFAULT_INV_URL}]: ")
+      INVENTORY_URL=$(read_tty "$(msg inventory_url_prompt) ${DEFAULT_INV_URL} ")
       if [ -z "$INVENTORY_URL" ]; then
         INVENTORY_URL="$DEFAULT_INV_URL"
       fi
     else
-      INVENTORY_URL=$(read_tty "Inventory plugin download URL (required): ")
+      INVENTORY_URL=$(read_tty "$(msg inventory_url_required)")
     fi
     if [ -n "$INVENTORY_URL" ]; then
       PARAM_KEY="inventory.plugin" PARAM_VALUE="$INVENTORY_PLUGIN" set_param "inventory.plugin" "$INVENTORY_PLUGIN"
@@ -752,12 +806,12 @@ if [ -n "$INVENTORY_PLUGIN" ] && [ -z "$INVENTORY_URL_EXISTS" ]; then
     DEFAULT_INV_URL="https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/deps/plugins/openinv/OpenInv.jar"
   fi
   if [ -n "$DEFAULT_INV_URL" ]; then
-    INVENTORY_URL=$(read_tty "Inventory plugin download URL [default: ${DEFAULT_INV_URL}]: ")
+    INVENTORY_URL=$(read_tty "$(msg inventory_url_prompt) ${DEFAULT_INV_URL} ")
     if [ -z "$INVENTORY_URL" ]; then
       INVENTORY_URL="$DEFAULT_INV_URL"
     fi
   else
-    INVENTORY_URL=$(read_tty "Inventory plugin download URL (required): ")
+    INVENTORY_URL=$(read_tty "$(msg inventory_url_required)")
   fi
   if [ -n "$INVENTORY_URL" ]; then
     PARAM_KEY="inventory.plugin_url" PARAM_VALUE="$INVENTORY_URL" set_param "inventory.plugin_url" "$INVENTORY_URL"
@@ -785,16 +839,16 @@ if [ -z "$MAP_FILE_EXISTS" ]; then
 fi
 
 echo ""
-OVERRIDE_JAVA=$(read_tty "Override Java runtime? [y/N] ")
+OVERRIDE_JAVA=$(read_tty "$(msg java_override)")
 if [ "$OVERRIDE_JAVA" = "y" ] || [ "$OVERRIDE_JAVA" = "Y" ]; then
   echo ""
-  echo "Select Java runtime:"
+  echo "$(msg java_select)"
   echo "1) auto (based on Minecraft version)"
   echo "2) 8"
   echo "3) 11"
   echo "4) 16"
   echo "5) 17"
-  RUNTIME_CHOICE=$(read_tty "Enter [1-5]: " )
+  RUNTIME_CHOICE=$(read_tty "$(choice_prompt "1-5")")
   case "$RUNTIME_CHOICE" in
     2) RUNTIME_JAVA="8" ;;
     3) RUNTIME_JAVA="11" ;;
@@ -807,7 +861,7 @@ fi
 
 MEMORY_EXISTS=$(PARAM_KEY="docker.env.MEMORY" get_param "docker.env.MEMORY")
 if [ -z "$MEMORY_EXISTS" ]; then
-  MEMORY=$(read_tty "Memory (e.g. 2G / 4G): ")
+  MEMORY=$(read_tty "$(msg memory_prompt)")
   if [ -n "$MEMORY" ]; then
     PARAM_KEY="docker.env.MEMORY" PARAM_VALUE="$MEMORY" set_param "docker.env.MEMORY" "$MEMORY"
   fi
@@ -815,7 +869,7 @@ fi
 
 EXPECTED_PLAYERS=$(PARAM_KEY="deploy.expected_players" get_param "deploy.expected_players")
 if [ -z "$EXPECTED_PLAYERS" ]; then
-  EXPECTED_PLAYERS=$(read_tty "Expected players (optional): ")
+  EXPECTED_PLAYERS=$(read_tty "$(msg expected_players_prompt)")
   if [ -n "$EXPECTED_PLAYERS" ]; then
     PARAM_KEY="deploy.expected_players" PARAM_VALUE="$EXPECTED_PLAYERS" set_param "deploy.expected_players" "$EXPECTED_PLAYERS"
   fi
@@ -862,6 +916,8 @@ for section in ("server_properties", "gamerule"):
             dtype = "int"
         else:
             dtype = "string"
+        if dtype == "string" and hint == "string":
+            hint = ""
         print(f"{key}\t{'' if hint is None else hint}\t{dtype}\t{'' if min_val is None else min_val}\t{'' if max_val is None else max_val}")
 PY
 
