@@ -190,6 +190,7 @@ fi
 
 echo ""
 IMPORT_STRING=$(read_tty "$(msg import_string)")
+IMPORT_STRING="$(echo "$IMPORT_STRING" | tr -d '\r\n\t ')"
 export IMPORT_STRING
 
 cd "$INSTALL_DIR"
@@ -208,7 +209,106 @@ import sys
 import urllib.request
 
 url = "https://api.github.com/repos/zalataraglados-prog/vanilla_catalog/contents/catalog"
-fallback = ["1.21.4", "1.21.1", "1.20.6", "1.20.4", "1.19.4"]
+fallback = [
+    "1.21.11",
+    "1.21.4",
+    "1.20.6",
+    "1.20.5",
+    "1.20.4",
+    "1.20.3",
+    "1.20.2",
+    "1.20.1",
+    "1.20",
+    "1.19.4",
+    "1.19.3",
+    "1.19.2",
+    "1.19.1",
+    "1.19",
+    "1.18.2",
+    "1.18.1",
+    "1.18",
+    "1.17.1",
+    "1.17",
+    "1.16.5",
+    "1.16.4",
+    "1.16.3",
+    "1.16.2",
+    "1.16.1",
+    "1.16",
+    "1.15.2",
+    "1.15.1",
+    "1.15",
+    "1.14.4",
+    "1.14.3",
+    "1.14.2",
+    "1.14.1",
+    "1.14",
+    "1.13.2",
+    "1.13.1",
+    "1.13",
+    "1.12.2",
+    "1.12.1",
+    "1.12",
+    "1.11.2",
+    "1.11.1",
+    "1.11",
+    "1.10.2",
+    "1.10.1",
+    "1.10",
+    "1.9.4",
+    "1.9.3",
+    "1.9.2",
+    "1.9.1",
+    "1.9",
+    "1.8.9",
+    "1.8.8",
+    "1.8.7",
+    "1.8.6",
+    "1.8.5",
+    "1.8.4",
+    "1.8.3",
+    "1.8.2",
+    "1.8.1",
+    "1.8",
+    "1.7.10",
+    "1.7.9",
+    "1.7.8",
+    "1.7.7",
+    "1.7.6",
+    "1.7.5",
+    "1.7.4",
+    "1.7.3",
+    "1.7.2",
+    "1.7.1",
+    "1.7",
+    "1.6.4",
+    "1.6.3",
+    "1.6.2",
+    "1.6.1",
+    "1.6",
+    "1.5.2",
+    "1.5.1",
+    "1.5",
+    "1.4.7",
+    "1.4.6",
+    "1.4.5",
+    "1.4.4",
+    "1.4.3",
+    "1.4.2",
+    "1.4.1",
+    "1.4",
+    "1.3.2",
+    "1.3.1",
+    "1.3",
+    "1.2.5",
+    "1.2.4",
+    "1.2.3",
+    "1.2.2",
+    "1.2.1",
+    "1.2",
+    "1.1",
+    "1.0",
+]
 
 def version_key(v: str):
     parts = v.split(".")
@@ -231,9 +331,9 @@ try:
             versions.append(match.group(1))
     versions = sorted(set(versions), key=version_key, reverse=True)
     if not versions:
-        versions = fallback
+        versions = sorted(fallback, key=version_key, reverse=True)
 except Exception:
-    versions = fallback
+    versions = sorted(fallback, key=version_key, reverse=True)
 
 for v in versions:
     print(v)
@@ -252,6 +352,8 @@ for v in "${VERSIONS[@]}"; do
 done
 echo "${i}) custom"
 VERSION_CHOICE=$(read_tty "Enter [1-${i}]: ")
+VERSION_CHOICE="${VERSION_CHOICE//$'\r'/}"
+VERSION_CHOICE="$(echo "$VERSION_CHOICE" | xargs)"
 if [[ "$VERSION_CHOICE" =~ ^[0-9]+$ ]] && [ "$VERSION_CHOICE" -ge 1 ] && [ "$VERSION_CHOICE" -le "${#VERSIONS[@]}" ]; then
   VERSION="${VERSIONS[$((VERSION_CHOICE - 1))]}"
 elif [[ "$VERSION_CHOICE" =~ ^[0-9]+$ ]] && [ "$VERSION_CHOICE" -eq "${i}" ]; then
@@ -259,8 +361,12 @@ elif [[ "$VERSION_CHOICE" =~ ^[0-9]+$ ]] && [ "$VERSION_CHOICE" -eq "${i}" ]; th
 else
   VERSION="${VERSIONS[0]}"
 fi
+VERSION="${VERSION//$'\r'/}"
+VERSION="$(echo "$VERSION" | xargs)"
 while [ -n "$VERSION" ] && ! [[ "$VERSION" =~ ^[0-9]+\\.[0-9]+(\\.[0-9]+)?$ ]]; do
   VERSION=$(read_tty "$(msg version_custom)")
+  VERSION="${VERSION//$'\r'/}"
+  VERSION="$(echo "$VERSION" | xargs)"
 done
 if [ -z "$VERSION" ]; then
   VERSION="${VERSIONS[0]}"
@@ -322,7 +428,8 @@ with open(path, "w", encoding="utf-8") as handle:
     json.dump(params, handle)
 PY
 
-if [ -n "$IMPORT_STRING" ]; then
+while [ -n "$IMPORT_STRING" ]; do
+  export IMPORT_STRING
   python3 - <<'PY'
 import json
 import os
@@ -330,10 +437,21 @@ from deploy.claims_codec.decode import decode_claims
 path = os.environ["PARAMS_JSON"]
 with open(path, "r", encoding="utf-8") as handle:
     params = json.load(handle)
-params.update(decode_claims(os.environ["IMPORT_STRING"]))
+try:
+    decoded = decode_claims(os.environ["IMPORT_STRING"])
+except Exception as exc:
+    print(f"[ERROR] 配置字符串解析失败：{exc}")
+    raise SystemExit(2)
+params.update(decoded)
 with open(path, "w", encoding="utf-8") as handle:
     json.dump(params, handle)
 PY
+  if [ "$?" -ne 0 ]; then
+    echo "[ERROR] 配置字符串解析失败，请重新粘贴或回车跳过。"
+    IMPORT_STRING=$(read_tty "$(msg import_string)")
+    IMPORT_STRING="$(echo "$IMPORT_STRING" | tr -d '\r\n\t ')"
+    continue
+  fi
   echo ""
   echo "[INFO] 已导入配置："
   python3 - <<'PY'
@@ -363,7 +481,8 @@ PY
       ;;
     *) SKIP_PROMPTS="1" ;;
   esac
-fi
+  break
+done
 
 get_param() {
   local key="$1"
