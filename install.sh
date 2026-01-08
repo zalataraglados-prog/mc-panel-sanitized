@@ -80,6 +80,9 @@ msg() {
         instances) echo "可用实例：" ;;
         instance_dir) echo "实例目录（可选，用于查端口）：" ;;
         import_string) echo "粘贴配置串（回车跳过）：" ;;
+        import_mode) echo "导入方式：1) 粘贴配置串 2) 从文件导入（回车跳过）" ;;
+        import_file) echo "配置串文件路径：" ;;
+        import_file_missing) echo "[WARN] 文件不存在或不可读，将改为粘贴输入。" ;;
         version_menu) echo "选择 Minecraft 版本：" ;;
         version_custom) echo "自定义版本号：" ;;
         edition_menu) echo "选择 Minecraft 版本类型：" ;;
@@ -122,6 +125,9 @@ msg() {
         instances) echo "Available instances:" ;;
         instance_dir) echo "Instance dir (optional, for panel port lookup): " ;;
         import_string) echo "Paste claims string (or press Enter to continue): " ;;
+        import_mode) echo "Import mode: 1) Paste string 2) From file (Enter to skip)" ;;
+        import_file) echo "Claims file path: " ;;
+        import_file_missing) echo "[WARN] File not found or not readable; falling back to paste." ;;
         version_menu) echo "Select Minecraft version:" ;;
         version_custom) echo "Custom version: " ;;
         edition_menu) echo "Select Minecraft edition:" ;;
@@ -189,7 +195,27 @@ if [ "$PANEL_MAINT" = "1" ] || [ "$PANEL_MAINT" = "2" ]; then
 fi
 
 echo ""
-IMPORT_STRING=$(read_tty "$(msg import_string)")
+IMPORT_MODE=$(read_tty "$(msg import_mode)")
+IMPORT_MODE="${IMPORT_MODE//$'\r'/}"
+IMPORT_MODE="$(echo "$IMPORT_MODE" | xargs)"
+case "$IMPORT_MODE" in
+  2)
+    IMPORT_FILE=$(read_tty "$(msg import_file)")
+    IMPORT_FILE="${IMPORT_FILE//$'\r'/}"
+    if [ -n "$IMPORT_FILE" ] && [ -f "$IMPORT_FILE" ]; then
+      IMPORT_STRING=$(cat "$IMPORT_FILE")
+    else
+      echo "$(msg import_file_missing)"
+      IMPORT_STRING=$(read_tty "$(msg import_string)")
+    fi
+    ;;
+  1|"")
+    IMPORT_STRING=$(read_tty "$(msg import_string)")
+    ;;
+  *)
+    IMPORT_STRING=$(read_tty "$(msg import_string)")
+    ;;
+esac
 IMPORT_STRING="$(echo "$IMPORT_STRING" | tr -d '\r\n\t ')"
 export IMPORT_STRING
 
