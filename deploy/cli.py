@@ -16,8 +16,11 @@ from deploy.claims_codec import (
     Claims,
     decode_claims,
     decode_compact,
+    decode_minimal,
+    is_minimal_string,
     is_compact_string,
     peek_version,
+    peek_version_min,
 )
 from deploy.executor.executor_planner import build_execution_plan
 from deploy.executor.host_inspector import HostInspector
@@ -151,7 +154,7 @@ def main():
         )
         p.add_argument(
             "--import-format",
-            choices=("auto", "full", "compact"),
+            choices=("auto", "full", "compact", "min"),
             default="auto",
             help="Claims string format (default: auto)",
         )
@@ -252,7 +255,12 @@ def main():
                 raise SystemExit("--import-string cannot be combined with --set")
             format_choice = args.import_format
             if format_choice == "auto":
-                format_choice = "compact" if is_compact_string(import_string) else "full"
+                if is_compact_string(import_string):
+                    format_choice = "compact"
+                elif is_minimal_string(import_string):
+                    format_choice = "min"
+                else:
+                    format_choice = "full"
 
             if format_choice == "compact":
                 rules_bundle = load_rules_bundle(
@@ -261,6 +269,13 @@ def main():
                     rules_ref=args.rules_ref,
                 )
                 params = decode_compact(import_string, rules_bundle.get("catalog"))
+            elif format_choice == "min":
+                rules_bundle = load_rules_bundle(
+                    peek_version_min(import_string),
+                    base_url=args.rules_base_url,
+                    rules_ref=args.rules_ref,
+                )
+                params = decode_minimal(import_string, rules_bundle.get("catalog"))
             else:
                 rules_bundle = load_rules_bundle(
                     args.version,

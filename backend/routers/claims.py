@@ -7,7 +7,7 @@ from backend.auth import get_current_user, require_roles
 from backend.models import ClaimsExportResponse
 from backend.routers.instances import resolve_instance_dir
 from backend.runtime.rcon_client import RCONClient
-from deploy.claims_codec import encode_claims
+from deploy.claims_codec import encode_claims, encode_compact, encode_minimal
 from deploy.loader import load_rules_bundle
 
 router = APIRouter()
@@ -95,7 +95,11 @@ def _read_gamerules(instance_dir: str, catalog: dict) -> dict:
 
 
 @router.get("/api/claims/export", response_model=ClaimsExportResponse)
-def export_claims(instance_dir: str | None = Query(None), user=Depends(get_current_user)):
+def export_claims(
+    instance_dir: str | None = Query(None),
+    format: str = Query("full", pattern="^(full|compact|min)$"),
+    user=Depends(get_current_user),
+):
     require_roles(user, ["owner", "admin", "mod", "viewer"])
     instance_dir = instance_dir or resolve_instance_dir()
     config = _read_config(instance_dir)
@@ -126,10 +130,16 @@ def export_claims(instance_dir: str | None = Query(None), user=Depends(get_curre
     defaults["stack.type"] = stack_type
     defaults["minecraft.version"] = version
 
-    claims_string = encode_claims(defaults)
+    if format == "compact":
+        claims_string = encode_compact(defaults, catalog, version)
+    elif format == "min":
+        claims_string = encode_minimal(defaults, catalog, version, template="vanilla")
+    else:
+        claims_string = encode_claims(defaults)
     return ClaimsExportResponse(
         claims_string=claims_string,
         params=defaults,
         version=version,
         instance_dir=instance_dir,
+        format=format,
     )

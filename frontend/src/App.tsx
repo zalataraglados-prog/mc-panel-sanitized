@@ -973,8 +973,11 @@ export function App() {
     if (!token) {
       return;
     }
-    const instanceQuery = instanceDir ? `?instance_dir=${encodeURIComponent(instanceDir)}` : "";
-    fetch(`/api/claims/export${instanceQuery}`, { headers: authHeader })
+    const query = new URLSearchParams({ format: "min" });
+    if (instanceDir) {
+      query.set("instance_dir", instanceDir);
+    }
+    fetch(`/api/claims/export?${query.toString()}`, { headers: authHeader })
       .then((res) => res.json())
       .then((data) => {
         setExportClaims(data.claims_string || "");

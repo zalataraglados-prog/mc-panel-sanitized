@@ -120,6 +120,7 @@ class ClaimsExportResponse(BaseModel):
     params: Dict[str, Any]
     version: str
     instance_dir: str
+    format: str = "full"
 
 
 class RconHealthResponse(BaseModel):

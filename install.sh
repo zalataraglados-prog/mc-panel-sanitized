@@ -216,10 +216,42 @@ case "$IMPORT_MODE" in
     IMPORT_STRING=$(read_tty "$(msg import_string)")
     ;;
 esac
-IMPORT_STRING="$(echo "$IMPORT_STRING" | tr -d '\r\n\t ')"
+IMPORT_STRING="$(echo "$IMPORT_STRING" | tr -d '\r\n\t')"
 export IMPORT_STRING
-
 cd "$INSTALL_DIR"
+IMPORT_FORMAT=""
+IMPORT_VERSION=""
+if [ -n "$IMPORT_STRING" ]; then
+  IMPORT_FORMAT=$(python3 - <<'PY'
+import os
+from deploy.claims_codec import is_compact_string, peek_version
+from deploy.claims_codec.minimal import is_minimal_string, peek_version as peek_min
+value = os.environ.get("IMPORT_STRING", "")
+if is_compact_string(value):
+    print("compact")
+elif is_minimal_string(value):
+    print("min")
+else:
+    print("")
+PY
+)
+  IMPORT_VERSION=$(python3 - <<'PY'
+import os
+from deploy.claims_codec import is_compact_string, peek_version
+from deploy.claims_codec.minimal import is_minimal_string, peek_version as peek_min
+value = os.environ.get("IMPORT_STRING", "")
+if is_compact_string(value):
+    print(peek_version(value))
+elif is_minimal_string(value):
+    print(peek_min(value))
+else:
+    print("")
+PY
+  )
+  if [ "$IMPORT_FORMAT" != "min" ]; then
+    IMPORT_STRING="${IMPORT_STRING// /}"
+  fi
+fi
 export MC_PANEL_ROOT="$INSTALL_DIR"
 export MC_PANEL_LOG_DIR="$INSTALL_DIR/logs"
 export MC_PANEL_LOG_BRANCH="logs"
@@ -370,32 +402,36 @@ if [ "${#VERSIONS[@]}" -eq 0 ]; then
   VERSIONS=("1.21.4")
 fi
 
-echo "$(msg version_menu)"
-i=1
-for v in "${VERSIONS[@]}"; do
-  echo "${i}) ${v}"
-  i=$((i + 1))
-done
-echo "${i}) custom"
-VERSION_CHOICE=$(read_tty "Enter [1-${i}]: ")
-VERSION_CHOICE="${VERSION_CHOICE//$'\r'/}"
-VERSION_CHOICE="$(echo "$VERSION_CHOICE" | xargs)"
-if [[ "$VERSION_CHOICE" =~ ^[0-9]+$ ]] && [ "$VERSION_CHOICE" -ge 1 ] && [ "$VERSION_CHOICE" -le "${#VERSIONS[@]}" ]; then
-  VERSION="${VERSIONS[$((VERSION_CHOICE - 1))]}"
-elif [[ "$VERSION_CHOICE" =~ ^[0-9]+$ ]] && [ "$VERSION_CHOICE" -eq "${i}" ]; then
-  VERSION=$(read_tty "$(msg version_custom)")
+if [ -n "$IMPORT_VERSION" ]; then
+  VERSION="$IMPORT_VERSION"
 else
-  VERSION="${VERSIONS[0]}"
-fi
-VERSION="${VERSION//$'\r'/}"
-VERSION="$(echo "$VERSION" | xargs)"
-while [ -n "$VERSION" ] && ! [[ "$VERSION" =~ ^[0-9]+\\.[0-9]+(\\.[0-9]+)?$ ]]; do
-  VERSION=$(read_tty "$(msg version_custom)")
+  echo "$(msg version_menu)"
+  i=1
+  for v in "${VERSIONS[@]}"; do
+    echo "${i}) ${v}"
+    i=$((i + 1))
+  done
+  echo "${i}) custom"
+  VERSION_CHOICE=$(read_tty "Enter [1-${i}]: ")
+  VERSION_CHOICE="${VERSION_CHOICE//$'\r'/}"
+  VERSION_CHOICE="$(echo "$VERSION_CHOICE" | xargs)"
+  if [[ "$VERSION_CHOICE" =~ ^[0-9]+$ ]] && [ "$VERSION_CHOICE" -ge 1 ] && [ "$VERSION_CHOICE" -le "${#VERSIONS[@]}" ]; then
+    VERSION="${VERSIONS[$((VERSION_CHOICE - 1))]}"
+  elif [[ "$VERSION_CHOICE" =~ ^[0-9]+$ ]] && [ "$VERSION_CHOICE" -eq "${i}" ]; then
+    VERSION=$(read_tty "$(msg version_custom)")
+  else
+    VERSION="${VERSIONS[0]}"
+  fi
   VERSION="${VERSION//$'\r'/}"
   VERSION="$(echo "$VERSION" | xargs)"
-done
-if [ -z "$VERSION" ]; then
-  VERSION="${VERSIONS[0]}"
+  while [ -n "$VERSION" ] && ! [[ "$VERSION" =~ ^[0-9]+\\.[0-9]+(\\.[0-9]+)?$ ]]; do
+    VERSION=$(read_tty "$(msg version_custom)")
+    VERSION="${VERSION//$'\r'/}"
+    VERSION="$(echo "$VERSION" | xargs)"
+  done
+  if [ -z "$VERSION" ]; then
+    VERSION="${VERSIONS[0]}"
+  fi
 fi
 export VERSION
 
@@ -459,12 +495,16 @@ while [ -n "$IMPORT_STRING" ]; do
   python3 - <<'PY'
 import json
 import os
-from deploy.claims_codec.decode import decode_claims
+from deploy.claims_codec import decode_auto
+from deploy.loader import load_rules_bundle
 path = os.environ["PARAMS_JSON"]
 with open(path, "r", encoding="utf-8") as handle:
     params = json.load(handle)
 try:
-    decoded = decode_claims(os.environ["IMPORT_STRING"])
+    version = os.environ.get("VERSION")
+    bundle = load_rules_bundle(version) if version else {}
+    catalog = bundle.get("catalog", {})
+    decoded = decode_auto(os.environ["IMPORT_STRING"], catalog)
 except Exception as exc:
     print(f"[ERROR] 配置字符串解析失败：{exc}")
     raise SystemExit(2)
@@ -475,7 +515,23 @@ PY
   if [ "$?" -ne 0 ]; then
     echo "[ERROR] 配置字符串解析失败，请重新粘贴或回车跳过。"
     IMPORT_STRING=$(read_tty "$(msg import_string)")
-    IMPORT_STRING="$(echo "$IMPORT_STRING" | tr -d '\r\n\t ')"
+    IMPORT_STRING="$(echo "$IMPORT_STRING" | tr -d '\r\n\t')"
+    IMPORT_FORMAT=$(python3 - <<'PY'
+import os
+from deploy.claims_codec import is_compact_string, peek_version
+from deploy.claims_codec.minimal import is_minimal_string, peek_version as peek_min
+value = os.environ.get("IMPORT_STRING", "")
+if is_compact_string(value):
+    print("compact")
+elif is_minimal_string(value):
+    print("min")
+else:
+    print("")
+PY
+)
+    if [ "$IMPORT_FORMAT" != "min" ]; then
+      IMPORT_STRING="${IMPORT_STRING// /}"
+    fi
     continue
   fi
   echo ""
