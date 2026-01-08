@@ -290,6 +290,7 @@ PY
   fi
 fi
 export MC_PANEL_ROOT="$INSTALL_DIR"
+export MC_PANEL_LANG="$LANGUAGE"
 export MC_PANEL_LOG_DIR="$INSTALL_DIR/logs"
 export MC_PANEL_LOG_BRANCH="logs"
 export MC_PANEL_LOG_WORKTREE="$INSTALL_DIR/.logs-worktree"

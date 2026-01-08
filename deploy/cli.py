@@ -10,6 +10,7 @@ Commands:
 import argparse
 import json
 import os
+import re
 import sys
 
 from deploy.claims_codec import (
@@ -50,12 +51,65 @@ def load_claims_from_args(args) -> Claims:
     )
 
 
+def _translate_message(message: str, lang: str) -> str:
+    if lang != "zh" or not isinstance(message, str):
+        return message
+
+    replacements = {
+        "Multiple performance parameters adjusted; review combined impact.": "多个性能相关参数被修改，请评估叠加影响。",
+        "Configured memory may be insufficient for expected players.": "当前内存配置可能不足以支撑预期玩家数。",
+        "Risky value deviates from default.": "风险值偏离默认。",
+        "High performance impact; consider default value.": "性能影响较高，建议使用默认值。",
+        "Increase memory or reduce players/view distance.": "建议增加内存或降低玩家数/视距。",
+    }
+    if message in replacements:
+        return replacements[message]
+
+    patterns = [
+        (r"^Medium-risk parameter '(.+)' deviates from default\.$", "中风险参数 '{param}' 偏离默认值。"),
+        (r"^High-risk parameter '(.+)' deviates from default\.$", "高风险参数 '{param}' 偏离默认值。"),
+        (r"^Novice-sensitive parameter '(.+)' was explicitly set\.$", "新手敏感参数 '{param}' 被显式设置。"),
+        (r"^Player-scope parameter '(.+)' should be set via gamerule\.$", "玩家范围参数 '{param}' 应通过 gamerule 设置。"),
+        (r"^World-scope parameter '(.+)' is not applicable to Bedrock Edition\.$", "世界范围参数 '{param}' 不适用于 Bedrock。"),
+        (r"^Invalid boolean value for '(.+)'\.$", "参数 '{param}' 的布尔值无效。"),
+        (r"^Invalid integer value for '(.+)'\.$", "参数 '{param}' 的整数值无效。"),
+        (r"^Value for '(.+)' below recommended minimum \\((.+)\\)\\.$", "参数 '{param}' 低于建议最小值（{extra}）。"),
+        (r"^Value for '(.+)' above recommended maximum \\((.+)\\)\\.$", "参数 '{param}' 高于建议最大值（{extra}）。"),
+        (r"^Value for '(.+)' does not align with step (.+)\\.$", "参数 '{param}' 未符合步进值 {extra}。"),
+    ]
+    for pattern, template in patterns:
+        match = re.match(pattern, message)
+        if match:
+            param = match.group(1)
+            extra = match.group(2) if match.lastindex and match.lastindex >= 2 else ""
+            return template.format(param=param, extra=extra)
+    return message
+
+
+def _label(lang: str, text: str) -> str:
+    if lang != "zh":
+        return text
+    mapping = {
+        "=== Apply Plan Review ===": "=== 计划审查 ===",
+        "Target": "目标",
+        "Level": "等级",
+        "Source: imported claims": "来源：导入配置",
+        "Warnings:": "警告：",
+        "Blocked:": "阻拦：",
+        "Recommendations:": "建议：",
+        "=== Execution Plan (dry-run) ===": "=== 执行计划（dry-run） ===",
+        "parameter": "参数",
+    }
+    return mapping.get(text, text)
+
+
 def print_review(apply_plan, claims: Claims | None = None):
-    print("\n=== Apply Plan Review ===")
-    print(f"Target: {apply_plan.target}")
-    print(f"Level:  {apply_plan.summary.level}")
+    lang = os.environ.get("MC_PANEL_LANG", "en")
+    print(f"\n{_label(lang, '=== Apply Plan Review ===')}")
+    print(f"{_label(lang, 'Target')}: {apply_plan.target}")
+    print(f"{_label(lang, 'Level')}:  {apply_plan.summary.level}")
     if claims and getattr(claims, "imported_from_string", False):
-        print("Source: imported claims")
+        print(_label(lang, "Source: imported claims"))
     print()
 
     for result in apply_plan.capability_results:
@@ -63,22 +117,23 @@ def print_review(apply_plan, claims: Claims | None = None):
         print(f"- {result.capability_id:30} {status}")
 
     if apply_plan.warnings:
-        print("\nWarnings:")
+        print(f"\n{_label(lang, 'Warnings:')}")
         for w in apply_plan.warnings:
-            print(f"  [WARN] {w.message}")
+            print(f"  [WARN] {_translate_message(w.message, lang)}")
 
     if apply_plan.blocks:
-        print("\nBlocked:")
+        print(f"\n{_label(lang, 'Blocked:')}")
         for b in apply_plan.blocks:
-            print(f"  [BLOCK] {b.message}")
+            print(f"  [BLOCK] {_translate_message(b.message, lang)}")
 
     if getattr(apply_plan, "recommendations", None):
-        print("\nRecommendations:")
+        print(f"\n{_label(lang, 'Recommendations:')}")
         for r in apply_plan.recommendations:
             param = getattr(r, "param", None)
             reason = getattr(r, "reason", None)
             suggested = getattr(r, "suggested", None)
-            label = param or "parameter"
+            label = param or _label(lang, "parameter")
+            reason = _translate_message(reason, lang) if isinstance(reason, str) else reason
             if suggested is not None:
                 print(f"  [REC] {label} -> {suggested}: {reason}")
             else:
@@ -89,7 +144,8 @@ def print_review(apply_plan, claims: Claims | None = None):
 
 def print_execution_plan(plan) -> None:
     payload = plan.to_dict()
-    print("=== Execution Plan (dry-run) ===")
+    lang = os.environ.get("MC_PANEL_LANG", "en")
+    print(_label(lang, "=== Execution Plan (dry-run) ==="))
     print(json.dumps(payload, indent=2, ensure_ascii=True))
     print()
 
