@@ -258,7 +258,9 @@ export IMPORT_STRING
 cd "$INSTALL_DIR"
 IMPORT_FORMAT=""
 IMPORT_VERSION=""
+IMPORT_PRESENT=""
 if [ -n "$IMPORT_STRING" ]; then
+  IMPORT_PRESENT="1"
   IMPORT_FORMAT=$(python3 - <<'PY'
 import os
 from deploy.claims_codec import is_compact_string, peek_version
@@ -473,36 +475,41 @@ else
 fi
 export VERSION
 
-echo ""
-echo "$(msg edition_menu)"
-echo "$(msg edition_java)"
-echo "$(msg edition_bedrock)"
-EDITION_CHOICE=$(read_tty "$(choice_prompt "1-2")")
-
-case "$EDITION_CHOICE" in
-  2) EDITION="bedrock" ;;
-  *) EDITION="java" ;;
-esac
-
-if [ "$EDITION" = "bedrock" ]; then
+if [ -n "$IMPORT_PRESENT" ]; then
+  EDITION="java"
+  PROFILE="normal"
+else
   echo ""
-  echo "[INFO] $(msg bedrock_notice)"
-  echo "$(msg bedrock_detail)"
-  exit 0
+  echo "$(msg edition_menu)"
+  echo "$(msg edition_java)"
+  echo "$(msg edition_bedrock)"
+  EDITION_CHOICE=$(read_tty "$(choice_prompt "1-2")")
+
+  case "$EDITION_CHOICE" in
+    2) EDITION="bedrock" ;;
+    *) EDITION="java" ;;
+  esac
+
+  if [ "$EDITION" = "bedrock" ]; then
+    echo ""
+    echo "[INFO] $(msg bedrock_notice)"
+    echo "$(msg bedrock_detail)"
+    exit 0
+  fi
+
+  echo ""
+  echo "$(msg profile_menu)"
+  echo "$(msg profile_beginner)"
+  echo "$(msg profile_normal)"
+  echo "$(msg profile_advanced)"
+  PROFILE_CHOICE=$(read_tty "$(choice_prompt "1-3")")
+
+  case "$PROFILE_CHOICE" in
+    1) PROFILE="beginner" ;;
+    3) PROFILE="advanced" ;;
+    *) PROFILE="normal" ;;
+  esac
 fi
-
-echo ""
-echo "$(msg profile_menu)"
-echo "$(msg profile_beginner)"
-echo "$(msg profile_normal)"
-echo "$(msg profile_advanced)"
-PROFILE_CHOICE=$(read_tty "$(choice_prompt "1-3")")
-
-case "$PROFILE_CHOICE" in
-  1) PROFILE="beginner" ;;
-  3) PROFILE="advanced" ;;
-  *) PROFILE="normal" ;;
-esac
 
 PARAMS_JSON="/tmp/claims_params.json"
 export PARAMS_JSON
@@ -650,9 +657,9 @@ PY
 }
 
 PANEL_ENABLED=$(PARAM_KEY="panel.enable" get_param "panel.enable")
-if [ -z "$PANEL_ENABLED" ]; then
+if [ -z "$PANEL_ENABLED" ] && [ -z "$IMPORT_PRESENT" ]; then
   echo ""
-PANEL_CHOICE=$(read_tty "$(msg panel_install_prompt)")
+  PANEL_CHOICE=$(read_tty "$(msg panel_install_prompt)")
   case "$PANEL_CHOICE" in
     y|Y) PARAM_KEY="panel.enable" PARAM_VALUE="true" set_param "panel.enable" "true" ;;
     *) : ;;
@@ -661,7 +668,7 @@ fi
 
 PANEL_PORT_EXISTS=$(PARAM_KEY="panel.port" get_param "panel.port")
 PANEL_ENABLED=$(PARAM_KEY="panel.enable" get_param "panel.enable")
-if [ -z "$PANEL_PORT_EXISTS" ] && [ "$PANEL_ENABLED" = "true" ]; then
+if [ -z "$PANEL_PORT_EXISTS" ] && [ "$PANEL_ENABLED" = "true" ] && [ -z "$IMPORT_PRESENT" ]; then
   PANEL_PORT=$(read_tty "$(msg panel_port_prompt)")
   if [ -z "$PANEL_PORT" ]; then
     PANEL_PORT="15000"
@@ -669,7 +676,7 @@ if [ -z "$PANEL_PORT_EXISTS" ] && [ "$PANEL_ENABLED" = "true" ]; then
   PARAM_KEY="panel.port" PARAM_VALUE="$PANEL_PORT" set_param "panel.port" "$PANEL_PORT"
 fi
 
-if [ "$PANEL_ENABLED" = "true" ]; then
+if [ "$PANEL_ENABLED" = "true" ] && [ -z "$IMPORT_PRESENT" ]; then
   if [ ! -f "$INSTALL_DIR/frontend/dist/index.html" ]; then
     echo ""
     echo "$(msg frontend_missing)"
@@ -687,7 +694,7 @@ if [ "$PANEL_ENABLED" = "true" ]; then
 fi
 
 MAP_PLUGIN_EXISTS=$(PARAM_KEY="map.plugin" get_param "map.plugin")
-if [ -z "$MAP_PLUGIN_EXISTS" ]; then
+if [ -z "$MAP_PLUGIN_EXISTS" ] && [ -z "$IMPORT_PRESENT" ]; then
   echo ""
   echo "$(msg map_menu)"
   echo "$(msg map_none)"
@@ -729,7 +736,7 @@ if [ -z "$MAP_PLUGIN_EXISTS" ]; then
 fi
 
 MAP_PORT_EXISTS=$(PARAM_KEY="map.plugin_port" get_param "map.plugin_port")
-if [ -z "$MAP_PORT_EXISTS" ]; then
+if [ -z "$MAP_PORT_EXISTS" ] && [ -z "$IMPORT_PRESENT" ]; then
   if [ "$MAP_PLUGIN" = "dynmap" ] || [ "$MAP_PLUGIN_EXISTS" = "dynmap" ]; then
     DEFAULT_MAP_PORT="8123"
   elif [ "$MAP_PLUGIN" = "bluemap" ] || [ "$MAP_PLUGIN_EXISTS" = "bluemap" ]; then
@@ -747,7 +754,7 @@ if [ -z "$MAP_PORT_EXISTS" ]; then
 fi
 
 MAP_RENDER_EXISTS=$(PARAM_KEY="map.render_interval" get_param "map.render_interval")
-if [ -z "$MAP_RENDER_EXISTS" ]; then
+if [ -z "$MAP_RENDER_EXISTS" ] && [ -z "$IMPORT_PRESENT" ]; then
   if [ "$MAP_PLUGIN" = "dynmap" ] || [ "$MAP_PLUGIN_EXISTS" = "dynmap" ] || [ "$MAP_PLUGIN" = "bluemap" ] || [ "$MAP_PLUGIN_EXISTS" = "bluemap" ]; then
     MAP_RENDER=$(read_tty "$(msg map_render_prompt)")
     if [ -z "$MAP_RENDER" ]; then
@@ -759,7 +766,7 @@ fi
 
 INVENTORY_PLUGIN_EXISTS=$(PARAM_KEY="inventory.plugin" get_param "inventory.plugin")
 INVENTORY_PLUGIN=""
-if [ -z "$INVENTORY_PLUGIN_EXISTS" ]; then
+if [ -z "$INVENTORY_PLUGIN_EXISTS" ] && [ -z "$IMPORT_PRESENT" ]; then
   echo ""
   echo "$(msg inventory_menu)"
   echo "1) none"
@@ -799,7 +806,7 @@ else
 fi
 
 INVENTORY_URL_EXISTS=$(PARAM_KEY="inventory.plugin_url" get_param "inventory.plugin_url")
-if [ -n "$INVENTORY_PLUGIN" ] && [ -z "$INVENTORY_URL_EXISTS" ]; then
+if [ -n "$INVENTORY_PLUGIN" ] && [ -z "$INVENTORY_URL_EXISTS" ] && [ -z "$IMPORT_PRESENT" ]; then
   DEFAULT_INV_URL=""
   if [ "$INVENTORY_PLUGIN" = "invsee" ]; then
     DEFAULT_INV_URL="https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/deps/plugins/invsee/InvSeePlusPlus.jar"
@@ -822,7 +829,7 @@ if [ -n "$INVENTORY_PLUGIN" ] && [ -z "$INVENTORY_URL_EXISTS" ]; then
 fi
 
 MAP_FILE_EXISTS=$(PARAM_KEY="map.file" get_param "map.file")
-if [ -z "$MAP_FILE_EXISTS" ]; then
+if [ -z "$MAP_FILE_EXISTS" ] && [ -z "$IMPORT_PRESENT" ]; then
   MAP_FILE=$(read_tty "Optional map file (world zip/dir path): ")
   if [ -n "$MAP_FILE" ]; then
     PARAM_KEY="map.file" PARAM_VALUE="$MAP_FILE" set_param "map.file" "$MAP_FILE"
@@ -840,7 +847,11 @@ if [ -z "$MAP_FILE_EXISTS" ]; then
 fi
 
 echo ""
-OVERRIDE_JAVA=$(read_tty "$(msg java_override)")
+if [ -z "$IMPORT_PRESENT" ]; then
+  OVERRIDE_JAVA=$(read_tty "$(msg java_override)")
+else
+  OVERRIDE_JAVA="n"
+fi
 if [ "$OVERRIDE_JAVA" = "y" ] || [ "$OVERRIDE_JAVA" = "Y" ]; then
   echo ""
   echo "$(msg java_select)"
@@ -861,7 +872,7 @@ if [ "$OVERRIDE_JAVA" = "y" ] || [ "$OVERRIDE_JAVA" = "Y" ]; then
 fi
 
 MEMORY_EXISTS=$(PARAM_KEY="docker.env.MEMORY" get_param "docker.env.MEMORY")
-if [ -z "$MEMORY_EXISTS" ]; then
+if [ -z "$MEMORY_EXISTS" ] && [ -z "$IMPORT_PRESENT" ]; then
   MEMORY=$(read_tty "$(msg memory_prompt)")
   if [ -n "$MEMORY" ]; then
     PARAM_KEY="docker.env.MEMORY" PARAM_VALUE="$MEMORY" set_param "docker.env.MEMORY" "$MEMORY"
@@ -869,7 +880,7 @@ if [ -z "$MEMORY_EXISTS" ]; then
 fi
 
 EXPECTED_PLAYERS=$(PARAM_KEY="deploy.expected_players" get_param "deploy.expected_players")
-if [ -z "$EXPECTED_PLAYERS" ]; then
+if [ -z "$EXPECTED_PLAYERS" ] && [ -z "$IMPORT_PRESENT" ]; then
   EXPECTED_PLAYERS=$(read_tty "$(msg expected_players_prompt)")
   if [ -n "$EXPECTED_PLAYERS" ]; then
     PARAM_KEY="deploy.expected_players" PARAM_VALUE="$EXPECTED_PLAYERS" set_param "deploy.expected_players" "$EXPECTED_PLAYERS"
