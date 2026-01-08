@@ -1,112 +1,154 @@
-# MC Panel (demon1.1)
+﻿# MC Panel (demon1.1)
 
-## 发布声明 / Release Notice
+## Release Notice / 发布声明
 
-- 重要：前两个正式版（v1.0.0 / v1.0.1）存在严重缺陷，请勿用于生产环境。
 - Important: The first two releases (v1.0.0 / v1.0.1) contain critical defects and must not be used in production.
+- 重要：前两个正式版（v1.0.0 / v1.0.1）存在严重缺陷，请勿用于生产环境。
 
-## Release
+## Release / 当前发布
 
 - Current release: `v1.0.1`
 - Tag: `https://github.com/zalataraglados-prog/mc-panel-sanitized/releases/tag/v1.0.1`
 - Notes: see `RELEASE_DRAFT_v1.0.1.md`
 
-This project is a configuration decision engine for Minecraft deployments with an optional runtime panel.
+- 当前版本：`v1.0.1`
+- 标签：`https://github.com/zalataraglados-prog/mc-panel-sanitized/releases/tag/v1.0.1`
+- 说明：见 `RELEASE_DRAFT_v1.0.1.md`
 
-## Quick start (plan + dry-run)
+This project is a configuration decision engine for Minecraft deployments with an optional runtime panel.
+本项目是一个 Minecraft 部署前的配置裁决引擎，运行期面板为可选组件。
+
+## Quick start (plan + dry-run) / 快速开始（仅 plan + dry-run）
 
 ```
 curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/v1.0.1/install.sh | sudo bash
 ```
 
-## Optional Web Panel
+## Optional Web Panel / 可选 Web 面板
 
 The panel is optional. It can be installed during deploy or added later without affecting the server.
+面板是可选项，可在部署时安装，也可部署后补装，且不影响服务器本体。
 
-### Panel prerequisites
+### Panel prerequisites / 面板依赖
 
 - Python packages: `fastapi`, `uvicorn`
 - Frontend build output: `frontend/dist` (build with Node.js + npm)
 
-### Install panel during deploy
+- Python 依赖：`fastapi`, `uvicorn`
+- 前端构建产物：`frontend/dist`（使用 Node.js + npm 构建）
+
+### Install panel during deploy / 部署时安装面板
 
 When running `install.sh`, choose:
 `Install Web Panel? [y/N]`
 
-### Panel maintenance mode (existing instance)
+执行 `install.sh` 时选择：
+`Install Web Panel? [y/N]`
+
+### Panel maintenance mode (existing instance) / 面板维护模式（已有实例）
 
 `install.sh` offers a maintenance menu before deploy:
 
 - Install panel for an existing instance
 - Uninstall panel from an existing instance
 
-The panel is a single service (`mc-panel.service`) that can manage multiple instances.
+`install.sh` 在部署前提供维护菜单：
 
-### Add panel to an existing instance
+- 为已有实例安装面板
+- 卸载已有实例面板
+
+The panel is a single service (`mc-panel.service`) that can manage multiple instances.
+面板为单一服务（`mc-panel.service`），可管理多个实例。
+
+### Add panel to an existing instance / 给已有实例补装面板
 
 ```
 sudo python3 -m deploy.cli panel install --instance-dir /opt/mc-instances/<instance-name>
 ```
 
-Options:
+Options / 可选参数：
 
-- `--panel-port 15000` to override port
-- `--no-start` to avoid starting the service immediately
-- `--no-build` to skip frontend build
-- `--panel-root /opt/mc-panel-sanitized` to point to the repo root
+- `--panel-port 15000` to override port / 修改端口
+- `--no-start` to avoid starting the service immediately / 不立即启动服务
+- `--no-build` to skip frontend build / 跳过前端构建
+- `--panel-root /opt/mc-panel-sanitized` to point to the repo root / 指定仓库根目录
 
-## Map plugins
-
-During deploy, you can optionally enable Dynmap or BlueMap. The deployer can configure:
-
-- plugin port (`map.plugin_port`)
-- render interval (`map.render_interval`)
-- optional world file copy (`map.file`, `map.target`, `map.overwrite`)
-
-### BlueMap (Paper required)
-
-If `map.plugin=bluemap` is selected, the deployer forces `docker.env.TYPE=PAPER` to ensure plugin loading.
-BlueMap requires accepting resource download in `core.conf` and will not render until it has generated tiles.
-The deployer sets `accept-download: true` by default.
-
-Map tiles are served by the panel API when BlueMap is detected.
-
-## Inventory plugins
-
-During deploy, you can optionally install an inventory plugin for richer inventory editing.
-Supported choices: InvSee++ or OpenInv. Defaults point to the `vanilla_catalog` repository, but you can override the URL.
-
-### Offline inventory editing
-
-If OpenInv is installed and the player has joined at least once (so `usercache.json` exists),
-the panel can read/write the offline inventory directly from `world/playerdata/*.dat`.
-Online players are still handled via RCON.
-
-## Modpack compatibility
-
-If you provide `modpack.loader` (or `modpack.type`/`modpack.stack`) in claims params,
-the planner validates it against the stack compatibility matrix. See `docs/compatibility.md`.
-You can also provide `modpack.name`/`modpack.slug` to infer loader from the Modrinth top-400 index.
-
-## Plugin download logging
-
-Download failures are appended to `logs/plugin_download.log`. If log push is enabled,
-the deployer will attempt to push updates to the `logs` branch in the repo.
-
-## CLI event logging (optional)
-
-Set `MC_PANEL_CLI_LOG=1` to append review + execution plan events to `logs/cli_events.jsonl`.
-You can override the log directory with `MC_PANEL_LOG_DIR`.
-
-### Uninstall panel from an instance
+### Uninstall panel from an instance / 从实例卸载面板
 
 ```
 sudo python3 -m deploy.cli panel uninstall --instance-dir /opt/mc-instances/<instance-name>
 ```
 
-## Rules data source
+## Map plugins / 地图插件
+
+During deploy, you can optionally enable Dynmap or BlueMap. The deployer can configure:
+部署时可选 Dynmap 或 BlueMap，部署器可配置：
+
+- plugin port (`map.plugin_port`) / 插件端口
+- render interval (`map.render_interval`) / 渲染间隔
+- optional world file copy (`map.file`, `map.target`, `map.overwrite`) / 可选世界文件导入
+
+### BlueMap (Paper required) / BlueMap（需要 Paper）
+
+If `map.plugin=bluemap` is selected, the deployer forces `docker.env.TYPE=PAPER` to ensure plugin loading.
+BlueMap requires accepting resource download in `core.conf` and will not render until it has generated tiles.
+The deployer sets `accept-download: true` by default.
+
+如果选择 `map.plugin=bluemap`，部署器会强制 `docker.env.TYPE=PAPER` 以确保插件可加载。
+BlueMap 需要在 `core.conf` 中允许资源下载，生成瓦片后才会渲染。
+部署器默认设置 `accept-download: true`。
+
+Map tiles are served by the panel API when BlueMap is detected.
+检测到 BlueMap 后，面板 API 会提供瓦片服务。
+
+## Inventory plugins / 背包插件
+
+During deploy, you can optionally install an inventory plugin for richer inventory editing.
+Supported choices: InvSee++ or OpenInv. Defaults point to the `vanilla_catalog` repository, but you can override the URL.
+
+部署时可选安装背包插件用于更丰富的背包编辑。
+支持：InvSee++ 或 OpenInv。默认下载源指向 `vanilla_catalog` 仓库，也可覆盖 URL。
+
+### Offline inventory editing / 离线背包编辑
+
+If OpenInv is installed and the player has joined at least once (so `usercache.json` exists),
+the panel can read/write the offline inventory directly from `world/playerdata/*.dat`.
+Online players are still handled via RCON.
+
+若安装 OpenInv 且玩家至少进入过一次（存在 `usercache.json`），
+面板可直接读取/写入 `world/playerdata/*.dat`。
+在线玩家仍通过 RCON 处理。
+
+## Modpack compatibility / 整合包兼容
+
+If you provide `modpack.loader` (or `modpack.type`/`modpack.stack`) in claims params,
+the planner validates it against the stack compatibility matrix. See `docs/compatibility.md`.
+You can also provide `modpack.name`/`modpack.slug` to infer loader from the Modrinth top-400 index.
+
+如果在参数中提供 `modpack.loader`（或 `modpack.type`/`modpack.stack`），
+Planner 会按兼容矩阵校验，详见 `docs/compatibility.md`。
+也可提供 `modpack.name`/`modpack.slug` 从 Modrinth Top-400 推断 loader。
+
+## Plugin download logging / 插件下载日志
+
+Download failures are appended to `logs/plugin_download.log`. If log push is enabled,
+the deployer will attempt to push updates to the `logs` branch in the repo.
+
+插件下载失败会记录到 `logs/plugin_download.log`。
+若启用日志推送，部署器会尝试将更新推送到仓库 `logs` 分支。
+
+## CLI event logging (optional) / CLI 事件日志（可选）
+
+Set `MC_PANEL_CLI_LOG=1` to append review + execution plan events to `logs/cli_events.jsonl`.
+You can override the log directory with `MC_PANEL_LOG_DIR`.
+
+设置 `MC_PANEL_CLI_LOG=1` 可将 review 与执行计划记录到 `logs/cli_events.jsonl`。
+可用 `MC_PANEL_LOG_DIR` 覆盖日志目录。
+
+## Rules data source / 规则数据来源
 
 Catalog/Taxonomy are stored in the external rules repository.
+Catalog/Taxonomy 存放在外部规则仓库。
 
 - https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/catalog/vanilla_1.21.4.json
 - https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/taxonomy/vanilla_1.21.4.json

@@ -1,11 +1,14 @@
-# Web Panel Backend
+﻿# Web Panel Backend / 面板后端
 
-## Prerequisites
+## Prerequisites / 依赖
 
 - Python packages: `fastapi`, `uvicorn`
 - The panel service expects `MC_PANEL_BASE_DIR` and `MC_PANEL_STATIC_DIR` set by systemd.
 
-## Architecture
+- Python 依赖：`fastapi`, `uvicorn`
+- 面板服务期望 systemd 设置 `MC_PANEL_BASE_DIR` 和 `MC_PANEL_STATIC_DIR`。
+
+## Architecture / 结构
 
 ```
 backend/
@@ -34,35 +37,37 @@ backend/
     log_streamer.py
 ```
 
-## APIs
+## APIs / 接口
 
 | Endpoint | Description |
 |----------|-------------|
-| `POST /api/auth/login` | exchange username/password for bearer token |
-| `GET /api/status?instance_dir=...` | read overall metrics (TPS/MSPT/CPU/memory/disk/players) |
-| `GET /api/summary?instance_dir=...` | aggregated snapshot of status + players + map status |
-| `GET /api/metrics?window=60&instance_dir=...` | return historic TPS points over window seconds |
-| `GET /api/instances` | list MC instances under `/opt/mc-instances` |
-| `GET /api/map/status?instance_dir=...` | report map tile availability and Y-range |
-| `GET /api/map/tile?dimension=...&x=...&z=...&zoom=...&y=...` | fetch a map tile or placeholder |
-| `GET /api/map/config?instance_dir=...` | read map plugin config files (dynmap/bluemap) |
-| `PUT /api/map/config` | update map plugin config files |
-| `POST /api/map/reload?instance_dir=...` | reload map plugin via RCON |
-| `GET /api/players` | return player list (avatar, coord, session) |
-| `GET /api/players/inventory?name=...` | inventory preview (RCON-based; detects plugins if present) |
-| `POST /api/players/inventory` | inventory update (RCON-based; owner/admin only) |
-| `POST /api/command` | enqueue console or player command (owner/admin/mod) |
-| `POST /api/control` | start/stop/restart server (owner/admin) |
-| `POST /api/rcon` | send custom RCON command (owner/admin) |
-| `GET /api/rcon/health?instance_dir=...` | check RCON availability and error message |
-| `GET /api/rules?instance_dir=...` | read server.properties values |
-| `GET /api/claims/export?instance_dir=...` | export claims string with defaults + current server.properties |
-| `GET /api/command-templates` | list command templates |
-| `POST /api/command-templates` | add new template |
-| `WS /api/logs/ws?token=...&instance_dir=...` | stream tail of server logs with rate limit |
+| `POST /api/auth/login` | exchange username/password for bearer token / 用户登录换取 token |
+| `GET /api/status?instance_dir=...` | read overall metrics / 综合指标 |
+| `GET /api/summary?instance_dir=...` | aggregated snapshot / 聚合快照 |
+| `GET /api/metrics?window=60&instance_dir=...` | historic TPS points / TPS 历史点 |
+| `GET /api/instances` | list instances / 实例列表 |
+| `GET /api/map/status?instance_dir=...` | map availability / 地图可用性 |
+| `GET /api/map/tile?dimension=...&x=...&z=...&zoom=...&y=...` | fetch map tile / 读取地图瓦片 |
+| `GET /api/map/config?instance_dir=...` | read map config / 读取地图配置 |
+| `PUT /api/map/config` | update map config / 写入地图配置 |
+| `POST /api/map/reload?instance_dir=...` | reload map plugin / 重载地图插件 |
+| `GET /api/players` | player list / 玩家列表 |
+| `GET /api/players/inventory?name=...` | inventory preview / 背包预览 |
+| `POST /api/players/inventory` | inventory update / 背包写入 |
+| `POST /api/command` | send command / 发送指令 |
+| `POST /api/control` | start/stop/restart server / 启停重启 |
+| `POST /api/rcon` | send RCON / 发送 RCON |
+| `GET /api/rcon/health?instance_dir=...` | RCON health / RCON 状态 |
+| `GET /api/rules?instance_dir=...` | read server.properties / 读取 server.properties |
+| `GET /api/claims/export?instance_dir=...` | export claims / 导出 claims |
+| `GET /api/command-templates` | list templates / 模板列表 |
+| `POST /api/command-templates` | add template / 新建模板 |
+| `WS /api/logs/ws?token=...&instance_dir=...` | stream logs / 日志流 |
 
 All mutating endpoints call `backend.logging.log_action` and verify roles using bearer tokens (`owner`, `admin`, `mod`, `viewer`).
+所有写操作都会记录日志，并校验角色权限（`owner`, `admin`, `mod`, `viewer`）。
 
-## Runtime
+## Runtime / 运行时
 
 The `runtime/` helpers wrap existing server-side logic. They currently stub metrics/log streaming and RCON; in later phases they can connect to actual Minecraft data sources.
+`runtime/` 辅助模块封装服务器侧逻辑；当前为 stub，后续阶段可接入真实数据源。
