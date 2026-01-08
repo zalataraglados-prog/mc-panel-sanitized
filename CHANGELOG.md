@@ -8,6 +8,7 @@
 - Claims export API (`/api/claims/export`) and UI button to export the full defaults + overrides as a claims string.
 - Gamerule export via RCON during claims export (fallback to defaults when RCON fails).
 - Recommendation sampling tool for planner validation (`deploy/tools/recommendation_sampling.py`).
+- Player OP level selector (1-4) in the player card UI.
 
 ### Changed
 - RCON connection now resolves host port from instance `config.json` or `docker-compose.yml` before falling back to `server.properties`.
