@@ -40,6 +40,7 @@ const translations = {
     clear: "Clear",
     session: "Session",
     deop: "DeOP",
+    opLevel: "OP Level",
     op: "OP",
     kick: "Kick",
     teleport: "Teleport",
@@ -147,6 +148,7 @@ const translations = {
     clear: "\u6e05\u7a7a",
     session: "\u5728\u7ebf\u65f6\u957f",
     deop: "\u53d6\u6d88OP",
+    opLevel: "OP \u7b49\u7ea7",
     op: "\u6388\u4e88OP",
     kick: "\u8e22\u51fa",
     teleport: "\u4f20\u9001",
@@ -379,6 +381,7 @@ export function App() {
   const [command, setCommand] = useState("");
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [opLevels, setOpLevels] = useState<Record<string, string>>({});
   const [exportOpen, setExportOpen] = useState(false);
   const [exportClaims, setExportClaims] = useState("");
   const [exportParams, setExportParams] = useState<Record<string, unknown> | null>(null);
@@ -845,6 +848,10 @@ export function App() {
       .catch(() => {});
   };
 
+  const updateOpLevel = (uuid: string, value: string) => {
+    setOpLevels((prev) => ({ ...prev, [uuid]: value }));
+  };
+
   const openTeleport = (player: Player) => {
     setTeleportTarget(player);
     setTeleportPos({
@@ -1190,7 +1197,24 @@ export function App() {
                   {t.session}: {Math.floor((p as any).session_seconds || 0)}s
                 </div>
                 <div className="player-actions">
-                  <button className="btn" disabled={!canManagePlayers} onClick={() => sendPlayerCommand(`op ${p.name}`)}>
+                  <label className="op-level">
+                    <span>{t.opLevel}</span>
+                    <select
+                      value={opLevels[p.uuid] || "4"}
+                      onChange={(event) => updateOpLevel(p.uuid, event.target.value)}
+                      disabled={!canManagePlayers}
+                    >
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                    </select>
+                  </label>
+                  <button
+                    className="btn"
+                    disabled={!canManagePlayers}
+                    onClick={() => sendPlayerCommand(`op ${p.name} ${opLevels[p.uuid] || "4"}`)}
+                  >
                     {t.op}
                   </button>
                   <button
