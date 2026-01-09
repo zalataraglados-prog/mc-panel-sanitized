@@ -477,7 +477,7 @@ export VERSION
 
 if [ -n "$IMPORT_PRESENT" ]; then
   EDITION="java"
-  PROFILE="normal"
+  PROFILE="advanced"
   SKIP_PROFILE="1"
 else
   echo ""
