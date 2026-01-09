@@ -330,6 +330,108 @@ def _parse_int(value) -> int | None:
     return None
 
 
+def _parse_memory_gb(value) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    if not isinstance(value, str):
+        return None
+    raw = value.strip().upper()
+    if raw.endswith("GB"):
+        raw = raw[:-2]
+    if raw.endswith("G"):
+        try:
+            return float(raw[:-1])
+        except ValueError:
+            return None
+    if raw.endswith("MB"):
+        raw = raw[:-2]
+    if raw.endswith("M"):
+        try:
+            return float(raw[:-1]) / 1024.0
+        except ValueError:
+            return None
+    return None
+
+
+def _performance_advice(params: dict) -> tuple[List[PlanMessage], List[PlanRecommendation]]:
+    warnings: List[PlanMessage] = []
+    recommendations: List[PlanRecommendation] = []
+
+    memory_gb = _parse_memory_gb(params.get("docker.env.MEMORY"))
+    expected_players = _parse_int(params.get("deploy.expected_players"))
+    max_players = _parse_int(params.get("max-players") or params.get("server.properties.max-players"))
+    view_distance = _parse_int(params.get("view-distance") or params.get("minecraft.view_distance")) or 10
+    simulation_distance = _parse_int(params.get("simulation-distance")) or view_distance
+
+    if expected_players is None and max_players is not None and max_players >= 20:
+        warnings.append(
+            PlanMessage(
+                code="capacity_missing_players",
+                message="Expected player count not set; recommendations may be conservative.",
+                param="deploy.expected_players",
+            )
+        )
+        recommendations.append(
+            PlanRecommendation(
+                param="deploy.expected_players",
+                suggested=min(max_players, 20),
+                reason="Provide expected players to improve recommendations.",
+            )
+        )
+
+    if memory_gb is not None:
+        if view_distance >= 14 and memory_gb <= 4:
+            warnings.append(
+                PlanMessage(
+                    code="capacity_view_distance",
+                    message="View distance may be too high for allocated memory.",
+                    param="view-distance",
+                )
+            )
+            recommendations.append(
+                PlanRecommendation(
+                    param="view-distance",
+                    suggested=10,
+                    reason="Reduce view distance for stability.",
+                )
+            )
+        if max_players and max_players >= 30 and memory_gb <= 4:
+            warnings.append(
+                PlanMessage(
+                    code="capacity_players_high",
+                    message="Player capacity may be too high for allocated memory.",
+                    param="max-players",
+                )
+            )
+            recommendations.append(
+                PlanRecommendation(
+                    param="max-players",
+                    suggested=20,
+                    reason="Lower max players for stability.",
+                )
+            )
+
+    if simulation_distance > view_distance:
+        warnings.append(
+            PlanMessage(
+                code="simulation_distance_high",
+                message="Simulation distance exceeds view distance.",
+                param="simulation-distance",
+            )
+        )
+        recommendations.append(
+            PlanRecommendation(
+                param="simulation-distance",
+                suggested=view_distance,
+                reason="Align simulation distance with view distance.",
+            )
+        )
+
+    return warnings, recommendations
+
+
 def _parse_bool(value) -> bool | None:
     if isinstance(value, bool):
         return value
@@ -705,6 +807,10 @@ def plan(claims) -> ApplyPlan:
                 taxonomy={"capacity": payload},
             )
         )
+
+    perf_warnings, perf_recs = _performance_advice(claims.params)
+    warnings.extend(perf_warnings)
+    recommendations.extend(perf_recs)
 
     level = "block" if blocks else ("warn" if warnings else "allow")
     summary = PlanSummary(level=level)

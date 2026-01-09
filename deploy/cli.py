@@ -53,29 +53,33 @@ def load_claims_from_args(args) -> Claims:
 
 def _translate_message(message: str, lang: str) -> str:
     if lang != "zh" or not isinstance(message, str):
-        return message
-
-    replacements = {
-        "Multiple performance parameters adjusted; review combined impact.": "多个性能相关参数被修改，请评估叠加影响。",
-        "Configured memory may be insufficient for expected players.": "当前内存配置可能不足以支撑预期玩家数。",
-        "Risky value deviates from default.": "风险值偏离默认。",
-        "High performance impact; consider default value.": "性能影响较高，建议使用默认值。",
-        "Increase memory or reduce players/view distance.": "建议增加内存或降低玩家数/视距。",
+        return message    replacements = {
+        "Multiple performance parameters adjusted; review combined impact.": "????????????????????",
+        "Configured memory may be insufficient for expected players.": "???????????????????",
+        "Risky value deviates from default.": "????????",
+        "High performance impact; consider default value.": "???????????????",
+        "Increase memory or reduce players/view distance.": "????????????/???",
+        "Expected player count not set; recommendations may be conservative.": "?????????????????",
+        "Provide expected players to improve recommendations.": "??????????????????",
+        "View distance may be too high for allocated memory.": "??????????????",
+        "Reduce view distance for stability.": "?????????????",
+        "Player capacity may be too high for allocated memory.": "?????????????????",
+        "Lower max players for stability.": "????????????????",
+        "Simulation distance exceeds view distance.": "??????????????????",
+        "Align simulation distance with view distance.": "?????????????",
     }
     if message in replacements:
-        return replacements[message]
-
-    patterns = [
-        (r"^Medium-risk parameter '(.+)' deviates from default\.$", "中风险参数 '{param}' 偏离默认值。"),
-        (r"^High-risk parameter '(.+)' deviates from default\.$", "高风险参数 '{param}' 偏离默认值。"),
-        (r"^Novice-sensitive parameter '(.+)' was explicitly set\.$", "新手敏感参数 '{param}' 被显式设置。"),
-        (r"^Player-scope parameter '(.+)' should be set via gamerule\.$", "玩家范围参数 '{param}' 应通过 gamerule 设置。"),
-        (r"^World-scope parameter '(.+)' is not applicable to Bedrock Edition\.$", "世界范围参数 '{param}' 不适用于 Bedrock。"),
-        (r"^Invalid boolean value for '(.+)'\.$", "参数 '{param}' 的布尔值无效。"),
-        (r"^Invalid integer value for '(.+)'\.$", "参数 '{param}' 的整数值无效。"),
-        (r"^Value for '(.+)' below recommended minimum \\((.+)\\)\\.$", "参数 '{param}' 低于建议最小值（{extra}）。"),
-        (r"^Value for '(.+)' above recommended maximum \\((.+)\\)\\.$", "参数 '{param}' 高于建议最大值（{extra}）。"),
-        (r"^Value for '(.+)' does not align with step (.+)\\.$", "参数 '{param}' 未符合步进值 {extra}。"),
+        return replacements[message]    patterns = [
+        (r"^Medium-risk parameter '(.+)' deviates from default\.$", "????? '{param}' ??????"),
+        (r"^High-risk parameter '(.+)' deviates from default\.$", "????? '{param}' ??????"),
+        (r"^Novice-sensitive parameter '(.+)' was explicitly set\.$", "?????? '{param}' ??????"),
+        (r"^Player-scope parameter '(.+)' should be set via gamerule\.$", "?????? '{param}' ??? gamerule ???"),
+        (r"^World-scope parameter '(.+)' is not applicable to Bedrock Edition\.$", "?????? '{param}' ???? Bedrock?"),
+        (r"^Invalid boolean value for '(.+)'\.$", "?? '{param}' ???????"),
+        (r"^Invalid integer value for '(.+)'\.$", "?? '{param}' ???????"),
+        (r"^Value for '(.+)' below recommended minimum \((.+)\)\.$", "?? '{param}' ????????{extra}??"),
+        (r"^Value for '(.+)' above recommended maximum \((.+)\)\.$", "?? '{param}' ????????{extra}??"),
+        (r"^Value for '(.+)' does not align with step (.+)\.$", "?? '{param}' ?????? {extra}?"),
     ]
     for pattern, template in patterns:
         match = re.match(pattern, message)
@@ -88,17 +92,16 @@ def _translate_message(message: str, lang: str) -> str:
 
 def _label(lang: str, text: str) -> str:
     if lang != "zh":
-        return text
-    mapping = {
-        "=== Apply Plan Review ===": "=== 计划审查 ===",
-        "Target": "目标",
-        "Level": "等级",
-        "Source: imported claims": "来源：导入配置",
-        "Warnings:": "警告：",
-        "Blocked:": "阻拦：",
-        "Recommendations:": "建议：",
-        "=== Execution Plan (dry-run) ===": "=== 执行计划（dry-run） ===",
-        "parameter": "参数",
+        return text    mapping = {
+        "=== Apply Plan Review ===": "=== ???? ===",
+        "Target": "??",
+        "Level": "??",
+        "Source: imported claims": "???????",
+        "Warnings:": "???",
+        "Blocked:": "???",
+        "Recommendations:": "???",
+        "=== Execution Plan (dry-run) ===": "=== ?????dry-run?===",
+        "parameter": "??",
     }
     return mapping.get(text, text)
 
