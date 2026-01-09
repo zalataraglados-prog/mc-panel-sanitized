@@ -478,6 +478,7 @@ export VERSION
 if [ -n "$IMPORT_PRESENT" ]; then
   EDITION="java"
   PROFILE="normal"
+  SKIP_PROFILE="1"
 else
   echo ""
   echo "$(msg edition_menu)"
