@@ -424,6 +424,12 @@ export function App() {
   const canRcon = role === "owner" || role === "admin";
   const canManagePlayers = role === "owner" || role === "admin" || role === "mod";
   const canTemplateWrite = role === "owner" || role === "admin";
+  const formatCoord = (value: number) => {
+    if (!Number.isFinite(value)) {
+      return "0";
+    }
+    return (Math.round(value * 10) / 10).toString();
+  };
   const canEditRules = role === "owner" || role === "admin";
   const canEditMapConfig = role === "owner" || role === "admin";
   const canEditUsers = role === "owner";
@@ -1191,7 +1197,7 @@ export function App() {
               <div>
                 <div className="player-name">{p.name}</div>
                 <div className="player-meta">
-                  {p.position.x},{p.position.y},{p.position.z}
+                  {formatCoord(p.position.x)},{formatCoord(p.position.y)},{formatCoord(p.position.z)}
                 </div>
                 <div className="player-meta">
                   {t.session}: {Math.floor((p as any).session_seconds || 0)}s
