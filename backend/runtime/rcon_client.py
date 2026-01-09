@@ -110,9 +110,10 @@ def _recv_exact(sock: socket.socket, length: int) -> bytes:
 
 
 def _parse_player_list(response: str) -> List[str]:
-    if "There are" not in response:
+    response = strip_ansi(response)
+    if ":" not in response:
         return []
-    parts = response.split(":", 1)
+    parts = response.rsplit(":", 1)
     if len(parts) != 2:
         return []
     names = [name.strip() for name in parts[1].split(",") if name.strip()]

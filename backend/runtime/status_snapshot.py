@@ -22,7 +22,7 @@ def get_status_snapshot(instance_dir: str) -> dict:
     rcon_message = "RCON disabled"
     if rcon_client.enabled:
         response = rcon_client.execute("list")
-        rcon_ok = "There are" in response
+        rcon_ok = bool(response) and not response.startswith("RCON ")
         rcon_message = response
     payload = {
         "running": bool(running),
