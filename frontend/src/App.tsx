@@ -65,6 +65,7 @@ const translations = {
     refresh: "Refresh (s)",
     mapHint: "Tiles are read-only. Provide tiles via map-tiles/ in instance dir.",
     mapPluginMissing: "No map plugin detected.",
+    mapPluginMissingDetail: "No map plugin detected. Place tiles in map-tiles/ under the instance directory.",
     mapSourceNone: "none",
     edit: "Edit",
     save: "Save",
@@ -107,6 +108,8 @@ const translations = {
     instancesEmpty: "No instances found or still loading",
     loginRequired: "Please login first",
     logStreamError: "Log stream error",
+    logNotFound: "Log file not found",
+    logClosed: "Log stream closed",
     logConnected: "Log stream connected",
     logDisconnected: "Log stream disconnected",
     commandFailed: "Command failed",
@@ -175,6 +178,7 @@ const translations = {
     refresh: "\u5237\u65b0\u95f4\u9694(\u79d2)",
     mapHint: "\u53ea\u8bfb\u74e6\u7247\u3002\u5c06\u74e6\u7247\u653e\u5165\u5b9e\u4f8b\u76ee\u5f55 map-tiles/ \u3002",
     mapPluginMissing: "\u672a\u68c0\u6d4b\u5230\u5730\u56fe\u63d2\u4ef6\u3002",
+    mapPluginMissingDetail: "\u672a\u68c0\u6d4b\u5230\u5730\u56fe\u63d2\u4ef6\u3002\u8bf7\u5c06\u74e6\u7247\u653e\u5165\u5b9e\u4f8b\u76ee\u5f55 map-tiles/ \u3002",
     mapSourceNone: "\u65e0",
     edit: "\u7f16\u8f91",
     save: "\u4fdd\u5b58",
@@ -217,6 +221,8 @@ const translations = {
     instancesEmpty: "\u672a\u53d1\u73b0\u5b9e\u4f8b\u6216\u4ecd\u5728\u52a0\u8f7d",
     loginRequired: "\u8bf7\u5148\u767b\u5f55",
     logStreamError: "\u5b9e\u65f6\u65e5\u5fd7\u8fde\u63a5\u9519\u8bef",
+    logNotFound: "\u672a\u627e\u5230\u65e5\u5fd7\u6587\u4ef6",
+    logClosed: "\u5b9e\u65f6\u65e5\u5fd7\u5df2\u5173\u95ed",
     logConnected: "\u5b9e\u65f6\u65e5\u5fd7\u5df2\u8fde\u63a5",
     logDisconnected: "\u5b9e\u65f6\u65e5\u5fd7\u5df2\u65ad\u5f00",
     commandFailed: "\u6307\u4ee4\u53d1\u9001\u5931\u8d25",
@@ -428,6 +434,16 @@ export function App() {
   const canRcon = role === "owner" || role === "admin";
   const canManagePlayers = role === "owner" || role === "admin" || role === "mod";
   const canTemplateWrite = role === "owner" || role === "admin";
+  const fixMojibake = (value: string) => {
+    try {
+      if (!/[\u00c0-\u00ff]/.test(value)) {
+        return value;
+      }
+      return decodeURIComponent(escape(value));
+    } catch {
+      return value;
+    }
+  };
   const formatCoord = (value: number) => {
     if (!Number.isFinite(value)) {
       return "0";
@@ -449,14 +465,17 @@ export function App() {
       return key;
     }
     if (ruleLabelMapZh[key]) {
-      return ruleLabelMapZh[key];
+      return fixMojibake(ruleLabelMapZh[key]);
     }
     const tokens = key
       .replace(/[._-]/g, " ")
       .replace(/([a-z])([A-Z])/g, "$1 $2")
       .split(/\s+/)
       .filter(Boolean);
-    const translated = tokens.map((token) => ruleWordMapZh[token.toLowerCase()] || token);
+    const translated = tokens.map((token) => {
+      const mapped = ruleWordMapZh[token.toLowerCase()] || token;
+      return fixMojibake(mapped);
+    });
     const unchanged = translated.every((value, index) => value === tokens[index]);
     return unchanged ? key : translated.join("");
   };
@@ -725,13 +744,18 @@ export function App() {
       `${scheme}://${host}/api/logs/ws?token=${token}${query}&max_lines=200&max_per_second=50`
     );
     ws.onmessage = (event) => {
-      appendLogLine(event.data);
+      const line = String(event.data);
+      if (line.toLowerCase().includes("logs not found")) {
+        setLogError(t.logNotFound);
+      }
+      appendLogLine(line);
     };
     ws.onclose = (event) => {
       wsRef.current = null;
       setLogConnected(false);
       if (event) {
-        const detail = `${t.logStreamError}: ${event.code}${event.reason ? ` ${event.reason}` : ""}`;
+        const reason = event.reason ? ` ${event.reason}` : "";
+        const detail = `${t.logClosed}: ${event.code}${reason}`;
         setLogError(detail);
         appendLogLine(detail);
       }
@@ -1306,7 +1330,7 @@ export function App() {
           <h2>{t.map}</h2>
           {!mapSupported ? (
             <div className="map-panel">
-              <div className="map-placeholder">{t.mapPluginMissing}</div>
+              <div className="map-placeholder">{t.mapPluginMissingDetail}</div>
             </div>
           ) : (
             <div className="map-panel">
@@ -1398,7 +1422,7 @@ export function App() {
               </button>
             </div>
             <div className="map-hint">
-              {t.mapStatus}: {mapStatus?.source ?? t.mapSourceNone} - {mapStatus?.source ? t.mapHint : t.mapPluginMissing}
+              {t.mapStatus}: {mapStatus?.source ?? t.mapSourceNone} - {mapStatus?.source ? t.mapHint : t.mapPluginMissingDetail}
             </div>
             <div className="map-config-actions">
               <button className="btn" onClick={toggleMapConfig}>
