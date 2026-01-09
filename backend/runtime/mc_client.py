@@ -17,8 +17,15 @@ def _read_server_properties(instance_dir: Path) -> dict:
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        result[key.strip()] = value.strip()
+        result[key.strip()] = _clean_value(value)
     return result
+
+
+def _clean_value(raw: str) -> str:
+    value = raw.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+        return value[1:-1]
+    return value
 
 
 def _log_recent(log_path: Path, max_age_seconds: int = 300) -> bool:
@@ -43,8 +50,10 @@ class MCClient:
         if rcon_enabled:
             client = RCONClient.from_instance_dir(str(self.instance_dir))
             response = client.execute("list")
-            if "There are" in response:
+            if response and not response.startswith("RCON "):
                 running = True
+            else:
+                running = _log_recent(log_path)
         else:
             running = _log_recent(log_path)
         return {"running": running}

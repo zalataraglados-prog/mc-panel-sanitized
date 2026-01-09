@@ -32,8 +32,15 @@ def _read_server_properties(instance_dir: str) -> dict:
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        entries[key.strip()] = value.strip()
+        entries[key.strip()] = _clean_value(value)
     return entries
+
+
+def _clean_value(raw: str) -> str:
+    value = raw.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+        return value[1:-1]
+    return value
 
 
 def _coerce_value(value: str, dtype: str):

@@ -45,6 +45,30 @@ def _parse_int(value) -> int | None:
     return None
 
 
+def _parse_memory_gb(value) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    if not isinstance(value, str):
+        return None
+    text = value.strip().upper()
+    if text.endswith("G"):
+        try:
+            return float(text[:-1])
+        except ValueError:
+            return None
+    if text.endswith("M"):
+        try:
+            return float(text[:-1]) / 1024
+        except ValueError:
+            return None
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
 def _pick_server_port(params: dict) -> int | None:
     candidates = [
         params.get("server-port"),
@@ -184,6 +208,10 @@ def build_execution_plan(
     if _needs_docker(params):
         preconditions.append(Precondition(type="docker_available", value="docker", required=True))
         preconditions.append(Precondition(type="systemd_available", value="systemd", required=True))
+
+    memory_gb = _parse_memory_gb(params.get("docker.env.MEMORY"))
+    if memory_gb is not None:
+        preconditions.append(Precondition(type="memory_available", value=memory_gb, required=True))
 
     map_file = params.get("map.file")
     if map_file:

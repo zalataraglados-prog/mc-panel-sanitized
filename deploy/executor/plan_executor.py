@@ -47,6 +47,16 @@ class ExecutionPlanExecutor:
             result = self.inspector.check_systemd_available()
         elif check_type == "file_exists":
             result = self.inspector.check_file_exists(value)
+        elif check_type == "memory_available":
+            try:
+                required = float(value)
+            except Exception:
+                return ExecutionStep(
+                    name="precondition:memory_available",
+                    ok=False,
+                    details="invalid required_gb",
+                )
+            result = self.inspector.check_memory_available(required)
         elif check_type == "capacity_sufficient":
             try:
                 memory = float(value.get("memory_gb"))

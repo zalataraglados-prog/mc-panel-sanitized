@@ -85,6 +85,7 @@ msg() {
         import_file_missing) echo "[WARN] 文件不存在或不可读，将改为粘贴输入。" ;;
         import_list_header) echo "已导入配置（编号）：" ;;
         import_edit_prompt) echo "是否修改导入配置？输入行号（逗号分隔），回车跳过：" ;;
+        import_confirm_prompt) echo "请输入 sure 确认修改，否则放弃：" ;;
         import_value_prompt) echo "设置新值" ;;
         panel_install_prompt) echo "安装 Web 面板？[y/N] " ;;
         panel_port_prompt) echo "面板端口 [默认: 15000]: " ;;
@@ -144,6 +145,7 @@ msg() {
         import_file_missing) echo "[WARN] File not found or not readable; falling back to paste." ;;
         import_list_header) echo "Imported config (indexed):" ;;
         import_edit_prompt) echo "Edit imported config? Enter line numbers (comma-separated) or Enter to skip: " ;;
+        import_confirm_prompt) echo "Type sure to confirm edits, otherwise discard: " ;;
         import_value_prompt) echo "Set new value" ;;
         panel_install_prompt) echo "Install Web Panel? [y/N] " ;;
         panel_port_prompt) echo "Panel port [default: 15000]: " ;;
@@ -455,20 +457,25 @@ else
   VERSION_CHOICE=$(read_tty "$(choice_prompt "1-${i}")")
   VERSION_CHOICE="${VERSION_CHOICE//$'\r'/}"
   VERSION_CHOICE="$(echo "$VERSION_CHOICE" | xargs)"
+  FROM_CUSTOM="0"
   if [[ "$VERSION_CHOICE" =~ ^[0-9]+$ ]] && [ "$VERSION_CHOICE" -ge 1 ] && [ "$VERSION_CHOICE" -le "${#VERSIONS[@]}" ]; then
     VERSION="${VERSIONS[$((VERSION_CHOICE - 1))]}"
   elif [[ "$VERSION_CHOICE" =~ ^[0-9]+$ ]] && [ "$VERSION_CHOICE" -eq "${i}" ]; then
-    VERSION=$(read_tty "$(msg version_custom)")
+    FROM_CUSTOM="1"
+    VERSION=""
   else
     VERSION="${VERSIONS[0]}"
   fi
-  VERSION="${VERSION//$'\r'/}"
-  VERSION="$(echo "$VERSION" | xargs)"
-  while [ -n "$VERSION" ] && ! [[ "$VERSION" =~ ^[0-9]+\\.[0-9]+(\\.[0-9]+)?$ ]]; do
+  if [ "$FROM_CUSTOM" = "1" ]; then
     VERSION=$(read_tty "$(msg version_custom)")
     VERSION="${VERSION//$'\r'/}"
     VERSION="$(echo "$VERSION" | xargs)"
-  done
+    while [ -n "$VERSION" ] && ! [[ "$VERSION" =~ ^[0-9]+\\.[0-9]+(\\.[0-9]+)?$ ]]; do
+      VERSION=$(read_tty "$(msg version_custom)")
+      VERSION="${VERSION//$'\r'/}"
+      VERSION="$(echo "$VERSION" | xargs)"
+    done
+  fi
   if [ -z "$VERSION" ]; then
     VERSION="${VERSIONS[0]}"
   fi
@@ -538,7 +545,7 @@ PY
 
 while [ -n "$IMPORT_STRING" ]; do
   export IMPORT_STRING
-  python3 - <<'PY'
+  if ! python3 - <<'PY'
 import json
 import os
 from deploy.claims_codec import decode_auto
@@ -558,10 +565,13 @@ params.update(decoded)
 with open(path, "w", encoding="utf-8") as handle:
     json.dump(params, handle)
 PY
-  if [ "$?" -ne 0 ]; then
-    echo "[ERROR] 配置字符串解析失败，请重新粘贴或回车跳过。"
+  then
+    echo "[ERROR] 配置字符串解析失败，请重新粘贴。"
     IMPORT_STRING=$(read_tty "$(msg import_string)")
     IMPORT_STRING="$(echo "$IMPORT_STRING" | tr -d '\r\n\t')"
+    if [ -z "$IMPORT_STRING" ]; then
+      continue
+    fi
     IMPORT_FORMAT=$(python3 - <<'PY'
 import os
 from deploy.claims_codec import is_compact_string, peek_version
@@ -580,6 +590,7 @@ PY
     fi
     continue
   fi
+  IMPORT_PRESENT="1"
   echo ""
   echo "$(msg import_list_header)"
   python3 - <<'PY'
@@ -591,6 +602,8 @@ items = sorted(params.items(), key=lambda item: item[0])
 for idx, (key, value) in enumerate(items, start=1):
     print(f"{idx}\t{key}\t{value}")
 PY
+  PARAMS_JSON_BAK="/tmp/claims_params.bak"
+  cp "$PARAMS_JSON" "$PARAMS_JSON_BAK"
   EDIT_LINES=$(read_tty "$(msg import_edit_prompt)")
   if [ -n "$EDIT_LINES" ]; then
     EDIT_LINES="${EDIT_LINES// /}"
@@ -624,6 +637,10 @@ PY
       fi
       PARAM_KEY="$KEY" PARAM_VALUE="$VALUE" set_param "$KEY" "$VALUE"
     done
+    CONFIRM_EDIT=$(read_tty "$(msg import_confirm_prompt)")
+    if [ "$CONFIRM_EDIT" != "sure" ]; then
+      cp "$PARAMS_JSON_BAK" "$PARAMS_JSON"
+    fi
   fi
   SKIP_PROMPTS="1"
   break

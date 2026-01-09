@@ -8,6 +8,24 @@ from typing import Any, Dict
 
 
 class HostInspector:
+    def check_memory_available(self, required_gb: float) -> Dict[str, Any]:
+        if not isinstance(required_gb, (int, float)) or required_gb <= 0:
+            return {"check": "memory_available", "ok": False, "details": "invalid required_gb"}
+        total_kb = None
+        try:
+            with open("/proc/meminfo", "r", encoding="utf-8") as handle:
+                for line in handle:
+                    if line.startswith("MemTotal:"):
+                        total_kb = int(line.split()[1])
+                        break
+        except FileNotFoundError:
+            return {"check": "memory_available", "ok": False, "details": "meminfo not available"}
+        if total_kb is None:
+            return {"check": "memory_available", "ok": False, "details": "meminfo not available"}
+        total_gb = total_kb / 1024 / 1024
+        ok = total_gb >= float(required_gb)
+        details = f"total_gb={total_gb:.2f} required_gb={float(required_gb):.2f}"
+        return {"check": "memory_available", "ok": ok, "details": details}
     def check_port_free(self, port: int) -> Dict[str, Any]:
         if not isinstance(port, int):
             return {"check": "port_free", "ok": False, "details": "invalid port"}

@@ -128,6 +128,12 @@ body {
   color: var(--fg);
 }
 
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.85;
+}
+
 .login {
   display: flex;
   gap: 8px;
@@ -478,7 +484,7 @@ body {
 
 .runtime-grid {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 4fr) minmax(0, 1.2fr);
   gap: 16px;
   align-items: start;
 }
@@ -610,7 +616,7 @@ body {
   background: var(--card);
   padding: 12px;
   border-radius: 10px;
-  max-height: 720px;
+  max-height: 520px;
   overflow: hidden;
 }
 

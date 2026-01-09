@@ -28,5 +28,5 @@ def rcon_health(instance_dir: str | None = None, user=Depends(get_current_user))
     if not client.enabled:
         return RconHealthResponse(ok=False, message="RCON disabled", instance_dir=resolved)
     response = client.execute("list")
-    ok = "There are" in response
+    ok = bool(response) and not response.startswith("RCON ")
     return RconHealthResponse(ok=ok, message=response, instance_dir=resolved)
