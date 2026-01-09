@@ -8,6 +8,7 @@ import struct
 from typing import List
 import re
 
+from backend.runtime.ansi import strip_ansi
 
 @dataclass
 class RCONResponse:
@@ -37,7 +38,9 @@ class RCONClient:
                     return "RCON auth failed"
                 self._send_packet(sock, auth_id + 1, 2, command)
                 response = self._recv_packet(sock)
-                return response.payload if response else "RCON no response"
+                if not response:
+                    return "RCON no response"
+                return strip_ansi(response.payload)
         except (OSError, socket.timeout) as exc:
             return f"RCON error: {exc}"
 

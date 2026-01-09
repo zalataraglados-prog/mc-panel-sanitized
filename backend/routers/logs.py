@@ -3,6 +3,7 @@ import re
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 
 from backend.auth import get_current_user, require_roles
+from backend.runtime.ansi import strip_ansi
 from backend.runtime.log_paths import resolve_latest_log
 from backend.runtime.log_streamer import follow_log, tail_log
 from backend.routers.instances import resolve_instance_dir
@@ -12,7 +13,7 @@ _TIME_PREFIX = re.compile(r"^\[\d{2}:\d{2}:\d{2}\]\s*")
 
 
 def _strip_time_prefix(line: str) -> str:
-    return _TIME_PREFIX.sub("", line)
+    return strip_ansi(_TIME_PREFIX.sub("", line))
 
 
 @router.websocket("/api/logs/ws")
