@@ -120,6 +120,8 @@ const translations = {
     rconStatus: "RCON Status",
     rconOk: "RCON OK",
     rconFail: "RCON ERROR",
+    tpsUnavailable: "TPS unavailable",
+    msptUnavailable: "MSPT unavailable",
   },
   zh: {
     title: "MC \u9762\u677f",
@@ -228,6 +230,8 @@ const translations = {
     rconStatus: "RCON\u72b6\u6001",
     rconOk: "RCON\u6b63\u5e38",
     rconFail: "RCON\u5f02\u5e38",
+    tpsUnavailable: "TPS\u4e0d\u53ef\u7528",
+    msptUnavailable: "MSPT\u4e0d\u53ef\u7528",
   },
 };
 
@@ -428,7 +432,7 @@ export function App() {
     if (!Number.isFinite(value)) {
       return "0";
     }
-    return (Math.round(value * 10) / 10).toString();
+    return Math.round(value).toString();
   };
   const canEditRules = role === "owner" || role === "admin";
   const canEditMapConfig = role === "owner" || role === "admin";
@@ -496,8 +500,10 @@ export function App() {
       .then((data) => {
         const status = data?.status || {};
         const running = typeof status.running === "boolean" ? status.running : null;
-        const tpsValue = running && (status.tps ?? 0) > 0 ? String(status.tps) : t.noData;
-        const msptValue = running && (status.mspt ?? 0) > 0 ? String(status.mspt) : t.noData;
+        const tpsValue =
+          running && (status.tps ?? 0) > 0 ? String(status.tps) : `${t.noData} (${t.tpsUnavailable})`;
+        const msptValue =
+          running && (status.mspt ?? 0) > 0 ? String(status.mspt) : `${t.noData} (${t.msptUnavailable})`;
         setMetrics([
           { label: "Players", value: String(status.players ?? 0) },
           { label: "TPS", value: tpsValue },
@@ -721,9 +727,14 @@ export function App() {
     ws.onmessage = (event) => {
       appendLogLine(event.data);
     };
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       wsRef.current = null;
       setLogConnected(false);
+      if (event) {
+        const detail = `${t.logStreamError}: ${event.code}${event.reason ? ` ${event.reason}` : ""}`;
+        setLogError(detail);
+        appendLogLine(detail);
+      }
     };
     ws.onerror = () => {
       setLogError(t.logStreamError);
