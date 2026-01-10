@@ -29,8 +29,10 @@ def find_map_root(instance_dir: str) -> tuple[Optional[Path], Optional[str]]:
     base = Path(instance_dir)
     candidates = [
         ("dynmap", base / "data" / "plugins" / "dynmap" / "web" / "tiles"),
+        ("bluemap", base / "data" / "plugins" / "BlueMap" / "web" / "maps"),
         ("bluemap", base / "data" / "plugins" / "BlueMap" / "web" / "tiles"),
         ("bluemap", base / "data" / "bluemap" / "web" / "maps"),
+        ("bluemap", base / "data" / "bluemap" / "web" / "tiles"),
         ("map-tiles", base / "map-tiles"),
         ("maps", base / "maps"),
     ]
@@ -47,9 +49,7 @@ def get_map_status(instance_dir: str) -> MapStatus:
     root, source = find_map_root(instance_dir)
     available = {"overworld": False, "nether": False, "end": False}
     if not root:
-        available["overworld"] = True
-        _apply_log_visibility(instance_dir, available)
-        status = MapStatus(source=None, available=available, y_min=DEFAULT_Y_MIN, y_max=DEFAULT_Y_MAX, supports_y=True)
+        status = MapStatus(source=None, available=available, y_min=DEFAULT_Y_MIN, y_max=DEFAULT_Y_MAX, supports_y=False)
         _MAP_STATUS_CACHE.set(instance_dir, status)
         return status
 
@@ -68,8 +68,6 @@ def get_map_status(instance_dir: str) -> MapStatus:
             if (root / folder).exists():
                 available[key] = True
                 break
-    if not available["overworld"]:
-        available["overworld"] = True
     _apply_log_visibility(instance_dir, available)
     status = MapStatus(source=source, available=available, y_min=DEFAULT_Y_MIN, y_max=DEFAULT_Y_MAX, supports_y=True)
     _MAP_STATUS_CACHE.set(instance_dir, status)

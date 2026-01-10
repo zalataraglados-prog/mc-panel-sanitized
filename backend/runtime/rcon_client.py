@@ -28,6 +28,8 @@ class RCONClient:
     def execute(self, command: str) -> str:
         if not self.enabled:
             return "RCON disabled"
+        if not self.password:
+            return "RCON password missing"
         try:
             with socket.create_connection((self.host, self.port), timeout=self.timeout) as sock:
                 sock.settimeout(self.timeout)

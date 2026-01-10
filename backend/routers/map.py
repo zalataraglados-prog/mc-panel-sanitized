@@ -19,6 +19,10 @@ from backend.runtime.rcon_client import RCONClient
 
 router = APIRouter()
 _BLUE_MAP_WEB_INDEX = "index.html"
+_BLUE_MAP_WEB_CANDIDATES = (
+    Path("data") / "bluemap" / "web",
+    Path("data") / "plugins" / "BlueMap" / "web",
+)
 
 
 @router.get("/api/map/status", response_model=MapStatusResponse)
@@ -77,8 +81,8 @@ def bluemap_web(
     user = get_user_from_optional(authorization, token)
     require_roles(user, ["owner", "admin", "mod", "viewer"])
     target_dir = instance_dir or resolve_instance_dir()
-    base = Path(target_dir) / "data" / "bluemap" / "web"
-    if not base.exists():
+    base = _resolve_bluemap_web_root(Path(target_dir))
+    if base is None:
         raise HTTPException(status_code=404, detail="BlueMap web not found")
     safe_path = (base / path).resolve()
     if not str(safe_path).startswith(str(base.resolve())):
@@ -89,6 +93,14 @@ def bluemap_web(
         raise HTTPException(status_code=404, detail="Not found")
     media_type, _ = mimetypes.guess_type(str(safe_path))
     return Response(safe_path.read_bytes(), media_type=media_type or "application/octet-stream")
+
+
+def _resolve_bluemap_web_root(instance_dir: Path) -> Path | None:
+    for candidate in _BLUE_MAP_WEB_CANDIDATES:
+        resolved = (instance_dir / candidate)
+        if resolved.exists():
+            return resolved
+    return None
 
 
 @router.get("/api/map/config", response_model=MapConfigResponse)

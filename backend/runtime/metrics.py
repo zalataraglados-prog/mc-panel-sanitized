@@ -47,7 +47,11 @@ def _disk_usage(path: str) -> float:
 def _parse_tps_response(response: str) -> tuple[float | None, float | None]:
     if not response:
         return None, None
+    if response.startswith("RCON "):
+        return None, None
     clean = strip_ansi(response)
+    if "Unknown command" in clean or "Unknown or incomplete command" in clean:
+        return None, None
     tps_list = re.search(r"TPS[^:]*:\s*([0-9.]+)(?:\s*,\s*([0-9.]+))?(?:\s*,\s*([0-9.]+))?", clean)
     mspt_list = re.search(r"MSPT[^:]*:\s*([0-9.]+)(?:\s*,\s*([0-9.]+))?(?:\s*,\s*([0-9.]+))?", clean)
     tps_match = tps_list or re.search(r"TPS[^:]*:\s*([0-9.]+)", clean)
