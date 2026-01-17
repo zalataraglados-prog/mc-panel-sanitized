@@ -651,7 +651,7 @@ def _evaluate_taxonomy(claims) -> tuple[List[PlanMessage], List[PlanMessage], Li
             warnings.append(
                 PlanMessage(
                     code="category_heavy",
-                    message=f"Multiple {cat} parameters adjusted; review combined impact.",
+                    message=f"Multiple {cat} parameters adjusted; consider raising memory or lowering view/simulation distance.",
                     taxonomy={"category": cat},
                 )
             )
@@ -659,6 +659,7 @@ def _evaluate_taxonomy(claims) -> tuple[List[PlanMessage], List[PlanMessage], Li
     edition = params.get("edition", "java")
 
     profile = getattr(claims, "profile", "normal")
+    expert_mode = profile == "advanced" or getattr(claims, "imported_from_string", False)
 
     for ctx in contexts:
         tax = ctx["taxonomy"]
@@ -707,7 +708,10 @@ def _evaluate_taxonomy(claims) -> tuple[List[PlanMessage], List[PlanMessage], Li
             warnings.append(
                 PlanMessage(
                     code=code,
-                    message=f"{label} parameter '{ctx['catalog_key']}' deviates from default.",
+                    message=(
+                        f"{label} parameter '{ctx['catalog_key']}' deviates from default; "
+                        "use default unless you understand the impact."
+                    ),
                     param=ctx["catalog_key"],
                     taxonomy=tax,
                 )
@@ -716,7 +720,7 @@ def _evaluate_taxonomy(claims) -> tuple[List[PlanMessage], List[PlanMessage], Li
                 PlanRecommendation(
                     param=ctx["catalog_key"],
                     suggested=default,
-                    reason="Risky value deviates from default.",
+                    reason="Return to default to reduce risk.",
                     taxonomy=tax,
                 )
             )
@@ -725,7 +729,7 @@ def _evaluate_taxonomy(claims) -> tuple[List[PlanMessage], List[PlanMessage], Li
                     PlanRecommendation(
                         param=ctx["catalog_key"],
                         suggested=default,
-                        reason="High performance impact; consider default value.",
+                        reason="Lowering this value typically improves stability and TPS.",
                         taxonomy=tax,
                     )
                 )
@@ -740,7 +744,7 @@ def _evaluate_taxonomy(claims) -> tuple[List[PlanMessage], List[PlanMessage], Li
                 )
             )
 
-        if sensitivity == "novice":
+        if sensitivity == "novice" and not expert_mode:
             warnings.append(
                 PlanMessage(
                     code="novice_override",
@@ -780,14 +784,16 @@ def plan(claims) -> ApplyPlan:
     blocks.extend(tax_blocks)
     recommendations.extend(tax_recs)
 
+    capacity_state = "allow"
     estimate = estimate_capacity(claims.params)
     if estimate:
         status, payload = capacity_status(estimate)
+        capacity_state = status
         if status == "block":
             blocks.append(
                 PlanMessage(
                     code="capacity_block",
-                    message="Configured memory is insufficient for expected players.",
+                    message="Configured memory is insufficient for expected players; increase memory or reduce load.",
                     taxonomy={"capacity": payload},
                 )
             )
@@ -795,7 +801,7 @@ def plan(claims) -> ApplyPlan:
             warnings.append(
                 PlanMessage(
                     code="capacity_warn",
-                    message="Configured memory may be insufficient for expected players.",
+                    message="Configured memory may be insufficient for expected players; consider increasing memory.",
                     taxonomy={"capacity": payload},
                 )
             )
@@ -803,14 +809,26 @@ def plan(claims) -> ApplyPlan:
             PlanRecommendation(
                 param="docker.env.MEMORY",
                 suggested=payload.get("required_gb"),
-                reason="Increase memory or reduce players/view distance.",
+                reason="Increase memory or reduce players/view distance to avoid lag.",
                 taxonomy={"capacity": payload},
             )
         )
 
-    perf_warnings, perf_recs = _performance_advice(claims.params)
-    warnings.extend(perf_warnings)
-    recommendations.extend(perf_recs)
+    if capacity_state in ("warn", "block"):
+        def _keep_message(msg: PlanMessage) -> bool:
+            if not getattr(msg, "taxonomy", None):
+                return msg.code in ("capacity_warn", "capacity_block")
+            return msg.taxonomy.get("category") != "performance"
+
+        warnings = [msg for msg in warnings if _keep_message(msg)]
+        recommendations = [
+            rec for rec in recommendations
+            if getattr(rec, "taxonomy", None) and rec.taxonomy.get("capacity") is not None
+        ]
+    else:
+        perf_warnings, perf_recs = _performance_advice(claims.params)
+        warnings.extend(perf_warnings)
+        recommendations.extend(perf_recs)
 
     level = "block" if blocks else ("warn" if warnings else "allow")
     summary = PlanSummary(level=level)

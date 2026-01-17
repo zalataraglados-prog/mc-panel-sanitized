@@ -70,9 +70,14 @@ def estimate_capacity(params: dict) -> CapacityEstimate | None:
         return None
     view_distance = _resolve_view_distance(params) or 10
 
-    base_gb = 2.0
-    per_player_gb = 0.10
-    vd_penalty_gb = max(0, view_distance - 10) * 0.15
+    if memory_gb <= 2.5 and players <= 5:
+        base_gb = 1.2
+        per_player_gb = 0.06
+        vd_penalty_gb = max(0, view_distance - 8) * 0.10
+    else:
+        base_gb = 2.0
+        per_player_gb = 0.10
+        vd_penalty_gb = max(0, view_distance - 10) * 0.15
     required_gb = base_gb + (players * per_player_gb) + vd_penalty_gb
 
     return CapacityEstimate(

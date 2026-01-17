@@ -1074,7 +1074,7 @@ if [ "$LEVEL" = "warn" ] && [ "$WARN_CONFIRMED" != "1" ]; then
   esac
 fi
 
-APPLY_FLAGS="--apply"
+APPLY_FLAGS="--apply --no-review"
 if [ "$LEVEL" = "warn" ]; then
   APPLY_FLAGS="${APPLY_FLAGS} --confirm-warn"
 fi
