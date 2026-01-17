@@ -262,7 +262,7 @@ def build_execution_plan(
             },
         ),
     ]
-    if panel_enabled and not panel_installed:
+    if panel_enabled:
         actions.append(
             Action(
                 type="setup_panel_venv",
@@ -272,6 +272,7 @@ def build_execution_plan(
                 },
             )
         )
+    if panel_enabled and not panel_installed:
         actions.append(
             Action(
                 type="write_file",
