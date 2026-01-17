@@ -265,6 +265,15 @@ def build_execution_plan(
     if panel_enabled and not panel_installed:
         actions.append(
             Action(
+                type="setup_panel_venv",
+                params={
+                    "panel_root": context["PANEL_ROOT"],
+                    "requirements": ["fastapi==0.115.5", "uvicorn[standard]==0.34.0", "pydantic==2.10.4"],
+                },
+            )
+        )
+        actions.append(
+            Action(
                 type="write_file",
                 params={
                     "path": "/etc/systemd/system/mc-panel.service",

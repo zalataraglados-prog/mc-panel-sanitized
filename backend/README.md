@@ -2,11 +2,13 @@
 
 ## Prerequisites / 依赖
 
-- Python packages: `fastapi`, `uvicorn`
+- Python packages: `fastapi`, `uvicorn`, `pydantic` (see `backend/requirements.txt`)
 - The panel service expects `MC_PANEL_BASE_DIR` and `MC_PANEL_STATIC_DIR` set by systemd.
+- Recommended: create a venv at `/opt/mc-panel-sanitized/.venv` and install requirements there.
 
-- Python 依赖：`fastapi`, `uvicorn`
+- Python 依赖：`fastapi`, `uvicorn`, `pydantic`（见 `backend/requirements.txt`）
 - 面板服务期望 systemd 设置 `MC_PANEL_BASE_DIR` 和 `MC_PANEL_STATIC_DIR`。
+- 推荐：在 `/opt/mc-panel-sanitized/.venv` 创建 venv 并在其中安装依赖。
 
 ## Architecture / 结构
 

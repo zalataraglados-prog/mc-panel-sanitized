@@ -698,6 +698,12 @@ if [ -z "$PANEL_PORT_EXISTS" ] && [ "$PANEL_ENABLED" = "true" ] && [ -z "$IMPORT
   PARAM_KEY="panel.port" PARAM_VALUE="$PANEL_PORT" set_param "panel.port" "$PANEL_PORT"
 fi
 
+if [ "$PANEL_ENABLED" = "true" ]; then
+  if ! python3 -m venv --help >/dev/null 2>&1; then
+    apt update && apt install -y python3-venv
+  fi
+fi
+
 if [ "$PANEL_ENABLED" = "true" ] && [ -z "$IMPORT_PRESENT" ]; then
   if [ ! -f "$INSTALL_DIR/frontend/dist/index.html" ]; then
     echo ""

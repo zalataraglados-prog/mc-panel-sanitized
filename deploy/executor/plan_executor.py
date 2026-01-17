@@ -125,6 +125,52 @@ class ExecutionPlanExecutor:
             os.symlink(source, target)
             return ExecutionStep(name="action:symlink", ok=True, details=f"{source} -> {target}")
 
+        if action_type == "setup_panel_venv":
+            panel_root = params.get("panel_root")
+            requirements = params.get("requirements") or []
+            if not panel_root:
+                return ExecutionStep(name="action:setup_panel_venv", ok=False, details="missing panel_root")
+            venv_dir = os.path.join(panel_root, ".venv")
+            python_bin = os.path.join(venv_dir, "bin", "python")
+            pip_bin = os.path.join(venv_dir, "bin", "pip")
+            try:
+                if not os.path.exists(python_bin):
+                    subprocess.run(["python3", "-m", "venv", venv_dir], check=True)
+                if not os.path.exists(pip_bin):
+                    return ExecutionStep(
+                        name="action:setup_panel_venv",
+                        ok=False,
+                        details="pip missing in venv",
+                    )
+                req_file = os.path.join(panel_root, "backend", "requirements.txt")
+                if os.path.exists(req_file):
+                    cmd = [pip_bin, "install", "-r", req_file]
+                elif requirements:
+                    cmd = [pip_bin, "install", *requirements]
+                else:
+                    return ExecutionStep(
+                        name="action:setup_panel_venv",
+                        ok=True,
+                        details="no requirements specified",
+                    )
+                env = os.environ.copy()
+                env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
+                env["PIP_NO_INPUT"] = "1"
+                subprocess.run(cmd, check=True, env=env)
+            except subprocess.CalledProcessError as exc:
+                return ExecutionStep(
+                    name="action:setup_panel_venv",
+                    ok=False,
+                    details=f"venv setup failed: {exc}",
+                )
+            except Exception as exc:
+                return ExecutionStep(
+                    name="action:setup_panel_venv",
+                    ok=False,
+                    details=f"venv setup failed: {exc}",
+                )
+            return ExecutionStep(name="action:setup_panel_venv", ok=True, details=venv_dir)
+
         if action_type == "copy_map":
             source = params.get("source")
             target = params.get("target")
