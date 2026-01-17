@@ -44,6 +44,9 @@ else
   git pull
 fi
 
+# Ensure base instance directory exists for preconditions
+mkdir -p /opt/mc-instances
+
 # ------------------------------
 # Interactive Claims builder
 # ------------------------------
