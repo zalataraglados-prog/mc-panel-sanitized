@@ -189,9 +189,11 @@ def build_execution_plan(
     review_level = review_level or "allow"
 
     base_dir = os.environ.get("MC_PANEL_BASE_DIR", DEFAULT_BASE_DIR)
+    base_dir_parent = posixpath.dirname(base_dir.rstrip("/")) or "/"
     preconditions: List[Precondition] = [
-        Precondition(type="path_exists", value=base_dir, required=True),
-        Precondition(type="path_writable", value=base_dir, required=True),
+        Precondition(type="path_exists", value=base_dir, required=False),
+        Precondition(type="path_writable", value=base_dir_parent, required=True),
+        Precondition(type="path_writable", value=base_dir, required=False),
         Precondition(type="systemd_pid1", value="systemd", required=False),
         Precondition(type="selinux_enforcing", value="selinux", required=False),
         Precondition(type="apparmor_enabled", value="apparmor", required=False),
@@ -245,6 +247,7 @@ def build_execution_plan(
     context["BASE_DIR"] = base_dir
 
     actions: List[Action] = [
+        Action(type="mkdir", params={"path": base_dir}),
         Action(type="mkdir", params={"path": instance_dir}),
         Action(type="mkdir", params={"path": posixpath.join(instance_dir, "data")}),
         Action(type="mkdir", params={"path": posixpath.join(instance_dir, "logs")}),

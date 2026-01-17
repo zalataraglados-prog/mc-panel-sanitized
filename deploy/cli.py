@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 MC-PANEL CLI (v1.0)
 
@@ -62,7 +62,7 @@ def _translate_message(message: str, lang: str) -> str:
         "Lowering this value typically improves stability and TPS.": "降低该参数通常可提升稳定性与 TPS。",
         "Increase memory or reduce players/view distance to avoid lag.": "建议增加内存或降低人数/视距以避免卡顿。",
         "Expected player count not set; recommendations may be conservative.": "未设置预期人数，推荐可能偏保守。",
-        "Provide expected players to improve recommendations.": "设置预期人数可提高推荐准确性。",
+        "Provide expected players to improve recommendations.": "设置预期人数可提升推荐准确性。",
         "View distance may be too high for allocated memory.": "视距可能超出当前内存承受范围。",
         "Reduce view distance for stability.": "建议降低视距以提升稳定性。",
         "Player capacity may be too high for allocated memory.": "最大玩家数可能超出当前内存承受范围。",
@@ -98,7 +98,6 @@ def _translate_message(message: str, lang: str) -> str:
             return template.format(param=param, extra=extra)
     return message
 
-
 def _label(lang: str, text: str) -> str:
     if lang != "zh":
         return text
@@ -114,7 +113,6 @@ def _label(lang: str, text: str) -> str:
         "parameter": "参数",
     }
     return mapping.get(text, text)
-
 
 def print_review(apply_plan, claims: Claims | None = None):
     lang = os.environ.get("MC_PANEL_LANG", "en")
@@ -400,7 +398,7 @@ def main():
     lang = os.environ.get("MC_PANEL_LANG", "en")
     if apply_plan.summary.level == "block":
         if lang == "zh":
-            print("已被评审阻止，无法执行 apply。")
+            print("宸茶璇勫闃绘锛屾棤娉曟墽琛?apply銆?)
         else:
             print("Apply is blocked by planner review.")
         return 1
@@ -408,7 +406,7 @@ def main():
     if args.apply:
         if apply_plan.summary.level == "warn" and not args.confirm_warn:
             if lang == "zh":
-                print("当前为 warn 级别，执行 apply 需要 --confirm-warn。")
+                print("褰撳墠涓?warn 绾у埆锛屾墽琛?apply 闇€瑕?--confirm-warn銆?)
             else:
                 print("Apply requires --confirm-warn when review level is warn.")
             return 1
@@ -445,7 +443,7 @@ def main():
     result = executor.execute(plan)
     if not result.ok:
         if lang == "zh":
-            print("执行失败。")
+            print("鎵ц澶辫触銆?)
         else:
             print("Execution failed.")
         for step in result.steps:
@@ -454,7 +452,7 @@ def main():
         return 1
 
     if lang == "zh":
-        print("执行成功。")
+        print("鎵ц鎴愬姛銆?)
     else:
         print("Execution succeeded.")
     for step in result.steps:
@@ -464,3 +462,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+

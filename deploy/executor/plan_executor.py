@@ -157,7 +157,30 @@ class ExecutionPlanExecutor:
             pip_bin = os.path.join(venv_dir, "bin", "pip")
             try:
                 if not os.path.exists(python_bin):
-                    subprocess.run(["python3", "-m", "venv", venv_dir], check=True)
+                    result = subprocess.run(
+                        ["python3", "-m", "venv", venv_dir],
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                    )
+                    if result.returncode != 0:
+                        message = (result.stderr or result.stdout or "").strip()
+                        if (
+                            "No module named venv" in message
+                            and os.geteuid() == 0
+                            and shutil.which("apt-get")
+                        ):
+                            subprocess.run(["apt-get", "update"], check=False)
+                            subprocess.run(["apt-get", "install", "-y", "python3-venv"], check=True)
+                            subprocess.run(["python3", "-m", "venv", venv_dir], check=True)
+                        else:
+                            return ExecutionStep(
+                                name="action:setup_panel_venv",
+                                ok=False,
+                                details=f"venv creation failed: {message or 'unknown error'}",
+                            )
+                if not os.path.exists(pip_bin):
+                    subprocess.run([python_bin, "-m", "ensurepip", "--upgrade"], check=False)
                 if not os.path.exists(pip_bin):
                     return ExecutionStep(
                         name="action:setup_panel_venv",

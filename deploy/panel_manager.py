@@ -59,6 +59,38 @@ def _ensure_panel_deps() -> None:
         raise RuntimeError("Missing FastAPI/uvicorn. Install with: pip install fastapi uvicorn") from exc
 
 
+def _ensure_panel_venv(repo_root: Path) -> Path:
+    venv_dir = repo_root / ".venv"
+    python_bin = venv_dir / "bin" / "python"
+    pip_bin = venv_dir / "bin" / "pip"
+    if not python_bin.exists():
+        result = subprocess.run(
+            ["python3", "-m", "venv", str(venv_dir)],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            message = (result.stderr or result.stdout or "").strip()
+            if "No module named venv" in message and os.geteuid() == 0 and shutil.which("apt-get"):
+                subprocess.run(["apt-get", "update"], check=False)
+                subprocess.run(["apt-get", "install", "-y", "python3-venv"], check=True)
+                subprocess.run(["python3", "-m", "venv", str(venv_dir)], check=True)
+            else:
+                raise RuntimeError(f"Failed to create venv: {message or 'unknown error'}")
+    if not pip_bin.exists():
+        subprocess.run([str(python_bin), "-m", "ensurepip", "--upgrade"], check=False)
+    if not pip_bin.exists():
+        raise RuntimeError("pip missing in panel venv")
+    req_file = repo_root / "backend" / "requirements.txt"
+    if req_file.exists():
+        env = os.environ.copy()
+        env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
+        env["PIP_NO_INPUT"] = "1"
+        subprocess.run([str(pip_bin), "install", "-r", str(req_file)], check=True, env=env)
+    return venv_dir
+
+
 def _render_service(template_path: Path, context: dict) -> str:
     content = template_path.read_text(encoding="utf-8")
     for key, value in context.items():
@@ -77,7 +109,7 @@ def install_panel(
 ) -> str:
     inspector = HostInspector()
     repo_root = Path(panel_root) if panel_root else _repo_root()
-    _ensure_panel_deps()
+    _ensure_panel_venv(repo_root)
     _ensure_frontend_build(repo_root, build_frontend)
 
     resolved_instance_dir = _resolve_instance_dir(instance_dir, base_dir)

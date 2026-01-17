@@ -38,6 +38,12 @@ const translations = {
     roleLabel: "Role",
     guest: "guest",
     refreshButton: "Refresh",
+    metricsPlayers: "Players",
+    metricsTps: "TPS",
+    metricsMspt: "MSPT",
+    metricsCpu: "CPU",
+    metricsMemory: "Memory",
+    metricsDisk: "Disk",
     templates: "Command Templates",
     addTemplate: "Add Template",
     start: "Start",
@@ -155,6 +161,12 @@ const translations = {
     roleLabel: "\u89d2\u8272",
     guest: "\u8bbf\u5ba2",
     refreshButton: "\u5237\u65b0",
+    metricsPlayers: "\u73a9\u5bb6",
+    metricsTps: "TPS",
+    metricsMspt: "MSPT",
+    metricsCpu: "CPU",
+    metricsMemory: "\u5185\u5b58",
+    metricsDisk: "\u78c1\u76d8",
     templates: "\u5e38\u7528\u6307\u4ee4",
     addTemplate: "\u6dfb\u52a0\u6a21\u677f",
     start: "\u542f\u52a8",
@@ -345,6 +357,7 @@ const ruleWordMapZh: Record<string, string> = {
   dead: "死亡",
   transfer: "转移",
 };
+
 
 function StatCard({ title, value }: { title: string; value: string }) {
   return (
@@ -594,12 +607,12 @@ export function App() {
         const msptValue =
           running && (status.mspt ?? 0) > 0 ? String(status.mspt) : `${t.noData} (${t.msptUnavailable})`;
         setMetrics([
-          { label: "Players", value: String(status.players ?? 0) },
-          { label: "TPS", value: tpsValue },
-          { label: "MSPT", value: msptValue },
-          { label: "CPU", value: `${status.cpu_usage ?? 0}%` },
-          { label: "Memory", value: `${status.memory_usage ?? 0}%` },
-          { label: "Disk", value: `${status.disk_usage ?? 0}%` },
+          { label: t.metricsPlayers, value: String(status.players ?? 0) },
+          { label: t.metricsTps, value: tpsValue },
+          { label: t.metricsMspt, value: msptValue },
+          { label: t.metricsCpu, value: `${status.cpu_usage ?? 0}%` },
+          { label: t.metricsMemory, value: `${status.memory_usage ?? 0}%` },
+          { label: t.metricsDisk, value: `${status.disk_usage ?? 0}%` },
         ]);
         setServerRunning(running);
         setRconOk(Boolean(status.rcon_ok));

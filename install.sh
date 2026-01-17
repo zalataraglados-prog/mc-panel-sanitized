@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 set -e
 
 echo "======================================"
@@ -88,7 +88,7 @@ msg() {
         import_file_missing) echo "[WARN] 文件不存在或不可读，将改为粘贴输入。" ;;
         import_list_header) echo "已导入配置（编号）：" ;;
         import_edit_prompt) echo "是否修改导入配置？输入行号（逗号分隔），回车跳过：" ;;
-        import_confirm_prompt) echo "请输入 sure 确认修改，否则放弃：" ;;
+        import_confirm_prompt) echo "输入 sure 确认修改，回车跳过：" ;;
         import_value_prompt) echo "设置新值" ;;
         panel_install_prompt) echo "安装 Web 面板？[y/N] " ;;
         panel_port_prompt) echo "面板端口 [默认: 15000]: " ;;
@@ -148,7 +148,7 @@ msg() {
         import_file_missing) echo "[WARN] File not found or not readable; falling back to paste." ;;
         import_list_header) echo "Imported config (indexed):" ;;
         import_edit_prompt) echo "Edit imported config? Enter line numbers (comma-separated) or Enter to skip: " ;;
-        import_confirm_prompt) echo "Type sure to confirm edits, otherwise discard: " ;;
+        import_confirm_prompt) echo "Type sure to confirm edits, or Enter to skip: " ;;
         import_value_prompt) echo "Set new value" ;;
         panel_install_prompt) echo "Install Web Panel? [y/N] " ;;
         panel_port_prompt) echo "Panel port [default: 15000]: " ;;
@@ -563,14 +563,14 @@ try:
     catalog = bundle.get("catalog", {})
     decoded = decode_auto(os.environ["IMPORT_STRING"], catalog)
 except Exception as exc:
-    print(f"[ERROR] 配置字符串解析失败：{exc}")
+    print(f"[ERROR] 閰嶇疆瀛楃涓茶В鏋愬け璐ワ細{exc}")
     raise SystemExit(2)
 params.update(decoded)
 with open(path, "w", encoding="utf-8") as handle:
     json.dump(params, handle)
 PY
   then
-    echo "[ERROR] 配置字符串解析失败，请重新粘贴。"
+    echo "[ERROR] 閰嶇疆瀛楃涓茶В鏋愬け璐ワ紝璇烽噸鏂扮矘璐淬€?
     IMPORT_STRING=$(read_tty "$(msg import_string)")
     IMPORT_STRING="$(echo "$IMPORT_STRING" | tr -d '\r\n\t')"
     if [ -z "$IMPORT_STRING" ]; then
@@ -1025,7 +1025,7 @@ PLAN_OUTPUT=$(python3 -m deploy.cli plan \
 echo "$PLAN_OUTPUT"
 LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
 if [ -z "$LEVEL" ]; then
-  LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^级别:[[:space:]]*//p' | head -n 1)
+  LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^绾у埆:[[:space:]]*//p' | head -n 1)
 fi
 WARN_CONFIRMED="0"
 
@@ -1104,3 +1104,4 @@ echo "$CLAIMS_STRING"
 echo ""
 echo "[INFO] Execution plan complete."
 exit 0
+
