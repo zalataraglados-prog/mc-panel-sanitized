@@ -141,6 +141,15 @@ class MapStatusResponse(BaseModel):
     supports_y: bool
 
 
+class MapMetaResponse(BaseModel):
+    source: Optional[str]
+    tile_size: Optional[int] = None
+    scale: Optional[float] = None
+    origin: Optional[Dict[str, float]] = None
+    start_location: Optional[str] = None
+    maps: List[Dict[str, str]] = Field(default_factory=list)
+
+
 class MapConfigFile(BaseModel):
     name: str
     content: str

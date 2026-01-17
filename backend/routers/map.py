@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from backend.logging import log_action
@@ -10,6 +11,7 @@ from backend.models import (
     MapConfigFile,
     MapConfigResponse,
     MapConfigUpdateRequest,
+    MapMetaResponse,
     MapReloadResponse,
     MapStatusResponse,
 )
@@ -36,6 +38,24 @@ def map_status(instance_dir: str | None = Query(None), user=Depends(get_current_
         y_min=status.y_min,
         y_max=status.y_max,
         supports_y=status.supports_y,
+    )
+
+
+@router.get("/api/map/meta", response_model=MapMetaResponse)
+def map_meta(instance_dir: str | None = Query(None), user=Depends(get_current_user)):
+    require_roles(user, ["owner", "admin", "mod", "viewer"])
+    target_dir = instance_dir or resolve_instance_dir()
+    base = _resolve_bluemap_web_root(Path(target_dir))
+    if base is None:
+        return MapMetaResponse(source=None, tile_size=None, scale=None, origin=None, start_location=None, maps=[])
+    meta = _load_bluemap_meta(base)
+    return MapMetaResponse(
+        source="bluemap",
+        tile_size=meta.get("tile_size"),
+        scale=meta.get("scale"),
+        origin=meta.get("origin"),
+        start_location=meta.get("start_location"),
+        maps=meta.get("maps") or [],
     )
 
 
@@ -101,6 +121,168 @@ def _resolve_bluemap_web_root(instance_dir: Path) -> Path | None:
         if resolved.exists():
             return resolved
     return None
+
+
+def _read_json(path: Path) -> dict | list | None:
+    try:
+        return json.loads(path.read_text(encoding="utf-8", errors="ignore"))
+    except Exception:
+        return None
+
+
+def _load_bluemap_meta(base: Path) -> dict:
+    data_dir = base / "data"
+    settings_path = base / "settings.json"
+    candidates = [
+        data_dir / "map.json",
+        data_dir / "maps.json",
+        base / "maps.json",
+    ]
+    map_ids: list[str] = []
+    map_info: dict[str, str] = {}
+    meta_candidates: list[dict | list] = []
+    settings_payload = _read_json(settings_path) if settings_path.exists() else None
+
+    for path in candidates:
+        if path.exists():
+            payload = _read_json(path)
+            if payload is not None:
+                meta_candidates.append(payload)
+                map_ids.extend(_extract_map_ids(payload))
+                map_info.update(_extract_map_names(payload))
+
+    if isinstance(settings_payload, dict):
+        map_ids.extend(_extract_map_ids(settings_payload))
+        map_info.update(_extract_map_names(settings_payload))
+
+    for map_id in map_ids:
+        for path in (
+            data_dir / "maps" / f"{map_id}.json",
+            data_dir / "maps" / map_id / "map.json",
+            data_dir / f"{map_id}.json",
+            data_dir / map_id / "map.json",
+        ):
+            if path.exists():
+                payload = _read_json(path)
+                if payload is not None:
+                    meta_candidates.append(payload)
+                    map_info.update(_extract_map_names(payload))
+
+    if data_dir.exists():
+        for path in data_dir.glob("*.json"):
+            payload = _read_json(path)
+            if payload is not None:
+                meta_candidates.append(payload)
+
+    tile_size = None
+    scale = None
+    origin = None
+    for payload in meta_candidates:
+        if tile_size is None:
+            tile_size = _find_number(payload, {"tileSize", "tile_size", "tile-size", "tileSizePx"})
+        if scale is None:
+            scale = _find_number(payload, {"scale", "blocksPerPixel", "blockPerPixel", "tileScale", "scaleFactor"})
+        if origin is None:
+            origin = _find_origin(payload)
+        if tile_size is not None and scale is not None and origin is not None:
+            break
+
+    start_location = None
+    if isinstance(settings_payload, dict):
+        start_location = settings_payload.get("startLocation") or settings_payload.get("start_location")
+
+    maps = []
+    for map_id in list(dict.fromkeys(map_ids)):
+        name = map_info.get(map_id, map_id)
+        maps.append({"id": map_id, "name": name})
+
+    return {
+        "tile_size": tile_size,
+        "scale": scale,
+        "origin": origin,
+        "start_location": start_location,
+        "maps": maps,
+    }
+
+
+def _extract_map_ids(payload: dict | list) -> list[str]:
+    ids: list[str] = []
+    if isinstance(payload, dict):
+        items = payload.get("maps") if isinstance(payload.get("maps"), list) else payload.get("maps")
+        if isinstance(items, list):
+            for item in items:
+                if isinstance(item, dict):
+                    for key in ("id", "name", "mapId"):
+                        if key in item:
+                            ids.append(str(item[key]))
+        elif isinstance(payload.get("maps"), dict):
+            ids.extend([str(k) for k in payload.get("maps", {}).keys()])
+    elif isinstance(payload, list):
+        for item in payload:
+            if isinstance(item, dict):
+                for key in ("id", "name", "mapId"):
+                    if key in item:
+                        ids.append(str(item[key]))
+    return ids
+
+
+def _extract_map_names(payload: dict | list) -> dict[str, str]:
+    names: dict[str, str] = {}
+    if isinstance(payload, dict):
+        maps = payload.get("maps")
+        if isinstance(maps, list):
+            for item in maps:
+                if isinstance(item, dict):
+                    map_id = None
+                    for key in ("id", "name", "mapId"):
+                        if key in item:
+                            map_id = str(item[key])
+                            break
+                    if map_id:
+                        display = item.get("displayName") or item.get("label") or item.get("name")
+                        if display:
+                            names[map_id] = str(display)
+        elif isinstance(maps, dict):
+            for map_id, value in maps.items():
+                if isinstance(value, dict):
+                    display = value.get("displayName") or value.get("label") or value.get("name")
+                    if display:
+                        names[str(map_id)] = str(display)
+    elif isinstance(payload, list):
+        for item in payload:
+            names.update(_extract_map_names(item))
+    return names
+
+
+def _find_number(payload: dict | list, keys: set[str]) -> int | float | None:
+    keyset = {k.lower() for k in keys}
+    for key, value in _walk_payload(payload):
+        if key.lower() in keyset and isinstance(value, (int, float)):
+            return value
+    return None
+
+
+def _find_origin(payload: dict | list) -> dict | None:
+    for _, value in _walk_payload(payload):
+        if isinstance(value, dict):
+            for pair in (("minX", "minZ"), ("originX", "originZ"), ("offsetX", "offsetZ"), ("centerX", "centerZ")):
+                if pair[0] in value and pair[1] in value:
+                    return {"x": float(value[pair[0]]), "z": float(value[pair[1]])}
+            if "origin" in value and isinstance(value["origin"], dict):
+                origin = value["origin"]
+                if "x" in origin and "z" in origin:
+                    return {"x": float(origin["x"]), "z": float(origin["z"])}
+    return None
+
+
+def _walk_payload(payload: dict | list):
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            yield key, value
+            yield from _walk_payload(value)
+    elif isinstance(payload, list):
+        for item in payload:
+            yield from _walk_payload(item)
 
 
 @router.get("/api/map/config", response_model=MapConfigResponse)

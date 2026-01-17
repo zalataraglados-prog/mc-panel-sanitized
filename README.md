@@ -101,6 +101,9 @@ BlueMap 需要在 `core.conf` 中允许资源下载，生成瓦片后才会渲�
 Map tiles are served by the panel API when BlueMap is detected.
 检测到 BlueMap 后，面板 API 会提供瓦片服务。
 
+The panel also reads BlueMap `settings.json` to surface `startLocation` and map list for 2D/3D switching.
+面板同时读取 BlueMap 的 `settings.json`，用于获取 `startLocation` 与地图列表，支持 2D/3D 切换。
+
 ## Inventory plugins / 背包插件
 
 During deploy, you can optionally install an inventory plugin for richer inventory editing.

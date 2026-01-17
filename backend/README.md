@@ -47,6 +47,7 @@ backend/
 | `GET /api/metrics?window=60&instance_dir=...` | historic TPS points / TPS 历史点 |
 | `GET /api/instances` | list instances / 实例列表 |
 | `GET /api/map/status?instance_dir=...` | map availability / 地图可用性 |
+| `GET /api/map/meta?instance_dir=...` | map meta (startLocation + maps) / 地图元信息（startLocation + 地图列表） |
 | `GET /api/map/tile?dimension=...&x=...&z=...&zoom=...&y=...` | fetch map tile / 读取地图瓦片 |
 | `GET /api/map/config?instance_dir=...` | read map config / 读取地图配置 |
 | `PUT /api/map/config` | update map config / 写入地图配置 |

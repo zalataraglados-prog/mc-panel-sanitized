@@ -1014,6 +1014,7 @@ PLAN_OUTPUT=$(python3 -m deploy.cli plan \
   --import-string "$CLAIMS_STRING")
 echo "$PLAN_OUTPUT"
 LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
+WARN_CONFIRMED="0"
 
 case "$LEVEL" in
   block)
@@ -1056,7 +1057,7 @@ PY
   warn)
     CONFIRM=$(read_tty "$(msg plan_warn)")
     case "$CONFIRM" in
-      y|Y) echo "$(msg plan_ok)" ;;
+      y|Y) echo "$(msg plan_ok)"; WARN_CONFIRMED="1" ;;
       *) echo "$(msg review_canceled)"; exit 0 ;;
     esac
     ;;
@@ -1065,15 +1066,28 @@ PY
     ;;
 esac
 
+if [ "$LEVEL" = "warn" ] && [ "$WARN_CONFIRMED" != "1" ]; then
+  CONFIRM=$(read_tty "$(msg plan_warn)")
+  case "$CONFIRM" in
+    y|Y) WARN_CONFIRMED="1" ;;
+    *) echo "$(msg review_canceled)"; exit 0 ;;
+  esac
+fi
+
+APPLY_FLAGS="--apply"
+if [ "$LEVEL" = "warn" ]; then
+  APPLY_FLAGS="${APPLY_FLAGS} --confirm-warn"
+fi
+
 python3 -m deploy.cli apply \
   --version "$VERSION" \
   --profile "$PROFILE" \
   --import-string "$CLAIMS_STRING" \
-  --dry-run
+  $APPLY_FLAGS
 
 echo ""
 echo "Reusable claims string:"
 echo "$CLAIMS_STRING"
 echo ""
-echo "[INFO] Execution plan complete (dry-run only)."
+echo "[INFO] Execution plan complete."
 exit 0

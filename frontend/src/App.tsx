@@ -7,6 +7,14 @@ type Rule = { key: string; value: string };
 type CommandTemplate = { name: string; command: string };
 type InstanceItem = { name?: string; path?: string };
 type MapStatus = { source: string | null; available: Record<string, boolean>; y_min: number; y_max: number; supports_y: boolean };
+type MapMeta = {
+  source: string | null;
+  tile_size: number | null;
+  scale: number | null;
+  origin: { x: number; z: number } | null;
+  start_location?: string | null;
+  maps?: { id: string; name?: string }[];
+};
 type MapConfigFile = { name: string; content: string };
 type MapConfig = { plugin: string | null; files: MapConfigFile[] };
 type InventoryItem = { slot: number; id: string; count: number };
@@ -53,6 +61,10 @@ const translations = {
     coordZ: "Z",
     tpsTrend: "TPS Trend",
     mapStatus: "Map Status",
+    mapView2d: "2D",
+    mapView3d: "3D",
+    mapSelector: "Map",
+    avatarSize: "Avatar Size",
     mapSettings: "Map Settings",
     open: "Open",
     close: "Close",
@@ -166,6 +178,10 @@ const translations = {
     coordZ: "Z",
     tpsTrend: "TPS \u8d8b\u52bf",
     mapStatus: "\u5730\u56fe\u72b6\u6001",
+    mapView2d: "\u4e8c\u7ef4",
+    mapView3d: "\u4e09\u7ef4",
+    mapSelector: "\u5730\u56fe",
+    avatarSize: "\u5934\u50cf\u5927\u5c0f",
     mapSettings: "\u5730\u56fe\u8bbe\u7f6e",
     open: "\u5c55\u5f00",
     close: "\u6536\u8d77",
@@ -395,6 +411,8 @@ export function App() {
   const [exportOpen, setExportOpen] = useState(false);
   const [exportClaims, setExportClaims] = useState("");
   const [exportParams, setExportParams] = useState<Record<string, unknown> | null>(null);
+  const mapImageRef = useRef<HTMLImageElement | null>(null);
+  const [mapImageScale, setMapImageScale] = useState(1);
   const wsRef = useRef<WebSocket | null>(null);
   const logRef = useRef<HTMLDivElement | null>(null);
   const [logConnected, setLogConnected] = useState(false);
@@ -402,15 +420,19 @@ export function App() {
   const [serverRunning, setServerRunning] = useState<boolean | null>(null);
   const [controlStatus, setControlStatus] = useState("");
   const [mapStatus, setMapStatus] = useState<MapStatus | null>(null);
+  const [mapMeta, setMapMeta] = useState<MapMeta | null>(null);
   const [mapConfig, setMapConfig] = useState<MapConfig | null>(null);
   const [mapConfigOpen, setMapConfigOpen] = useState(false);
   const [mapConfigEditing, setMapConfigEditing] = useState(false);
   const [mapConfigDraft, setMapConfigDraft] = useState<Record<string, string>>({});
   const [mapDimension, setMapDimension] = useState<"overworld" | "nether" | "end">("overworld");
+  const [mapId, setMapId] = useState("");
   const [mapZoom, setMapZoom] = useState(0);
   const [mapX, setMapX] = useState(0);
   const [mapZ, setMapZ] = useState(0);
   const [mapY, setMapY] = useState(64);
+  const [mapView, setMapView] = useState<"2d" | "3d">("2d");
+  const [mapAvatarSize, setMapAvatarSize] = useState(18);
   const [mapRefreshSec, setMapRefreshSec] = useState(5);
   const [mapTick, setMapTick] = useState(0);
   const [inventoryOpen, setInventoryOpen] = useState(false);
@@ -460,6 +482,7 @@ export function App() {
     viewer: t.viewerRole,
   };
   const mapSupported = mapStatus?.source === "bluemap" || mapStatus?.source === "dynmap";
+  const mapSupports3d = mapStatus?.source === "bluemap";
   const formatRuleKey = (key: string) => {
     if (lang !== "zh") {
       return key;
@@ -479,6 +502,53 @@ export function App() {
     const unchanged = translated.every((value, index) => value === tokens[index]);
     return unchanged ? key : translated.join("");
   };
+
+  const mapOrigin = mapMeta?.origin;
+  const mapTileSize = mapMeta?.tile_size ?? 512;
+  const mapScale = mapMeta?.scale ?? 1;
+  const mapZoomScale = Math.pow(2, mapZoom);
+  const mapTileScale = mapScale * mapZoomScale;
+  const mapHash = useMemo(() => {
+    const raw = mapMeta?.start_location;
+    if (!raw) {
+      return "";
+    }
+    const hash = raw.startsWith("#") ? raw : `#${raw}`;
+    const parts = hash.slice(1).split(":");
+    if (parts.length === 10) {
+      if (mapId) {
+        parts[0] = mapId;
+      }
+      parts[9] = mapView === "2d" ? "flat" : "perspective";
+      return `#${parts.join(":")}`;
+    }
+    return hash;
+  }, [mapMeta?.start_location, mapView, mapId]);
+  const mapMarkers =
+    mapView === "2d" && mapStatus?.source !== "bluemap" && mapOrigin && mapMeta?.tile_size && mapMeta?.scale
+      ? players
+          .map((player) => {
+            const px = (player.position.x - mapOrigin.x) / mapTileScale - mapX * mapTileSize;
+            const pz = (player.position.z - mapOrigin.z) / mapTileScale - mapZ * mapTileSize;
+            if (px < 0 || pz < 0 || px > mapTileSize || pz > mapTileSize) {
+              return null;
+            }
+            const size = Math.max(12, mapAvatarSize);
+            const left = px * mapImageScale - size / 2;
+            const top = pz * mapImageScale - size / 2;
+            return (
+              <img
+                key={`marker-${player.uuid}`}
+                className="map-marker"
+                src={player.skin_url}
+                title={player.name}
+                style={{ left: `${left}px`, top: `${top}px`, width: `${size}px`, height: `${size}px` }}
+                alt={player.name}
+              />
+            );
+          })
+          .filter((item): item is JSX.Element => Boolean(item))
+      : null;
 
   const appendLogLine = (message: string) => {
     setLogLines((prev) => [...prev.slice(-200), message]);
@@ -558,6 +628,12 @@ export function App() {
         }
       })
       .catch(() => {});
+    fetch(`/api/map/meta${instanceQuery}`, { headers: authHeader })
+      .then((res) => res.json())
+      .then((data) => setMapMeta(data))
+      .catch(() => {
+        setMapMeta(null);
+      });
     fetch(`/api/metrics?window=60${instanceDir ? `&instance_dir=${encodeURIComponent(instanceDir)}` : ""}`, {
       headers: authHeader,
     })
@@ -671,6 +747,19 @@ export function App() {
   }, [instanceDir]);
 
   useEffect(() => {
+    if (!mapMeta?.maps?.length) {
+      return;
+    }
+    if (mapId && mapMeta.maps.some((entry) => entry.id === mapId)) {
+      return;
+    }
+    const fallback = mapMeta.maps[0];
+    if (fallback) {
+      setMapId(fallback.id);
+    }
+  }, [mapMeta?.maps, mapId]);
+
+  useEffect(() => {
     if (!token) {
       return;
     }
@@ -697,6 +786,28 @@ export function App() {
       refreshMapConfig();
     }
   }, [token, instanceDir, mapConfigOpen]);
+
+  useEffect(() => {
+    if (!mapSupports3d && mapView === "3d") {
+      setMapView("2d");
+    }
+  }, [mapSupports3d, mapView]);
+
+  useEffect(() => {
+    if (!mapImageRef.current) {
+      return;
+    }
+    const image = mapImageRef.current;
+    const updateScale = () => {
+      const width = image.clientWidth || 1;
+      const natural = image.naturalWidth || width;
+      setMapImageScale(width / natural);
+    };
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(image);
+    return () => observer.disconnect();
+  }, [mapView, mapTick, mapZoom]);
 
   useEffect(() => {
     if (!token) {
@@ -1355,6 +1466,26 @@ export function App() {
                 </button>
               </div>
               <div className="map-controls">
+                {mapStatus?.source === "bluemap" && mapMeta?.maps?.length ? (
+                  <label>
+                    {t.mapSelector}
+                    <select value={mapId} onChange={(event) => setMapId(event.target.value)}>
+                      {mapMeta.maps.map((entry) => (
+                        <option key={entry.id} value={entry.id}>
+                          {entry.name ? `${entry.name} (${entry.id})` : entry.id}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                <div className="map-view-toggle">
+                  <button className="btn" onClick={() => setMapView("2d")} disabled={mapView === "2d"}>
+                    {t.mapView2d}
+                  </button>
+                  <button className="btn" onClick={() => setMapView("3d")} disabled={!mapSupports3d || mapView === "3d"}>
+                    {t.mapView3d}
+                  </button>
+                </div>
                 <label>
                   {t.zoom}
                   <input
@@ -1386,23 +1517,38 @@ export function App() {
                   />
                   <span>{mapRefreshSec}s</span>
                 </label>
+                <label>
+                  {t.avatarSize}
+                  <input
+                    type="range"
+                    min="12"
+                    max="48"
+                    value={mapAvatarSize}
+                    onChange={(event) => setMapAvatarSize(Number(event.target.value))}
+                  />
+                  <span>{mapAvatarSize}px</span>
+                </label>
               </div>
             </div>
             <div className="map-canvas">
               {mapStatus?.source === "bluemap" ? (
                 <iframe
                   title="bluemap"
-                  src={`/api/map/bluemap/?instance_dir=${encodeURIComponent(instanceDir || "")}&token=${encodeURIComponent(
-                    token
-                  )}`}
+                  src={`/api/map/bluemap/?instance_dir=${encodeURIComponent(
+                    instanceDir || ""
+                  )}&token=${encodeURIComponent(token)}${mapHash}`}
                 />
               ) : (
-                <img
-                  alt="map"
-                  src={`/api/map/tile?dimension=${mapDimension}&x=${mapX}&z=${mapZ}&zoom=${mapZoom}&y=${mapY}&instance_dir=${encodeURIComponent(
-                    instanceDir || ""
-                  )}&tick=${mapTick}&token=${encodeURIComponent(token)}`}
-                />
+                <div className="map-stage">
+                  <img
+                    ref={mapImageRef}
+                    alt="map"
+                    src={`/api/map/tile?dimension=${mapDimension}&x=${mapX}&z=${mapZ}&zoom=${mapZoom}&y=${mapY}&instance_dir=${encodeURIComponent(
+                      instanceDir || ""
+                    )}&tick=${mapTick}&token=${encodeURIComponent(token)}`}
+                  />
+                  {mapMarkers ? <div className="map-markers">{mapMarkers}</div> : null}
+                </div>
               )}
             </div>
             <div className="map-pan">
