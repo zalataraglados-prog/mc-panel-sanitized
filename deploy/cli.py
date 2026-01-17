@@ -55,40 +55,40 @@ def _translate_message(message: str, lang: str) -> str:
     if lang != "zh" or not isinstance(message, str):
         return message
     replacements = {
-        "Multiple performance parameters adjusted; consider raising memory or lowering view/simulation distance.": "?????????????????????????/?????",
-        "Configured memory is insufficient for expected players; increase memory or reduce load.": "??????????????????????????",
-        "Configured memory may be insufficient for expected players; consider increasing memory.": "???????????????????????",
-        "Return to default to reduce risk.": "?????????????",
-        "Lowering this value typically improves stability and TPS.": "?????????????? TPS?",
-        "Increase memory or reduce players/view distance to avoid lag.": "???????????/????????",
-        "Expected player count not set; recommendations may be conservative.": "????????????????",
-        "Provide expected players to improve recommendations.": "???????????????",
-        "View distance may be too high for allocated memory.": "???????????????",
-        "Reduce view distance for stability.": "?????????????",
-        "Player capacity may be too high for allocated memory.": "??????????????????",
-        "Lower max players for stability.": "????????????????",
-        "Simulation distance exceeds view distance.": "?????????",
-        "Align simulation distance with view distance.": "?????????????",
+        "Multiple performance parameters adjusted; consider raising memory or lowering view/simulation distance.": "已同时调整多个性能相关参数，建议增加内存或降低视距/模拟距离。",
+        "Configured memory is insufficient for expected players; increase memory or reduce load.": "配置内存不足以支撑预期人数，建议增加内存或降低负载。",
+        "Configured memory may be insufficient for expected players; consider increasing memory.": "配置内存可能不足以支撑预期人数，建议增加内存。",
+        "Return to default to reduce risk.": "建议恢复默认值以降低风险。",
+        "Lowering this value typically improves stability and TPS.": "降低该参数通常可提升稳定性与 TPS。",
+        "Increase memory or reduce players/view distance to avoid lag.": "建议增加内存或降低人数/视距以避免卡顿。",
+        "Expected player count not set; recommendations may be conservative.": "未设置预期人数，推荐可能偏保守。",
+        "Provide expected players to improve recommendations.": "设置预期人数可提高推荐准确性。",
+        "View distance may be too high for allocated memory.": "视距可能超出当前内存承受范围。",
+        "Reduce view distance for stability.": "建议降低视距以提升稳定性。",
+        "Player capacity may be too high for allocated memory.": "最大玩家数可能超出当前内存承受范围。",
+        "Lower max players for stability.": "建议降低最大玩家数以提升稳定性。",
+        "Simulation distance exceeds view distance.": "模拟距离大于视距。",
+        "Align simulation distance with view distance.": "建议将模拟距离与视距对齐。",
     }
     if message in replacements:
         return replacements[message]
     patterns = [
         (
             r"^Medium-risk parameter '(.+)' deviates from default; use default unless you understand the impact\.$",
-            "????? '{param}' ??????????????????????",
+            "中风险参数 '{param}' 偏离默认值；除非清楚影响，否则建议恢复默认。",
         ),
         (
             r"^High-risk parameter '(.+)' deviates from default; use default unless you understand the impact\.$",
-            "????? '{param}' ??????????????????????",
+            "高风险参数 '{param}' 偏离默认值；除非清楚影响，否则建议恢复默认。",
         ),
-        (r"^Novice-sensitive parameter '(.+)' was explicitly set\.$", "?????? '{param}' ??????"),
-        (r"^Player-scope parameter '(.+)' should be set via gamerule\.$", "?????? '{param}' ??? gamerule ???"),
-        (r"^World-scope parameter '(.+)' is not applicable to Bedrock Edition\.$", "?????? '{param}' ???? Bedrock ??"),
-        (r"^Invalid boolean value for '(.+)'\.$", "?? '{param}' ???????"),
-        (r"^Invalid integer value for '(.+)'\.$", "?? '{param}' ???????"),
-        (r"^Value for '(.+)' below recommended minimum \((.+)\)\.$", "?? '{param}' ????????{extra}??"),
-        (r"^Value for '(.+)' above recommended maximum \((.+)\)\.$", "?? '{param}' ????????{extra}??"),
-        (r"^Value for '(.+)' does not align with step (.+)\.$", "?? '{param}' ????? {extra}?"),
+        (r"^Novice-sensitive parameter '(.+)' was explicitly set\.$", "新手敏感参数 '{param}' 被显式设置。"),
+        (r"^Player-scope parameter '(.+)' should be set via gamerule\.$", "玩家范围参数 '{param}' 应通过 gamerule 设置。"),
+        (r"^World-scope parameter '(.+)' is not applicable to Bedrock Edition\.$", "世界范围参数 '{param}' 不适用于 Bedrock 版。"),
+        (r"^Invalid boolean value for '(.+)'\.$", "参数 '{param}' 的布尔值无效。"),
+        (r"^Invalid integer value for '(.+)'\.$", "参数 '{param}' 的整数值无效。"),
+        (r"^Value for '(.+)' below recommended minimum \((.+)\)\.$", "参数 '{param}' 低于推荐最小值（{extra}）。"),
+        (r"^Value for '(.+)' above recommended maximum \((.+)\)\.$", "参数 '{param}' 高于推荐最大值（{extra}）。"),
+        (r"^Value for '(.+)' does not align with step (.+)\.$", "参数 '{param}' 不符合步长 {extra}。"),
     ]
     for pattern, template in patterns:
         match = re.match(pattern, message)
@@ -103,21 +103,25 @@ def _label(lang: str, text: str) -> str:
     if lang != "zh":
         return text
     mapping = {
-        "=== Apply Plan Review ===": "=== ???? ===",
-        "Target": "??",
-        "Level": "??",
-        "Source: imported claims": "???????",
-        "Warnings:": "???",
-        "Blocked:": "???",
-        "Recommendations:": "???",
-        "=== Execution Plan (dry-run) ===": "=== ?????dry-run?===",
-        "parameter": "??",
+        "=== Apply Plan Review ===": "=== 部署评审 ===",
+        "Target": "目标",
+        "Level": "级别",
+        "Source: imported claims": "来源：导入配置",
+        "Warnings:": "警告：",
+        "Blocked:": "阻止：",
+        "Recommendations:": "建议：",
+        "=== Execution Plan (dry-run) ===": "=== 执行计划（dry-run）===",
+        "parameter": "参数",
     }
     return mapping.get(text, text)
 
 
 def print_review(apply_plan, claims: Claims | None = None):
     lang = os.environ.get("MC_PANEL_LANG", "en")
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
     print(f"\n{_label(lang, '=== Apply Plan Review ===')}")
     print(f"{_label(lang, 'Target')}: {apply_plan.target}")
     print(f"{_label(lang, 'Level')}:  {apply_plan.summary.level}")
@@ -396,7 +400,7 @@ def main():
     lang = os.environ.get("MC_PANEL_LANG", "en")
     if apply_plan.summary.level == "block":
         if lang == "zh":
-            print("??????????? apply?")
+            print("已被评审阻止，无法执行 apply。")
         else:
             print("Apply is blocked by planner review.")
         return 1
@@ -404,7 +408,7 @@ def main():
     if args.apply:
         if apply_plan.summary.level == "warn" and not args.confirm_warn:
             if lang == "zh":
-                print("??? warn ????? apply ?? --confirm-warn?")
+                print("当前为 warn 级别，执行 apply 需要 --confirm-warn。")
             else:
                 print("Apply requires --confirm-warn when review level is warn.")
             return 1
@@ -441,7 +445,7 @@ def main():
     result = executor.execute(plan)
     if not result.ok:
         if lang == "zh":
-            print("?????")
+            print("执行失败。")
         else:
             print("Execution failed.")
         for step in result.steps:

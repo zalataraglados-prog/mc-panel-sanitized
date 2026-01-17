@@ -295,6 +295,7 @@ PY
 fi
 export MC_PANEL_ROOT="$INSTALL_DIR"
 export MC_PANEL_LANG="$LANGUAGE"
+export PYTHONIOENCODING="utf-8"
 export MC_PANEL_LOG_DIR="$INSTALL_DIR/logs"
 export MC_PANEL_LOG_BRANCH="logs"
 export MC_PANEL_LOG_WORKTREE="$INSTALL_DIR/.logs-worktree"
@@ -1014,6 +1015,9 @@ PLAN_OUTPUT=$(python3 -m deploy.cli plan \
   --import-string "$CLAIMS_STRING")
 echo "$PLAN_OUTPUT"
 LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
+if [ -z "$LEVEL" ]; then
+  LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^级别:[[:space:]]*//p' | head -n 1)
+fi
 WARN_CONFIRMED="0"
 
 case "$LEVEL" in
