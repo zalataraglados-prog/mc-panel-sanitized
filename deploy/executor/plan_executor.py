@@ -45,6 +45,28 @@ class ExecutionPlanExecutor:
             result = self.inspector.check_docker_available()
         elif check_type == "systemd_available":
             result = self.inspector.check_systemd_available()
+        elif check_type == "systemd_pid1":
+            result = self.inspector.check_systemd_pid1()
+        elif check_type == "selinux_enforcing":
+            result = self.inspector.check_selinux_enforcing()
+        elif check_type == "apparmor_enabled":
+            result = self.inspector.check_apparmor_enabled()
+        elif check_type == "ufw_active":
+            result = self.inspector.check_ufw_active()
+        elif check_type == "dns_configured":
+            result = self.inspector.check_dns_configured()
+        elif check_type == "swap_available":
+            result = self.inspector.check_swap_available()
+        elif check_type == "disk_free":
+            result = self.inspector.check_disk_free(value)
+        elif check_type == "mount_noexec":
+            result = self.inspector.check_mount_noexec(value)
+        elif check_type == "docker_rootless":
+            result = self.inspector.check_docker_rootless()
+        elif check_type == "time_sync":
+            result = self.inspector.check_time_sync()
+        elif check_type == "ipv4_available":
+            result = self.inspector.check_ipv4_available()
         elif check_type == "file_exists":
             result = self.inspector.check_file_exists(value)
         elif check_type == "memory_available":

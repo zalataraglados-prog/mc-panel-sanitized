@@ -192,6 +192,16 @@ def build_execution_plan(
     preconditions: List[Precondition] = [
         Precondition(type="path_exists", value=base_dir, required=True),
         Precondition(type="path_writable", value=base_dir, required=True),
+        Precondition(type="systemd_pid1", value="systemd", required=False),
+        Precondition(type="selinux_enforcing", value="selinux", required=False),
+        Precondition(type="apparmor_enabled", value="apparmor", required=False),
+        Precondition(type="ufw_active", value="ufw", required=False),
+        Precondition(type="dns_configured", value="/etc/resolv.conf", required=False),
+        Precondition(type="swap_available", value="swap", required=False),
+        Precondition(type="disk_free", value=base_dir, required=False),
+        Precondition(type="mount_noexec", value=base_dir, required=False),
+        Precondition(type="time_sync", value="ntp", required=False),
+        Precondition(type="ipv4_available", value="ipv4", required=False),
     ]
 
     port = _pick_server_port(params)
@@ -208,6 +218,7 @@ def build_execution_plan(
     if _needs_docker(params):
         preconditions.append(Precondition(type="docker_available", value="docker", required=True))
         preconditions.append(Precondition(type="systemd_available", value="systemd", required=True))
+        preconditions.append(Precondition(type="docker_rootless", value="docker", required=False))
 
     memory_gb = _parse_memory_gb(params.get("docker.env.MEMORY"))
     if memory_gb is not None:
