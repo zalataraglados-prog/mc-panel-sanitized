@@ -13,6 +13,29 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
+AUTO_MODE="${MC_PANEL_AUTO:-0}"
+AUTO_YES="${MC_PANEL_ASSUME_YES:-0}"
+if [ "$AUTO_MODE" = "1" ]; then
+  AUTO_YES="1"
+fi
+
+ensure_docker_compose() {
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    return 0
+  fi
+  if command -v docker-compose >/dev/null 2>&1; then
+    return 0
+  fi
+  if command -v apt-get >/dev/null 2>&1; then
+    if apt-get install -y docker-compose-plugin; then
+      return 0
+    fi
+    echo "[WARN] docker-compose-plugin not found; falling back to docker-compose."
+    apt-get install -y docker-compose || true
+  fi
+  return 0
+}
+
 # ------------------------------
 # Ensure dependencies
 # ------------------------------
@@ -32,10 +55,11 @@ if command -v apt-get >/dev/null 2>&1; then
   if ! command -v docker >/dev/null 2>&1; then
     echo "[INFO] Installing docker..."
     apt-get install -y docker.io
-    if ! apt-get install -y docker-compose-plugin; then
-      echo "[WARN] docker-compose-plugin not found; falling back to docker-compose."
-      apt-get install -y docker-compose
-    fi
+    ensure_docker_compose
+  else
+    ensure_docker_compose
+  fi
+  if command -v systemctl >/dev/null 2>&1; then
     systemctl enable --now docker || true
   fi
 fi
@@ -91,7 +115,11 @@ read_tty() {
 # ------------------------------
 # Language selection
 # ------------------------------
-LANGUAGE=$(read_tty "Select language / 选择语言 [1=EN, 2=中文]: ")
+if [ "$AUTO_MODE" = "1" ] && [ -n "${MC_PANEL_LANG:-}" ]; then
+  LANGUAGE="${MC_PANEL_LANG}"
+else
+  LANGUAGE=$(read_tty "Select language [1=EN, 2=ZH]: ")
+fi
 case "$LANGUAGE" in
   2) LANGUAGE="zh" ;;
   *) LANGUAGE="en" ;;
@@ -99,137 +127,69 @@ esac
 
 msg() {
   local key="$1"
-  case "$LANGUAGE" in
-    zh)
-      case "$key" in
-        panel_maintenance) echo "面板维护（已有实例）：" ;;
-        panel_install) echo "1) 为已有实例安装面板" ;;
-        panel_uninstall) echo "2) 卸载已有实例面板" ;;
-        panel_continue) echo "回车继续正常部署。" ;;
-        panel_prompt) echo "输入 [1-2] 或留空：" ;;
-        instances) echo "可用实例：" ;;
-        instance_dir) echo "实例目录（可选，用于查端口）：" ;;
-        import_string) echo "粘贴配置串（回车跳过）：" ;;
-        import_mode) echo "导入方式：1) 粘贴配置串 2) 从文件导入（回车跳过）" ;;
-        import_file) echo "配置串文件路径：" ;;
-        import_file_missing) echo "[WARN] 文件不存在或不可读，将改为粘贴输入。" ;;
-        import_list_header) echo "已导入配置（编号）：" ;;
-        import_edit_prompt) echo "是否修改导入配置？输入行号（逗号分隔），回车跳过：" ;;
-        import_confirm_prompt) echo "输入 sure 确认修改，回车跳过：" ;;
-        import_value_prompt) echo "设置新值" ;;
-        panel_install_prompt) echo "安装 Web 面板？[y/N] " ;;
-        panel_port_prompt) echo "面板端口 [默认: 15000]: " ;;
-        inventory_menu) echo "背包插件（可选）：" ;;
-        inventory_url_prompt) echo "背包插件下载地址 [默认]：" ;;
-        inventory_url_required) echo "背包插件下载地址（必填）：" ;;
-        map_port_prompt) echo "地图插件端口 [默认: " ;;
-        map_render_prompt) echo "地图渲染间隔（分钟）[默认: 5]: " ;;
-        java_override) echo "是否覆盖 Java 运行时？[y/N] " ;;
-        java_select) echo "选择 Java 版本：" ;;
-        memory_prompt) echo "内存（例如 2G / 4G）：" ;;
-        expected_players_prompt) echo "预期在线人数（可选）：" ;;
-        version_menu) echo "选择 Minecraft 版本：" ;;
-        version_custom) echo "自定义版本号：" ;;
-        edition_menu) echo "选择 Minecraft 版本类型：" ;;
-        edition_java) echo "1) Java 版" ;;
-        edition_bedrock) echo "2) Bedrock 版" ;;
-        bedrock_notice) echo "当前仅支持 Java 版，Bedrock 暂未实现。" ;;
-        bedrock_detail) echo "Bedrock 执行层尚未实现。" ;;
-        profile_menu) echo "选择配置档位：" ;;
-        profile_beginner) echo "1) 新手" ;;
-        profile_normal) echo "2) 标准（默认）" ;;
-        profile_advanced) echo "3) 高级" ;;
-        map_menu) echo "地图插件（可选）：" ;;
-        map_none) echo "1) 不安装" ;;
-        map_dynmap) echo "2) Dynmap" ;;
-        map_bluemap) echo "3) BlueMap" ;;
-        map_url_prompt) echo "地图插件下载地址 [默认]：" ;;
-        map_url_fail) echo "[WARN] 下载地址不可达，请重试或选择不安装。" ;;
-        plan_run) echo "[INFO] 正在执行 plan..." ;;
-        plan_block) echo "[INFO] 被阻拦，可调整参数后重试。" ;;
-        plan_warn) echo "存在警告，是否继续？[y/N] " ;;
-        plan_ok) echo "[INFO] Review 通过，生成执行计划..." ;;
-        edit_params) echo "调整参数（key=value，空行结束）：" ;;
-        frontend_missing) echo "[WARN] 缺少 frontend/dist，面板需要构建。" ;;
-        frontend_build_now) echo "是否现在构建前端？[y/N] " ;;
-        frontend_build_skip) echo "[WARN] 已跳过前端构建，面板可能无法启动。" ;;
-        npm_missing) echo "[WARN] 未检测到 npm，请安装 Node.js 后再构建。" ;;
-        review_blocked) echo "[INFO] Review 被阻拦，可调整参数后重试。" ;;
-        review_still_block) echo "[INFO] 仍被阻拦，已退出。" ;;
-        review_canceled) echo "[INFO] 已取消。" ;;
-        *) echo "$key" ;;
-      esac
-      ;;
-    *)
-      case "$key" in
-        panel_maintenance) echo "Panel maintenance (existing instance):" ;;
-        panel_install) echo "1) Install panel for an existing instance" ;;
-        panel_uninstall) echo "2) Uninstall panel from an existing instance" ;;
-        panel_continue) echo "Enter to continue normal deployment." ;;
-        panel_prompt) echo "Enter [1-2] or blank: " ;;
-        instances) echo "Available instances:" ;;
-        instance_dir) echo "Instance dir (optional, for panel port lookup): " ;;
-        import_string) echo "Paste claims string (or press Enter to continue): " ;;
-        import_mode) echo "Import mode: 1) Paste string 2) From file (Enter to skip)" ;;
-        import_file) echo "Claims file path: " ;;
-        import_file_missing) echo "[WARN] File not found or not readable; falling back to paste." ;;
-        import_list_header) echo "Imported config (indexed):" ;;
-        import_edit_prompt) echo "Edit imported config? Enter line numbers (comma-separated) or Enter to skip: " ;;
-        import_confirm_prompt) echo "Type sure to confirm edits, or Enter to skip: " ;;
-        import_value_prompt) echo "Set new value" ;;
-        panel_install_prompt) echo "Install Web Panel? [y/N] " ;;
-        panel_port_prompt) echo "Panel port [default: 15000]: " ;;
-        inventory_menu) echo "Inventory plugin (optional):" ;;
-        inventory_url_prompt) echo "Inventory plugin download URL [default]: " ;;
-        inventory_url_required) echo "Inventory plugin download URL (required): " ;;
-        map_port_prompt) echo "Map plugin port [default: " ;;
-        map_render_prompt) echo "Map render interval (minutes) [default: 5]: " ;;
-        java_override) echo "Override Java runtime? [y/N] " ;;
-        java_select) echo "Select Java runtime:" ;;
-        memory_prompt) echo "Memory (e.g. 2G / 4G): " ;;
-        expected_players_prompt) echo "Expected players (optional): " ;;
-        version_menu) echo "Select Minecraft version:" ;;
-        version_custom) echo "Custom version: " ;;
-        edition_menu) echo "Select Minecraft edition:" ;;
-        edition_java) echo "1) Java Edition" ;;
-        edition_bedrock) echo "2) Bedrock Edition" ;;
-        bedrock_notice) echo "Sorry, this deployer currently supports Java Edition only." ;;
-        bedrock_detail) echo "Bedrock execution is not implemented yet." ;;
-        profile_menu) echo "Select profile:" ;;
-        profile_beginner) echo "1) beginner" ;;
-        profile_normal) echo "2) normal (default)" ;;
-        profile_advanced) echo "3) advanced" ;;
-        map_menu) echo "Map plugin (optional):" ;;
-        map_none) echo "1) none" ;;
-        map_dynmap) echo "2) Dynmap" ;;
-        map_bluemap) echo "3) BlueMap" ;;
-        map_url_prompt) echo "Map plugin URL [default]: " ;;
-        map_url_fail) echo "[WARN] URL unreachable; retry or choose none." ;;
-        plan_run) echo "[INFO] Running plan..." ;;
-        plan_block) echo "[INFO] Review blocked. You can adjust params and retry." ;;
-        plan_warn) echo "Review contains warnings. Continue? [y/N] " ;;
-        plan_ok) echo "[INFO] Review passed. Generating execution plan..." ;;
-        edit_params) echo "Adjust params (key=value, blank to finish): " ;;
-        frontend_missing) echo "[WARN] frontend/dist not found. Panel will require a frontend build." ;;
-        frontend_build_now) echo "Build frontend now? [y/N] " ;;
-        frontend_build_skip) echo "[WARN] Skipped frontend build. Panel service may fail until built." ;;
-        npm_missing) echo "[WARN] npm not found. Install Node.js then run npm install && npm run build." ;;
-        review_blocked) echo "[INFO] Review blocked. You can adjust params and retry." ;;
-        review_still_block) echo "[INFO] Review still blocked. Exiting." ;;
-        review_canceled) echo "[INFO] Operation canceled." ;;
-        *) echo "$key" ;;
-      esac
-      ;;
+  case "$key" in
+    panel_maintenance) echo "Panel maintenance (existing instance):" ;;
+    panel_install) echo "1) Install panel for an existing instance" ;;
+    panel_uninstall) echo "2) Uninstall panel from an existing instance" ;;
+    panel_continue) echo "Enter to continue normal deployment." ;;
+    panel_prompt) echo "Enter [1-2] or blank: " ;;
+    instances) echo "Available instances:" ;;
+    instance_dir) echo "Instance dir (optional, for panel port lookup): " ;;
+    import_string) echo "Paste claims string (or press Enter to continue): " ;;
+    import_mode) echo "Import mode: 1) Paste string 2) From file (Enter to skip)" ;;
+    import_file) echo "Claims file path: " ;;
+    import_file_missing) echo "[WARN] File not found or not readable; falling back to paste." ;;
+    import_list_header) echo "Imported config (indexed):" ;;
+    import_edit_prompt) echo "Edit imported config? Enter line numbers (comma-separated) or Enter to skip: " ;;
+    import_confirm_prompt) echo "Type sure to confirm edits, or Enter to skip: " ;;
+    import_value_prompt) echo "Set new value" ;;
+    panel_install_prompt) echo "Install Web Panel? [y/N] " ;;
+    panel_port_prompt) echo "Panel port [default: 15000]: " ;;
+    inventory_menu) echo "Inventory plugin (optional):" ;;
+    inventory_url_prompt) echo "Inventory plugin download URL [default]: " ;;
+    inventory_url_required) echo "Inventory plugin download URL (required): " ;;
+    map_port_prompt) echo "Map plugin port [default: " ;;
+    map_render_prompt) echo "Map render interval (minutes) [default: 5]: " ;;
+    java_override) echo "Override Java runtime? [y/N] " ;;
+    java_select) echo "Select Java runtime:" ;;
+    memory_prompt) echo "Memory (e.g. 2G / 4G): " ;;
+    expected_players_prompt) echo "Expected players (optional): " ;;
+    version_menu) echo "Select Minecraft version:" ;;
+    version_custom) echo "Custom version: " ;;
+    edition_menu) echo "Select Minecraft edition:" ;;
+    edition_java) echo "1) Java Edition" ;;
+    edition_bedrock) echo "2) Bedrock Edition" ;;
+    bedrock_notice) echo "Sorry, this deployer currently supports Java Edition only." ;;
+    bedrock_detail) echo "Bedrock execution is not implemented yet." ;;
+    profile_menu) echo "Select profile:" ;;
+    profile_beginner) echo "1) beginner" ;;
+    profile_normal) echo "2) normal (default)" ;;
+    profile_advanced) echo "3) advanced" ;;
+    map_menu) echo "Map plugin (optional):" ;;
+    map_none) echo "1) none" ;;
+    map_dynmap) echo "2) Dynmap" ;;
+    map_bluemap) echo "3) BlueMap" ;;
+    map_url_prompt) echo "Map plugin URL [default]: " ;;
+    map_url_fail) echo "[WARN] URL unreachable; retry or choose none." ;;
+    plan_run) echo "[INFO] Running plan..." ;;
+    plan_block) echo "[INFO] Review blocked. You can adjust params and retry." ;;
+    plan_warn) echo "Review contains warnings. Continue? [y/N] " ;;
+    plan_ok) echo "[INFO] Review passed. Generating execution plan..." ;;
+    edit_params) echo "Adjust params (key=value, blank to finish): " ;;
+    frontend_missing) echo "[WARN] frontend/dist not found. Panel will require a frontend build." ;;
+    frontend_build_now) echo "Build frontend now? [y/N] " ;;
+    frontend_build_skip) echo "[WARN] Skipped frontend build. Panel service may fail until built." ;;
+    npm_missing) echo "[WARN] npm not found. Install Node.js then run npm install && npm run build." ;;
+    review_blocked) echo "[INFO] Review blocked. You can adjust params and retry." ;;
+    review_still_block) echo "[INFO] Review still blocked. Exiting." ;;
+    review_canceled) echo "[INFO] Operation canceled." ;;
+    *) echo "$key" ;;
   esac
 }
 
 choice_prompt() {
   local range="$1"
-  if [ "$LANGUAGE" = "zh" ]; then
-    echo "输入 [${range}]："
-  else
-    echo "Enter [${range}]: "
-  fi
+  echo "Enter [${range}]: "
 }
 
 # ------------------------------
@@ -240,7 +200,11 @@ echo "$(msg panel_maintenance)"
 echo "$(msg panel_install)"
 echo "$(msg panel_uninstall)"
 echo "$(msg panel_continue)"
-PANEL_MAINT=$(read_tty "$(msg panel_prompt)")
+if [ "$AUTO_MODE" = "1" ]; then
+  PANEL_MAINT=""
+else
+  PANEL_MAINT=$(read_tty "$(msg panel_prompt)")
+fi
 
 if [ "$PANEL_MAINT" = "1" ] || [ "$PANEL_MAINT" = "2" ]; then
   echo ""
@@ -264,12 +228,26 @@ if [ "$PANEL_MAINT" = "1" ] || [ "$PANEL_MAINT" = "2" ]; then
 fi
 
 echo ""
-IMPORT_MODE=$(read_tty "$(msg import_mode)")
-IMPORT_MODE="${IMPORT_MODE//$'\r'/}"
-IMPORT_MODE="$(echo "$IMPORT_MODE" | xargs)"
+if [ "$AUTO_MODE" = "1" ]; then
+  if [ -n "${MC_PANEL_IMPORT_FILE:-}" ]; then
+    IMPORT_MODE="2"
+    IMPORT_FILE="${MC_PANEL_IMPORT_FILE}"
+  elif [ -n "${MC_PANEL_IMPORT_STRING:-}" ]; then
+    IMPORT_MODE="1"
+    IMPORT_STRING="${MC_PANEL_IMPORT_STRING}"
+  else
+    IMPORT_MODE=""
+  fi
+else
+  IMPORT_MODE=$(read_tty "$(msg import_mode)")
+  IMPORT_MODE="${IMPORT_MODE//$'\r'/}"
+  IMPORT_MODE="$(echo "$IMPORT_MODE" | xargs)"
+fi
 case "$IMPORT_MODE" in
   2)
-    IMPORT_FILE=$(read_tty "$(msg import_file)")
+    if [ -z "${IMPORT_FILE:-}" ]; then
+      IMPORT_FILE=$(read_tty "$(msg import_file)")
+    fi
     IMPORT_FILE="${IMPORT_FILE//$'\r'/}"
     if [ -n "$IMPORT_FILE" ] && [ -f "$IMPORT_FILE" ]; then
       IMPORT_STRING=$(cat "$IMPORT_FILE")
@@ -449,7 +427,7 @@ def version_key(v: str):
             nums.append(int(part))
         except ValueError:
             nums.append(0)
-    return tuple(nums + [0] * (3 - len(nums)))
+    retun tuple(nums + [0] * (3 - len(nums)))
 
 try:
     with urllib.request.urlopen(url, timeout=10) as resp:
@@ -973,7 +951,7 @@ def pick_default(section, key, catalog_default):
     entry = usability.get(section, {}).get("entries", {}).get(key, {})
     usage = entry.get("usability", {})
     hint = usage.get("default_hint")
-    return hint if hint is not None else catalog_default
+    retun hint if hint is not None else catalog_default
 
 for section in ("server_properties", "gamerule"):
     entries = catalog.get(section, {}).get("entries", {})
@@ -1062,7 +1040,7 @@ while true; do
   echo "$PLAN_OUTPUT"
   LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
   if [ -z "$LEVEL" ]; then
-    LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^级别:[[:space:]]*//p' | head -n 1)
+    LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^缁狙冨焼:[[:space:]]*//p' | head -n 1)
   fi
   LEVEL="$(echo "$LEVEL" | xargs | tr 'A-Z' 'a-z')"
 
@@ -1100,11 +1078,16 @@ PY
       continue
       ;;
     warn)
-      CONFIRM=$(read_tty "$(msg plan_warn)")
-      case "$CONFIRM" in
-        y|Y) echo "$(msg plan_ok)"; WARN_CONFIRMED="1" ;;
-        *) echo "$(msg review_canceled)"; exit 0 ;;
-      esac
+      if [ "$AUTO_YES" = "1" ]; then
+        WARN_CONFIRMED="1"
+        echo "$(msg plan_ok)"
+      else
+        CONFIRM=$(read_tty "$(msg plan_warn)")
+        case "$CONFIRM" in
+          y|Y) echo "$(msg plan_ok)"; WARN_CONFIRMED="1" ;;
+          *) echo "$(msg review_canceled)"; exit 0 ;;
+        esac
+      fi
       ;;
     *)
       echo "$(msg plan_ok)"
@@ -1112,11 +1095,15 @@ PY
   esac
 
   if [ "$LEVEL" = "warn" ] && [ "$WARN_CONFIRMED" != "1" ]; then
-    CONFIRM=$(read_tty "$(msg plan_warn)")
-    case "$CONFIRM" in
-      y|Y) WARN_CONFIRMED="1" ;;
-      *) echo "$(msg review_canceled)"; exit 0 ;;
-    esac
+    if [ "$AUTO_YES" = "1" ]; then
+      WARN_CONFIRMED="1"
+    else
+      CONFIRM=$(read_tty "$(msg plan_warn)")
+      case "$CONFIRM" in
+        y|Y) WARN_CONFIRMED="1" ;;
+        *) echo "$(msg review_canceled)"; exit 0 ;;
+      esac
+    fi
   fi
   break
 done
@@ -1131,6 +1118,87 @@ python3 -m deploy.cli apply \
   --profile "$PROFILE" \
   --import-string "$CLAIMS_STRING" \
   $APPLY_FLAGS
+
+echo ""
+INSTANCE_NAME=$(python3 - <<'PY'
+import json
+import os
+from deploy.executor.executor_planner import _stable_instance_name
+params_path = os.environ.get("PARAMS_JSON")
+if not params_path:
+    raise SystemExit(1)
+with open(params_path, "r", encoding="utf-8") as handle:
+    params = json.load(handle)
+print(_stable_instance_name(params))
+PY
+)
+INSTANCE_DIR="/opt/mc-instances/${INSTANCE_NAME}"
+CONFIG_JSON="${INSTANCE_DIR}/config.json"
+export CONFIG_JSON
+MC_PORT=""
+PANEL_PORT=""
+MAP_PORT=""
+PANEL_ENABLED_VALUE=""
+if [ -f "$CONFIG_JSON" ]; then
+  MC_PORT=$(python3 - <<'PY'
+import json
+import os
+path = os.environ["CONFIG_JSON"]
+with open(path, "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+print(data.get("MC_PORT", ""))
+PY
+  )
+  PANEL_PORT=$(python3 - <<'PY'
+import json
+import os
+path = os.environ["CONFIG_JSON"]
+with open(path, "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+print(data.get("PANEL_PORT", ""))
+PY
+  )
+  MAP_PORT=$(python3 - <<'PY'
+import json
+import os
+path = os.environ["CONFIG_JSON"]
+with open(path, "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+print(data.get("MAP_PORT", ""))
+PY
+  )
+  PANEL_ENABLED_VALUE=$(python3 - <<'PY'
+import json
+import os
+path = os.environ["CONFIG_JSON"]
+with open(path, "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+print(str(data.get("PANEL_ENABLED", "")))
+PY
+  )
+fi
+PUBLIC_IP=""
+if command -v curl >/dev/null 2>&1; then
+  PUBLIC_IP=$(curl -fsSL https://api.ipify.org || true)
+fi
+if [ -z "$PUBLIC_IP" ] && command -v hostname >/dev/null 2>&1; then
+  PUBLIC_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+fi
+if [ -z "$PUBLIC_IP" ]; then
+  PUBLIC_IP="127.0.0.1"
+fi
+MAP_PLUGIN=$(PARAM_KEY="map.plugin" get_param "map.plugin")
+
+echo "[INFO] Instance dir: ${INSTANCE_DIR}"
+if [ -n "$MC_PORT" ]; then
+  echo "[INFO] Minecraft: ${PUBLIC_IP}:${MC_PORT}"
+fi
+if [ "$PANEL_ENABLED_VALUE" = "true" ] && [ -n "$PANEL_PORT" ]; then
+  echo "[INFO] Panel: http://${PUBLIC_IP}:${PANEL_PORT}/"
+fi
+if [ -n "$MAP_PLUGIN" ] && [ -n "$MAP_PORT" ]; then
+  echo "[INFO] Map: http://${PUBLIC_IP}:${MAP_PORT}/"
+fi
 
 echo ""
 echo "Reusable claims string:"
