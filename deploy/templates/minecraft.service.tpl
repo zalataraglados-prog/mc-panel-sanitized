@@ -7,8 +7,8 @@ Type=oneshot
 RemainAfterExit=true
 WorkingDirectory={{INSTANCE_DIR}}
 ExecStartPre=/usr/bin/env docker info > /dev/null 2>&1
-ExecStart=/usr/bin/env docker compose -p {{INSTANCE_NAME}} up -d minecraft
-ExecStop=/usr/bin/env docker compose -p {{INSTANCE_NAME}} stop minecraft
+ExecStart=/bin/sh -c 'if docker compose version >/dev/null 2>&1; then docker compose -p {{INSTANCE_NAME}} up -d minecraft; elif command -v docker-compose >/dev/null 2>&1; then docker-compose -p {{INSTANCE_NAME}} up -d minecraft; else exit 127; fi'
+ExecStop=/bin/sh -c 'if docker compose version >/dev/null 2>&1; then docker compose -p {{INSTANCE_NAME}} stop minecraft; elif command -v docker-compose >/dev/null 2>&1; then docker-compose -p {{INSTANCE_NAME}} stop minecraft; else exit 127; fi'
 TimeoutStartSec=0
 
 [Install]

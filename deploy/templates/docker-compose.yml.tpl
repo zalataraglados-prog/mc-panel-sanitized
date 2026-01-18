@@ -12,7 +12,7 @@ services:
       - MEMORY={{MC_MEMORY}}
       - ENABLE_RCON=TRUE
       - RCON_PASSWORD={{RCON_PASSWORD}}
-      - RCON_PORT=25575
+      - RCON_PORT={{RCON_PORT}}
 {{ENV_BLOCK}}
     volumes:
 {{VOLUME_BLOCK}}
