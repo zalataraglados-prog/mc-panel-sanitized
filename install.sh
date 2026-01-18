@@ -152,8 +152,6 @@ if command -v apt-get >/dev/null 2>&1; then
   if command -v systemctl >/dev/null 2>&1; then
     systemctl enable --now docker || true
   fi
-  maybe_prompt_docker_mirror
-  maybe_prompt_docker_proxy_pull
 fi
 
 # ------------------------------
@@ -189,6 +187,12 @@ fi
 
 # Ensure base instance directory exists for preconditions
 mkdir -p /opt/mc-instances
+
+# ------------------------------
+# Optional Docker mirror/proxy guidance (after deps)
+# ------------------------------
+maybe_prompt_docker_mirror
+maybe_prompt_docker_proxy_pull
 
 # ------------------------------
 # Language selection
