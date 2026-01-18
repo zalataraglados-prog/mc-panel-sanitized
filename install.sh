@@ -563,14 +563,14 @@ try:
     catalog = bundle.get("catalog", {})
     decoded = decode_auto(os.environ["IMPORT_STRING"], catalog)
 except Exception as exc:
-    print(f"[ERROR] 閰嶇疆瀛楃涓茶В鏋愬け璐ワ細{exc}")
+    print(f"[ERROR] ??????????{exc}")
     raise SystemExit(2)
 params.update(decoded)
 with open(path, "w", encoding="utf-8") as handle:
     json.dump(params, handle)
 PY
   then
-    echo "[ERROR] 閰嶇疆瀛楃涓茶В鏋愬け璐ワ紝璇烽噸鏂扮矘璐淬€?
+    echo "[ERROR] ?????????????????????"
     IMPORT_STRING=$(read_tty "$(msg import_string)")
     IMPORT_STRING="$(echo "$IMPORT_STRING" | tr -d '\r\n\t')"
     if [ -z "$IMPORT_STRING" ]; then
