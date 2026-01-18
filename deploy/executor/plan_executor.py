@@ -271,19 +271,45 @@ class ExecutionPlanExecutor:
 
         if action_type == "systemd_enable_now":
             service = params.get("service")
+            compose_dir = params.get("compose_dir")
+            compose_service = params.get("compose_service", "")
             if not service:
                 return ExecutionStep(name="action:systemd_enable_now", ok=False, details="missing service")
             try:
                 if not self._systemd_reloaded:
                     subprocess.run(["systemctl", "daemon-reload"], check=True)
                     self._systemd_reloaded = True
-                subprocess.run(["systemctl", "enable", "--now", service], check=True)
+                start = subprocess.run(
+                    ["systemctl", "enable", "--now", service],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
                 active = subprocess.run(["systemctl", "is-active", "--quiet", service])
-                if active.returncode != 0:
+                if start.returncode != 0 or active.returncode != 0:
+                    fallback_ok = False
+                    fallback_details = ""
+                    if compose_dir and shutil.which("docker"):
+                        try:
+                            cmd = ["docker", "compose", "up", "-d"]
+                            if compose_service:
+                                cmd.append(compose_service)
+                            subprocess.run(cmd, cwd=compose_dir, check=True)
+                            fallback_ok = True
+                            fallback_details = "started via docker compose fallback"
+                        except subprocess.CalledProcessError as exc:
+                            fallback_details = f"fallback failed: {exc}"
+                    if fallback_ok:
+                        return ExecutionStep(
+                            name="action:systemd_enable_now",
+                            ok=True,
+                            details=f"{service} not active; {fallback_details}",
+                        )
+                    err = (start.stderr or start.stdout or "").strip()
                     return ExecutionStep(
                         name="action:systemd_enable_now",
                         ok=False,
-                        details=f"{service} not active after start",
+                        details=err or f"{service} not active after start",
                     )
             except subprocess.CalledProcessError as exc:
                 return ExecutionStep(

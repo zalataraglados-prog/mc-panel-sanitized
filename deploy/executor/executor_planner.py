@@ -277,7 +277,11 @@ def build_execution_plan(
         ),
         Action(
             type="systemd_enable_now",
-            params={"service": f"{instance_name}.service"},
+            params={
+                "service": f"{instance_name}.service",
+                "compose_dir": instance_dir,
+                "compose_service": "minecraft",
+            },
         ),
     ]
     if panel_enabled:
