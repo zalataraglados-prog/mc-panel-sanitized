@@ -4,6 +4,8 @@
 
 - Important: The first two releases (v1.0.0 / v1.0.1) contain critical defects and must not be used in production.
 - 重要：前两个正式版（v1.0.0 / v1.0.1）存在严重缺陷，请勿用于生产环境。
+- If you hit an error, copy the error output together with this README and share it with any AI you can reach; it resolves most issues quickly.
+- 如遇报错，将报错连同本介绍复制给你能接触到的 AI，可以解决绝大部分问题。
 
 ## Release / 当前发布
 
