@@ -86,6 +86,29 @@ maybe_prompt_docker_mirror() {
   fi
 }
 
+maybe_prompt_docker_proxy_pull() {
+  local proxy_prefix="${MC_PANEL_DOCKER_PROXY_PREFIX:-}"
+  if [ "$AUTO_MODE" = "1" ] && [ -z "$proxy_prefix" ]; then
+    return 0
+  fi
+  if [ -z "$proxy_prefix" ]; then
+    proxy_prefix=$(read_tty "Docker proxy prefix (e.g. m.daocloud.io/docker.io) [Enter to skip]: ")
+    proxy_prefix="$(echo "$proxy_prefix" | xargs)"
+  fi
+  if [ -z "$proxy_prefix" ]; then
+    return 0
+  fi
+  if ! command -v docker >/dev/null 2>&1; then
+    return 0
+  fi
+  echo "[INFO] Pulling base image via proxy..."
+  if retry_cmd 3 2 docker pull "${proxy_prefix}/itzg/minecraft-server:latest"; then
+    docker tag "${proxy_prefix}/itzg/minecraft-server:latest" itzg/minecraft-server:latest || true
+  else
+    echo "[WARN] Proxy pull failed; continuing without pre-pulled image."
+  fi
+}
+
 ensure_docker_compose() {
   if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
     return 0
@@ -130,6 +153,7 @@ if command -v apt-get >/dev/null 2>&1; then
     systemctl enable --now docker || true
   fi
   maybe_prompt_docker_mirror
+  maybe_prompt_docker_proxy_pull
 fi
 
 # ------------------------------
