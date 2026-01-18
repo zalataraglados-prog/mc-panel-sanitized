@@ -110,6 +110,7 @@ def _label(lang: str, text: str) -> str:
         "Blocked:": "阻止：",
         "Recommendations:": "建议：",
         "=== Execution Plan (dry-run) ===": "=== 执行计划（dry-run）===",
+        "=== Execution Plan (apply) ===": "=== 执行计划（apply）===",
         "parameter": "参数",
     }
     return mapping.get(text, text)
@@ -160,7 +161,8 @@ def print_review(apply_plan, claims: Claims | None = None):
 def print_execution_plan(plan) -> None:
     payload = plan.to_dict()
     lang = os.environ.get("MC_PANEL_LANG", "en")
-    print(_label(lang, "=== Execution Plan (dry-run) ==="))
+    label = "=== Execution Plan (apply) ===" if getattr(plan, "mode", "") == "apply" else "=== Execution Plan (dry-run) ==="
+    print(_label(lang, label))
     print(json.dumps(payload, indent=2, ensure_ascii=True))
     print()
 
