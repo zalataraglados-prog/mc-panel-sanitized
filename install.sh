@@ -465,6 +465,7 @@ echo ""
 VERSIONS_FILE="/tmp/mc_versions.txt"
 python3 - <<'PY' > "$VERSIONS_FILE"
 import json
+import os
 import re
 import sys
 import time
