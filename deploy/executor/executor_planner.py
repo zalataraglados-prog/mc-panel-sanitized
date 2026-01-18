@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import posixpath
 import socket
@@ -68,6 +69,39 @@ def _parse_memory_gb(value) -> float | None:
         return float(text)
     except ValueError:
         return None
+
+
+def _normalize_memory(value) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, int):
+        return f"{value}G"
+    if isinstance(value, float):
+        if math.isfinite(value) and value.is_integer():
+            return f"{int(value)}G"
+        if math.isfinite(value):
+            return f"{int(math.ceil(value * 1024))}M"
+        return None
+    if not isinstance(value, str):
+        return None
+    text = value.strip().upper()
+    if not text:
+        return None
+    suffix = text[-1]
+    num_text = text[:-1] if suffix in ("G", "M") else text
+    try:
+        num = float(num_text)
+    except ValueError:
+        return None
+    if not math.isfinite(num):
+        return None
+    if suffix == "G" or suffix not in ("G", "M"):
+        if num.is_integer():
+            return f"{int(num)}G"
+        return f"{int(math.ceil(num * 1024))}M"
+    if suffix == "M":
+        return f"{int(math.ceil(num))}M"
+    return None
 
 
 def _pick_server_port(params: dict) -> int | None:
@@ -185,7 +219,8 @@ def _build_template_context(
     panel_port = ports.get("panel_port") or _parse_int(params.get("panel.port")) or 15000
     rcon_port = ports.get("rcon_port") or _parse_int(params.get("rcon.port")) or (mc_port + 10)
     mc_version = params.get("minecraft.version", DEFAULT_MC_VERSION)
-    mc_memory = params.get("docker.env.MEMORY", "2G")
+    mc_memory_raw = params.get("docker.env.MEMORY", "2G")
+    mc_memory = _normalize_memory(mc_memory_raw) or mc_memory_raw
     docker_image = params.get("docker.image", DEFAULT_DOCKER_IMAGE)
     docker_tag = params.get("docker.tag", DEFAULT_DOCKER_TAG)
 
