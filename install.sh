@@ -31,7 +31,11 @@ if command -v apt-get >/dev/null 2>&1; then
     npm
   if ! command -v docker >/dev/null 2>&1; then
     echo "[INFO] Installing docker..."
-    apt-get install -y docker.io docker-compose-plugin
+    apt-get install -y docker.io
+    if ! apt-get install -y docker-compose-plugin; then
+      echo "[WARN] docker-compose-plugin not found; falling back to docker-compose."
+      apt-get install -y docker-compose
+    fi
     systemctl enable --now docker || true
   fi
 fi
