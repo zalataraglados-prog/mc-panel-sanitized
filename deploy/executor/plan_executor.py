@@ -278,6 +278,13 @@ class ExecutionPlanExecutor:
                     subprocess.run(["systemctl", "daemon-reload"], check=True)
                     self._systemd_reloaded = True
                 subprocess.run(["systemctl", "enable", "--now", service], check=True)
+                active = subprocess.run(["systemctl", "is-active", "--quiet", service])
+                if active.returncode != 0:
+                    return ExecutionStep(
+                        name="action:systemd_enable_now",
+                        ok=False,
+                        details=f"{service} not active after start",
+                    )
             except subprocess.CalledProcessError as exc:
                 return ExecutionStep(
                     name="action:systemd_enable_now",

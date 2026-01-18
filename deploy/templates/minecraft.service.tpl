@@ -1,14 +1,14 @@
 [Unit]
 Description=Minecraft Instance {{INSTANCE_NAME}}
-After=network.target docker.service
-Requires=docker.service
+After=network.target
 
 [Service]
 Type=oneshot
 RemainAfterExit=true
 WorkingDirectory={{INSTANCE_DIR}}
-ExecStart=/usr/local/lib/docker/cli-plugins/docker-compose -p {{INSTANCE_NAME}} up -d minecraft
-ExecStop=/usr/local/lib/docker/cli-plugins/docker-compose -p {{INSTANCE_NAME}} stop minecraft
+ExecStartPre=/usr/bin/env docker info > /dev/null 2>&1
+ExecStart=/usr/bin/env docker compose -p {{INSTANCE_NAME}} up -d minecraft
+ExecStop=/usr/bin/env docker compose -p {{INSTANCE_NAME}} stop minecraft
 TimeoutStartSec=0
 
 [Install]
