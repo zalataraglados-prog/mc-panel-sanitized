@@ -305,7 +305,7 @@ def build_execution_plan(
             Precondition(
                 type="capacity_sufficient",
                 value=payload,
-                required=True,
+                required=False,
             )
         )
 
