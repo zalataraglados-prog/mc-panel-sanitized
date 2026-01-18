@@ -118,6 +118,17 @@ def _build_volume_block(params: dict) -> str:
     return "\n".join(lines)
 
 
+def _build_ports_block(params: dict, ports: Dict[str, int]) -> str:
+    lines = [
+        f"      - \"{ports['mc_port']}:25565\"",
+        f"      - \"{ports['rcon_port']}:25575\"",
+    ]
+    map_plugin = params.get("map.plugin")
+    if map_plugin in MAP_PLUGIN_URLS and "map_port" in ports:
+        lines.append(f"      - \"{ports['map_port']}:{ports['map_port']}\"")
+    return "\n".join(lines)
+
+
 def _is_port_free(port: int, host: str = "0.0.0.0") -> bool:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
@@ -192,6 +203,7 @@ def _build_template_context(
         "DOCKER_IMAGE": docker_image,
         "DOCKER_TAG": docker_tag,
         "RESTART_POLICY": "always",
+        "PORTS_BLOCK": _build_ports_block(params, ports),
         "ENV_BLOCK": _build_env_block(params),
         "VOLUME_BLOCK": _build_volume_block(params),
         "CREATED_AT": "1970-01-01T00:00:00Z",
@@ -297,6 +309,7 @@ def build_execution_plan(
         )
 
     map_plugin = params.get("map.plugin")
+    plugin_dir = None
     if map_plugin in MAP_PLUGIN_URLS:
         map_port = _parse_int(params.get("map.plugin_port")) or 8123
         resolved_ports["map_port"] = _resolve_port(map_port, label="Map", notes=port_notes)
@@ -487,7 +500,7 @@ def build_execution_plan(
         plugin_spec = INVENTORY_PLUGIN_URLS[inventory_plugin]
         inventory_url = params.get("inventory.plugin_url", plugin_spec.get("url"))
         if inventory_url:
-            plugin_dir = posixpath.join(instance_dir, "data", "plugins")
+            plugin_dir = plugin_dir or posixpath.join(instance_dir, "data", "plugins")
             plugin_target = posixpath.join(plugin_dir, plugin_spec["filename"])
             actions.append(Action(type="mkdir", params={"path": plugin_dir}))
             actions.append(
@@ -500,6 +513,19 @@ def build_execution_plan(
                     },
                 )
             )
+
+    if plugin_dir:
+        actions.append(
+            Action(
+                type="chown",
+                params={
+                    "path": plugin_dir,
+                    "uid": 1000,
+                    "gid": 1000,
+                    "recursive": True,
+                },
+            )
+        )
 
     map_file = params.get("map.file")
     if map_file:

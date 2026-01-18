@@ -29,6 +29,8 @@ def find_map_root(instance_dir: str) -> tuple[Optional[Path], Optional[str]]:
     base = Path(instance_dir)
     candidates = [
         ("dynmap", base / "data" / "plugins" / "dynmap" / "web" / "tiles"),
+        ("bluemap", base / "data" / "plugins" / "BlueMap" / "bluemap" / "web" / "maps"),
+        ("bluemap", base / "data" / "plugins" / "BlueMap" / "bluemap" / "web" / "tiles"),
         ("bluemap", base / "data" / "plugins" / "BlueMap" / "web" / "maps"),
         ("bluemap", base / "data" / "plugins" / "BlueMap" / "web" / "tiles"),
         ("bluemap", base / "data" / "bluemap" / "web" / "maps"),

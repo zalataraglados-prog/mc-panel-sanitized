@@ -120,6 +120,40 @@ class ExecutionPlanExecutor:
             os.makedirs(path, exist_ok=True)
             return ExecutionStep(name="action:mkdir", ok=True, details=path)
 
+        if action_type == "chown":
+            path = params.get("path")
+            uid = params.get("uid")
+            gid = params.get("gid")
+            recursive = bool(params.get("recursive", True))
+            if not path:
+                return ExecutionStep(name="action:chown", ok=False, details="missing path")
+            if uid is None or gid is None:
+                return ExecutionStep(name="action:chown", ok=False, details="missing uid/gid")
+            try:
+                if isinstance(uid, str):
+                    import pwd
+
+                    uid = pwd.getpwnam(uid).pw_uid
+                if isinstance(gid, str):
+                    import grp
+
+                    gid = grp.getgrnam(gid).gr_gid
+            except Exception as exc:
+                return ExecutionStep(name="action:chown", ok=False, details=f"resolve uid/gid failed: {exc}")
+            try:
+                if recursive and os.path.isdir(path):
+                    for root, dirs, files in os.walk(path):
+                        os.chown(root, int(uid), int(gid))
+                        for entry in dirs:
+                            os.chown(os.path.join(root, entry), int(uid), int(gid))
+                        for entry in files:
+                            os.chown(os.path.join(root, entry), int(uid), int(gid))
+                else:
+                    os.chown(path, int(uid), int(gid))
+            except Exception as exc:
+                return ExecutionStep(name="action:chown", ok=False, details=str(exc))
+            return ExecutionStep(name="action:chown", ok=True, details=path)
+
         if action_type == "write_file":
             path = params.get("path")
             content = params.get("content")

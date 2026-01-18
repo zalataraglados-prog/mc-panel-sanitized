@@ -24,6 +24,7 @@ _BLUE_MAP_WEB_INDEX = "index.html"
 _BLUE_MAP_WEB_CANDIDATES = (
     Path("data") / "bluemap" / "web",
     Path("data") / "plugins" / "BlueMap" / "web",
+    Path("data") / "plugins" / "BlueMap" / "bluemap" / "web",
 )
 
 

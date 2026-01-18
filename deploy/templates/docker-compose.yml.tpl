@@ -5,8 +5,7 @@ services:
     container_name: {{INSTANCE_NAME}}-minecraft
     restart: {{RESTART_POLICY}}
     ports:
-      - "{{MC_PORT}}:25565"
-      - "{{RCON_PORT}}:25575"
+{{PORTS_BLOCK}}
     environment:
       - EULA=TRUE
       - VERSION={{MC_VERSION}}
