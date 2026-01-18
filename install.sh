@@ -1025,8 +1025,9 @@ PLAN_OUTPUT=$(python3 -m deploy.cli plan \
 echo "$PLAN_OUTPUT"
 LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
 if [ -z "$LEVEL" ]; then
-  LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^绾у埆:[[:space:]]*//p' | head -n 1)
+  LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^级别:[[:space:]]*//p' | head -n 1)
 fi
+LEVEL="$(echo "$LEVEL" | xargs | tr 'A-Z' 'a-z')"
 WARN_CONFIRMED="0"
 
 case "$LEVEL" in
@@ -1062,6 +1063,10 @@ PY
       --import-string "$CLAIMS_STRING")
     echo "$PLAN_OUTPUT"
     LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
+    if [ -z "$LEVEL" ]; then
+      LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^级别:[[:space:]]*//p' | head -n 1)
+    fi
+    LEVEL="$(echo "$LEVEL" | xargs | tr 'A-Z' 'a-z')"
     if [ "$LEVEL" = "block" ]; then
       echo "$(msg review_still_block)"
       exit 1
