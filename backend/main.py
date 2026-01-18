@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from backend.logging import get_logger
 from backend.routers.command import router as command_router
 from backend.routers.control import router as control_router
 from backend.routers.instances import router as instances_router
@@ -47,11 +48,15 @@ def _static_candidates() -> Iterable[Path]:
 
 
 def _mount_static() -> None:
+    logger = get_logger("backend.static")
     for candidate in _static_candidates():
         index_path = candidate / "index.html"
         if candidate.exists() and index_path.exists():
             app.mount("/", StaticFiles(directory=candidate, html=True), name="panel")
+            logger.info("Mounted panel static dir: %s", candidate)
             return
+        logger.info("Static candidate missing: %s (index=%s)", candidate, index_path)
+    logger.warning("No panel static dir mounted; root will return 404.")
 
 
 _mount_static()
