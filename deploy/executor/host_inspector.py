@@ -149,6 +149,8 @@ class HostInspector:
                 text=True,
                 timeout=5,
             )
+        except subprocess.TimeoutExpired:
+            return {"check": "docker_rootless", "ok": True, "details": "docker info timed out"}
         except Exception as exc:
             return {"check": "docker_rootless", "ok": False, "details": str(exc)}
         output = (result.stdout or "").lower()

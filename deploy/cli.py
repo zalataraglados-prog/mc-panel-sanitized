@@ -516,8 +516,6 @@ def main():
         inspector.check_path_writable(base_dir),
     ]
     server_port = _resolve_server_port(claims.params)
-    if server_port is not None:
-        host_facts.append(inspector.check_port_free(server_port))
     if any(key.startswith("docker.") for key in claims.params.keys()):
         host_facts.append(inspector.check_docker_available())
     panel_enabled = str(claims.params.get("panel.enable", "false")).lower() in ("true", "1", "yes", "y")

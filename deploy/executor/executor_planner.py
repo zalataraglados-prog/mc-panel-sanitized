@@ -124,7 +124,8 @@ def _build_ports_block(params: dict, ports: Dict[str, int]) -> str:
         f"      - \"{ports['rcon_port']}:25575\"",
     ]
     map_plugin = params.get("map.plugin")
-    if map_plugin in MAP_PLUGIN_URLS and "map_port" in ports:
+    has_map_port = "map_port" in ports or _parse_int(params.get("map.plugin_port")) is not None
+    if has_map_port:
         lines.append(f"      - \"{ports['map_port']}:{ports['map_port']}\"")
     return "\n".join(lines)
 
@@ -310,9 +311,11 @@ def build_execution_plan(
 
     map_plugin = params.get("map.plugin")
     plugin_dir = None
-    if map_plugin in MAP_PLUGIN_URLS:
-        map_port = _parse_int(params.get("map.plugin_port")) or 8123
+    map_port = _parse_int(params.get("map.plugin_port"))
+    if map_plugin or map_port is not None:
+        map_port = map_port or 8123
         resolved_ports["map_port"] = _resolve_port(map_port, label="Map", notes=port_notes)
+        preconditions.append(Precondition(type="port_free", value=resolved_ports["map_port"], required=True))
 
     rcon_port = _parse_int(params.get("rcon.port"))
     if rcon_port is None:
@@ -387,7 +390,11 @@ def build_execution_plan(
         actions.append(
             Action(
                 type="systemd_enable_now",
-                params={"service": "mc-panel.service"},
+                params={
+                    "service": "mc-panel.service",
+                    "panel_root": context["PANEL_ROOT"],
+                    "panel_port": context["PANEL_PORT"],
+                },
             )
         )
 

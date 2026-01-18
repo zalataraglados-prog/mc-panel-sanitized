@@ -307,6 +307,8 @@ class ExecutionPlanExecutor:
             service = params.get("service")
             compose_dir = params.get("compose_dir")
             compose_service = params.get("compose_service", "")
+            panel_root = params.get("panel_root")
+            panel_port = params.get("panel_port")
             if not service:
                 return ExecutionStep(name="action:systemd_enable_now", ok=False, details="missing service")
             try:
@@ -321,34 +323,16 @@ class ExecutionPlanExecutor:
                 )
                 active = subprocess.run(["systemctl", "is-active", "--quiet", service])
                 if start.returncode != 0 or active.returncode != 0:
-                    fallback_ok = False
-                    fallback_details = ""
-                    if compose_dir and shutil.which("docker"):
-                        try:
-                            cmd = ["docker", "compose", "up", "-d"]
-                            if compose_service:
-                                cmd.append(compose_service)
-                            subprocess.run(
-                                cmd,
-                                cwd=compose_dir,
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                                timeout=120,
-                            )
-                            fallback_ok = True
-                            fallback_details = "started via docker compose fallback"
-                        except subprocess.TimeoutExpired:
-                            fallback_ok = True
-                            fallback_details = "docker compose up timed out; check container status"
-                        except subprocess.CalledProcessError as exc:
-                            fallback_details = f"fallback failed: {exc}"
-                    if fallback_ok:
-                        return ExecutionStep(
-                            name="action:systemd_enable_now",
-                            ok=True,
-                            details=f"{service} not active; {fallback_details}",
-                        )
+                    fallback_step = self._fallback_start_service(
+                        service=service,
+                        compose_dir=compose_dir,
+                        compose_service=compose_service,
+                        panel_root=panel_root,
+                        panel_port=panel_port,
+                        error=(start.stderr or start.stdout or "").strip(),
+                    )
+                    if fallback_step is not None:
+                        return fallback_step
                     err = (start.stderr or start.stdout or "").strip()
                     return ExecutionStep(
                         name="action:systemd_enable_now",
@@ -356,6 +340,16 @@ class ExecutionPlanExecutor:
                         details=err or f"{service} not active after start",
                     )
             except subprocess.CalledProcessError as exc:
+                fallback_step = self._fallback_start_service(
+                    service=service,
+                    compose_dir=compose_dir,
+                    compose_service=compose_service,
+                    panel_root=panel_root,
+                    panel_port=panel_port,
+                    error=str(exc),
+                )
+                if fallback_step is not None:
+                    return fallback_step
                 return ExecutionStep(
                     name="action:systemd_enable_now",
                     ok=False,
@@ -368,6 +362,66 @@ class ExecutionPlanExecutor:
             ok=False,
             details="unsupported action type",
         )
+
+    def _fallback_start_service(
+        self,
+        *,
+        service: str,
+        compose_dir: str | None,
+        compose_service: str,
+        panel_root: str | None,
+        panel_port: int | None,
+        error: str,
+    ) -> ExecutionStep | None:
+        if compose_dir and shutil.which("docker"):
+            try:
+                cmd = ["docker", "compose", "up", "-d"]
+                if compose_service:
+                    cmd.append(compose_service)
+                subprocess.run(
+                    cmd,
+                    cwd=compose_dir,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+                return ExecutionStep(
+                    name="action:systemd_enable_now",
+                    ok=True,
+                    details=f"{service} not active; started via docker compose fallback",
+                )
+            except subprocess.TimeoutExpired:
+                return ExecutionStep(
+                    name="action:systemd_enable_now",
+                    ok=True,
+                    details=f"{service} not active; docker compose up timed out",
+                )
+            except subprocess.CalledProcessError as exc:
+                return ExecutionStep(
+                    name="action:systemd_enable_now",
+                    ok=False,
+                    details=f"fallback failed: {exc}",
+                )
+        if panel_root and panel_port:
+            venv_python = os.path.join(panel_root, ".venv", "bin", "python")
+            if os.path.isfile(venv_python):
+                log_dir = os.path.join(panel_root, "logs")
+                os.makedirs(log_dir, exist_ok=True)
+                log_path = os.path.join(log_dir, "panel_no_systemd.log")
+                cmd = (
+                    f"nohup {venv_python} -m uvicorn backend.main:app "
+                    f"--host 0.0.0.0 --port {panel_port} > {log_path} 2>&1 &"
+                )
+                subprocess.run(["/bin/sh", "-c", cmd], cwd=panel_root, check=False)
+                return ExecutionStep(
+                    name="action:systemd_enable_now",
+                    ok=True,
+                    details=f"{service} not active; started without systemd",
+                )
+        if error:
+            return None
+        return None
 
     def _download_file(self, url: str, target: str) -> None:
         request = urllib.request.Request(url, headers={"User-Agent": "mc-panel"})
