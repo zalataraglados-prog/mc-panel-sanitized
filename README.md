@@ -60,6 +60,18 @@ sudo docker pull m.daocloud.io/docker.io/itzg/minecraft-server:latest
 sudo docker tag m.daocloud.io/docker.io/itzg/minecraft-server:latest itzg/minecraft-server:latest
 ```
 
+### Multi-mirror fallback / 多镜像源兜底
+
+Docker will try registry mirrors in order; configure multiple mirrors to improve resilience.
+Docker 会按顺序尝试镜像源；配置多个镜像源能提升成功率。
+
+```
+sudo tee /etc/docker/daemon.json >/dev/null <<'EOF'
+{"registry-mirrors":["https://mirror-a.example.com","https://mirror-b.example.com"]}
+EOF
+sudo systemctl restart docker
+```
+
 ## Optional Web Panel / 可选 Web 面板
 
 The panel is optional. It can be installed during deploy or added later without affecting the server.
