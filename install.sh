@@ -704,19 +704,27 @@ if [ "$PANEL_ENABLED" = "true" ]; then
   fi
 fi
 
-if [ "$PANEL_ENABLED" = "true" ] && [ -z "$IMPORT_PRESENT" ]; then
+if [ "$PANEL_ENABLED" = "true" ]; then
   if [ ! -f "$INSTALL_DIR/frontend/dist/index.html" ]; then
     echo ""
     echo "$(msg frontend_missing)"
-    if command -v npm >/dev/null 2>&1; then
-      BUILD_PANEL=$(read_tty "$(msg frontend_build_now)")
-      if [ "$BUILD_PANEL" = "y" ] || [ "$BUILD_PANEL" = "Y" ]; then
-        (cd "$INSTALL_DIR/frontend" && npm install && npm run build)
-      else
-        echo "$(msg frontend_build_skip)"
-      fi
-    else
+    if ! command -v npm >/dev/null 2>&1; then
       echo "$(msg npm_missing)"
+      if command -v apt >/dev/null 2>&1; then
+        apt update && apt install -y nodejs npm
+      fi
+    fi
+    if command -v npm >/dev/null 2>&1; then
+      if [ -z "$IMPORT_PRESENT" ]; then
+        BUILD_PANEL=$(read_tty "$(msg frontend_build_now)")
+        if [ "$BUILD_PANEL" = "y" ] || [ "$BUILD_PANEL" = "Y" ]; then
+          (cd "$INSTALL_DIR/frontend" && npm install && npm run build)
+        else
+          echo "$(msg frontend_build_skip)"
+        fi
+      else
+        (cd "$INSTALL_DIR/frontend" && npm install && npm run build)
+      fi
     fi
   fi
 fi
