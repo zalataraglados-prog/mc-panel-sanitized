@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Set
 
-from deploy.capacity_guard import capacity_status, estimate_capacity
+from deploy.capacity_guard import capacity_status, estimate_capacity, recommended_max_players
 from deploy.compat.modpack_index import MODPACK_INDEX
 from deploy.compat.modpack_matrix import MODPACK_STACK_COMPAT, normalize_loader, slugify_name
 from deploy.mapper.mappings import (
@@ -364,6 +364,9 @@ def _performance_advice(params: dict) -> tuple[List[PlanMessage], List[PlanRecom
     max_players = _parse_int(params.get("max-players") or params.get("server.properties.max-players"))
     view_distance = _parse_int(params.get("view-distance") or params.get("minecraft.view_distance")) or 10
     simulation_distance = _parse_int(params.get("simulation-distance")) or view_distance
+    recommended_players = None
+    if memory_gb is not None:
+        recommended_players = recommended_max_players(memory_gb, view_distance)
 
     if expected_players is None and max_players is not None and max_players >= 20:
         warnings.append(
@@ -405,11 +408,12 @@ def _performance_advice(params: dict) -> tuple[List[PlanMessage], List[PlanRecom
                     param="max-players",
                 )
             )
+            suggested_default = recommended_players or 20
             recommendations.append(
                 PlanRecommendation(
                     param="max-players",
-                    suggested=20,
-                    reason="Lower max players for stability.",
+                    suggested=suggested_default,
+                    reason="Return to memory-based default to reduce risk.",
                 )
             )
 
@@ -606,6 +610,12 @@ def _evaluate_taxonomy(claims) -> tuple[List[PlanMessage], List[PlanMessage], Li
     tax_server = taxonomy.get("server_properties", {}).get("entries", {})
     tax_gamerule = taxonomy.get("gamerule", {}).get("entries", {})
 
+    memory_gb = _parse_memory_gb(params.get("docker.env.MEMORY"))
+    view_distance = _parse_int(params.get("view-distance") or params.get("minecraft.view_distance")) or 10
+    dynamic_max_players = None
+    if memory_gb is not None:
+        dynamic_max_players = recommended_max_players(memory_gb, view_distance)
+
     contexts = []
     for key, value in params.items():
         mapped = _map_claim_key(key, catalog)
@@ -618,6 +628,9 @@ def _evaluate_taxonomy(claims) -> tuple[List[PlanMessage], List[PlanMessage], Li
         else:
             default = gamerule_entries.get(catalog_key, {}).get("default")
             tax = tax_gamerule.get(catalog_key)
+
+        if catalog_key == "max-players" and dynamic_max_players is not None:
+            default = dynamic_max_players
 
         if not isinstance(tax, dict):
             continue
@@ -644,6 +657,9 @@ def _evaluate_taxonomy(claims) -> tuple[List[PlanMessage], List[PlanMessage], Li
         changed = value != default
         if not changed:
             continue
+        if cat == "performance" and isinstance(value, (int, float)) and isinstance(default, (int, float)):
+            if value <= default:
+                continue
         category_counts[cat] = category_counts.get(cat, 0) + 1
 
     for cat, count in category_counts.items():
@@ -670,6 +686,10 @@ def _evaluate_taxonomy(claims) -> tuple[List[PlanMessage], List[PlanMessage], Li
         default = ctx["default"]
         value = _normalize_value(ctx["value"], default)
         changed = value != default
+        perf_lower = False
+        if tax.get("category") == "performance" and isinstance(value, (int, float)) and isinstance(default, (int, float)):
+            if value <= default:
+                perf_lower = True
 
         if scope == "player" and ctx["section"] != "gamerule" and changed:
             warnings.append(
@@ -703,6 +723,8 @@ def _evaluate_taxonomy(claims) -> tuple[List[PlanMessage], List[PlanMessage], Li
             continue
 
         if risk in ("medium", "high"):
+            if perf_lower:
+                continue
             code = "high_risk_parameter" if risk == "high" else "medium_risk_parameter"
             label = "High-risk" if risk == "high" else "Medium-risk"
             warnings.append(
@@ -735,24 +757,26 @@ def _evaluate_taxonomy(claims) -> tuple[List[PlanMessage], List[PlanMessage], Li
                 )
 
         if profile == "beginner" and sensitivity == "advanced":
-            recommendations.append(
-                PlanRecommendation(
-                    param=ctx["catalog_key"],
-                    suggested=default,
-                    reason="Beginner profile set advanced parameter; consider default.",
-                    taxonomy=tax,
+            if not perf_lower:
+                recommendations.append(
+                    PlanRecommendation(
+                        param=ctx["catalog_key"],
+                        suggested=default,
+                        reason="Beginner profile set advanced parameter; consider default.",
+                        taxonomy=tax,
+                    )
                 )
-            )
 
         if sensitivity == "novice" and not expert_mode:
-            warnings.append(
-                PlanMessage(
-                    code="novice_override",
-                    message=f"Novice-sensitive parameter '{ctx['catalog_key']}' was explicitly set.",
-                    param=ctx["catalog_key"],
-                    taxonomy=tax,
+            if not perf_lower:
+                warnings.append(
+                    PlanMessage(
+                        code="novice_override",
+                        message=f"Novice-sensitive parameter '{ctx['catalog_key']}' was explicitly set.",
+                        param=ctx["catalog_key"],
+                        taxonomy=tax,
+                    )
                 )
-            )
 
     return warnings, blocks, recommendations
 

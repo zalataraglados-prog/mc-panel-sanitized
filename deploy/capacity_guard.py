@@ -88,6 +88,22 @@ def estimate_capacity(params: dict) -> CapacityEstimate | None:
     )
 
 
+def recommended_max_players(memory_gb: float, view_distance: int) -> int:
+    if memory_gb <= 2.5:
+        base_gb = 1.2
+        per_player_gb = 0.06
+        vd_penalty_gb = max(0, view_distance - 8) * 0.10
+    else:
+        base_gb = 2.0
+        per_player_gb = 0.10
+        vd_penalty_gb = max(0, view_distance - 10) * 0.15
+
+    budget = memory_gb - base_gb - vd_penalty_gb
+    if budget <= 0:
+        return 1
+    return max(1, int(budget // per_player_gb))
+
+
 def capacity_status(estimate: CapacityEstimate) -> Tuple[str, Dict[str, Any]]:
     required = estimate.required_gb
     memory = estimate.memory_gb
