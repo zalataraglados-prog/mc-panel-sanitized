@@ -14,29 +14,6 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # ------------------------------
-# Ensure dependencies
-# ------------------------------
-if command -v apt-get >/dev/null 2>&1; then
-  echo "[INFO] Checking system dependencies..."
-  apt-get update
-  apt-get install -y \
-    ca-certificates \
-    curl \
-    git \
-    unzip \
-    python3 \
-    python3-venv \
-    python3-pip \
-    nodejs \
-    npm
-  if ! command -v docker >/dev/null 2>&1; then
-    echo "[INFO] Installing docker..."
-    apt-get install -y docker.io docker-compose-plugin
-    systemctl enable --now docker || true
-  fi
-fi
-
-# ------------------------------
 # Check git
 # ------------------------------
 if ! command -v git &> /dev/null; then
@@ -151,7 +128,6 @@ msg() {
         frontend_build_skip) echo "[WARN] 已跳过前端构建，面板可能无法启动。" ;;
         npm_missing) echo "[WARN] 未检测到 npm，请安装 Node.js 后再构建。" ;;
         review_blocked) echo "[INFO] Review 被阻拦，可调整参数后重试。" ;;
-        auto_min_applied) echo "[INFO] 检测到内存不足，已自动应用最小配置。" ;;
         review_still_block) echo "[INFO] 仍被阻拦，已退出。" ;;
         review_canceled) echo "[INFO] 已取消。" ;;
         *) echo "$key" ;;
@@ -212,7 +188,6 @@ msg() {
         frontend_build_skip) echo "[WARN] Skipped frontend build. Panel service may fail until built." ;;
         npm_missing) echo "[WARN] npm not found. Install Node.js then run npm install && npm run build." ;;
         review_blocked) echo "[INFO] Review blocked. You can adjust params and retry." ;;
-        auto_min_applied) echo "[INFO] Detected insufficient memory; applied minimal settings automatically." ;;
         review_still_block) echo "[INFO] Review still blocked. Exiting." ;;
         review_canceled) echo "[INFO] Operation canceled." ;;
         *) echo "$key" ;;
@@ -1066,29 +1041,20 @@ WARN_CONFIRMED="0"
 case "$LEVEL" in
   block)
     echo "$(msg review_blocked)"
-    if echo "$PLAN_OUTPUT" | grep -qiE "配置内存不足|内存不足|Configured memory is insufficient|memory is insufficient"; then
-      echo "$(msg auto_min_applied)"
-      PARAM_KEY="docker.env.MEMORY" PARAM_VALUE="1G" set_param "docker.env.MEMORY" "1G"
-      PARAM_KEY="deploy.expected_players" PARAM_VALUE="2" set_param "deploy.expected_players" "2"
-      PARAM_KEY="max-players" PARAM_VALUE="2" set_param "max-players" "2"
-      PARAM_KEY="view-distance" PARAM_VALUE="4" set_param "view-distance" "4"
-      PARAM_KEY="simulation-distance" PARAM_VALUE="4" set_param "simulation-distance" "4"
-    else
-      echo "$(msg edit_params)"
-      while true; do
-        ENTRY=$(read_tty "")
-        if [ -z "$ENTRY" ]; then
-          break
-        fi
-        if ! echo "$ENTRY" | grep -q "="; then
-          echo "[WARN] Invalid format, use key=value."
-          continue
-        fi
-        KEY="${ENTRY%%=*}"
-        VALUE="${ENTRY#*=}"
-        PARAM_KEY="$KEY" PARAM_VALUE="$VALUE" set_param "$KEY" "$VALUE"
-      done
-    fi
+    echo "$(msg edit_params)"
+    while true; do
+      ENTRY=$(read_tty "")
+      if [ -z "$ENTRY" ]; then
+        break
+      fi
+      if ! echo "$ENTRY" | grep -q "="; then
+        echo "[WARN] Invalid format, use key=value."
+        continue
+      fi
+      KEY="${ENTRY%%=*}"
+      VALUE="${ENTRY#*=}"
+      PARAM_KEY="$KEY" PARAM_VALUE="$VALUE" set_param "$KEY" "$VALUE"
+    done
     CLAIMS_STRING=$(python3 - <<'PY'
 import json
 import os
