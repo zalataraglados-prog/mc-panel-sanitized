@@ -88,6 +88,11 @@ maybe_prompt_docker_mirror() {
 
 maybe_prompt_docker_proxy_pull() {
   local proxy_prefix="${MC_PANEL_DOCKER_PROXY_PREFIX:-}"
+  if command -v docker >/dev/null 2>&1; then
+    if docker image inspect itzg/minecraft-server:latest >/dev/null 2>&1; then
+      return 0
+    fi
+  fi
   if [ "$AUTO_MODE" = "1" ] && [ -z "$proxy_prefix" ]; then
     return 0
   fi
