@@ -1,4 +1,5 @@
 import os
+from typing import Iterable
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -37,9 +38,20 @@ app.include_router(rules_router)
 app.include_router(templates_router)
 app.include_router(users_router)
 
-static_dir = os.environ.get("MC_PANEL_STATIC_DIR")
-if static_dir:
-    static_path = Path(static_dir)
-    index_path = static_path / "index.html"
-    if static_path.exists() and index_path.exists():
-        app.mount("/", StaticFiles(directory=static_path, html=True), name="panel")
+def _static_candidates() -> Iterable[Path]:
+    env_dir = os.environ.get("MC_PANEL_STATIC_DIR")
+    if env_dir:
+        yield Path(env_dir)
+    yield Path("/opt/mc-panel-sanitized/frontend/dist")
+    yield Path(__file__).resolve().parents[1] / "frontend" / "dist"
+
+
+def _mount_static() -> None:
+    for candidate in _static_candidates():
+        index_path = candidate / "index.html"
+        if candidate.exists() and index_path.exists():
+            app.mount("/", StaticFiles(directory=candidate, html=True), name="panel")
+            return
+
+
+_mount_static()
