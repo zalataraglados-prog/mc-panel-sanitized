@@ -172,21 +172,55 @@ def print_review(apply_plan, claims: Claims | None = None):
     print()
 
 
+def _first_ipv4(text: str) -> str | None:
+    for token in (text or "").split():
+        if re.match(r"^\\d+\\.\\d+\\.\\d+\\.\\d+$", token):
+            if token.startswith("127."):
+                continue
+            return token
+    return None
+
+
 def _guess_host_ip() -> str:
+    candidates = [
+        ["hostname", "-I"],
+        ["ip", "route", "get", "1.1.1.1"],
+        ["ip", "-4", "addr", "show"],
+    ]
+    for cmd in candidates:
+        try:
+            result = subprocess.run(
+                cmd,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            pick = _first_ipv4(result.stdout)
+            if pick:
+                return pick
+        except Exception:
+            continue
+    return "127.0.0.1"
+
+
+def _guess_public_ip() -> str | None:
+    env_value = os.environ.get("MC_PANEL_PUBLIC_IP")
+    if env_value:
+        return env_value.strip()
     try:
         result = subprocess.run(
-            ["hostname", "-I"],
+            ["curl", "-fsS", "https://api.ipify.org"],
             check=False,
             capture_output=True,
             text=True,
+            timeout=2,
         )
-        output = (result.stdout or "").strip()
-        for token in output.split():
-            if re.match(r"^\\d+\\.\\d+\\.\\d+\\.\\d+$", token):
-                return token
+        text = (result.stdout or "").strip()
+        if re.match(r"^\\d+\\.\\d+\\.\\d+\\.\\d+$", text):
+            return text
     except Exception:
         pass
-    return "127.0.0.1"
+    return None
 
 
 def _extract_context(plan) -> dict:
@@ -240,6 +274,8 @@ def print_execution_summary(plan, claims) -> None:
     context = _extract_context(plan)
     ports = getattr(plan, "meta", {}).get("resolved_ports", {})
     host_ip = _guess_host_ip()
+    public_ip = _guess_public_ip()
+    display_ip = public_ip or host_ip
     instance_dir = context.get("INSTANCE_DIR", "")
     mc_port = ports.get("mc_port") or context.get("MC_PORT")
     panel_port = ports.get("panel_port") or context.get("PANEL_PORT")
@@ -251,14 +287,17 @@ def print_execution_summary(plan, claims) -> None:
     print(f"\n{_label(lang, 'Execution Summary')}:")
     if instance_dir:
         print(f"- {_label(lang, 'Instance')}: {instance_dir}")
+    if public_ip and public_ip != host_ip:
+        print(f"- Public IP: {public_ip}")
+        print(f"- Private IP: {host_ip}")
     if mc_port:
-        print(f"- {_label(lang, 'MC')}: {host_ip}:{mc_port}")
+        print(f"- {_label(lang, 'MC')}: {display_ip}:{mc_port}")
     if panel_enabled and panel_port:
-        print(f"- {_label(lang, 'Panel')}: http://{host_ip}:{panel_port}/")
+        print(f"- {_label(lang, 'Panel')}: http://{display_ip}:{panel_port}/")
     if map_plugin and map_port:
-        print(f"- {_label(lang, 'Map')}: http://{host_ip}:{map_port}/")
+        print(f"- {_label(lang, 'Map')}: http://{display_ip}:{map_port}/")
     if rcon_port:
-        print(f"- {_label(lang, 'RCON')}: {host_ip}:{rcon_port}")
+        print(f"- {_label(lang, 'RCON')}: {display_ip}:{rcon_port}")
     print()
 
 
