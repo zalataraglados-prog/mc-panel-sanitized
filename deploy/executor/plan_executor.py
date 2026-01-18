@@ -46,6 +46,8 @@ class ExecutionPlanExecutor:
             result = self.inspector.check_docker_available()
         elif check_type == "docker_daemon":
             result = self.inspector.check_docker_daemon()
+        elif check_type == "docker_compose":
+            result = self.inspector.check_docker_compose()
         elif check_type == "systemd_available":
             result = self.inspector.check_systemd_available()
         elif check_type == "systemd_pid1":
@@ -376,10 +378,17 @@ class ExecutionPlanExecutor:
         error: str,
     ) -> ExecutionStep | None:
         if compose_dir and shutil.which("docker"):
+            compose_cmd = self._resolve_compose_command()
+            if compose_cmd is None:
+                return ExecutionStep(
+                    name="action:systemd_enable_now",
+                    ok=False,
+                    details="fallback failed: docker compose not available",
+                )
             try:
                 if shutil.which("systemctl"):
                     subprocess.run(["systemctl", "start", "docker"], check=False, capture_output=True, text=True)
-                cmd = ["docker", "compose", "up", "-d"]
+                cmd = [*compose_cmd, "up", "-d"]
                 if compose_service:
                     cmd.append(compose_service)
                 subprocess.run(
@@ -426,6 +435,35 @@ class ExecutionPlanExecutor:
                 )
         if error:
             return None
+        return None
+
+    def _resolve_compose_command(self) -> List[str] | None:
+        if shutil.which("docker"):
+            try:
+                result = subprocess.run(
+                    ["docker", "compose", "version"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+                if result.returncode == 0:
+                    return ["docker", "compose"]
+            except Exception:
+                pass
+        if shutil.which("docker-compose"):
+            try:
+                result = subprocess.run(
+                    ["docker-compose", "version"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+                if result.returncode == 0:
+                    return ["docker-compose"]
+            except Exception:
+                pass
         return None
 
     def _download_file(self, url: str, target: str) -> None:

@@ -237,6 +237,35 @@ class HostInspector:
         ok = shutil.which("docker") is not None
         return {"check": "docker_available", "ok": ok, "details": "docker in PATH"}
 
+    def check_docker_compose(self) -> Dict[str, Any]:
+        if shutil.which("docker"):
+            try:
+                result = subprocess.run(
+                    ["docker", "compose", "version"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+                if result.returncode == 0:
+                    return {"check": "docker_compose", "ok": True, "details": "docker compose"}
+            except Exception:
+                pass
+        if shutil.which("docker-compose"):
+            try:
+                result = subprocess.run(
+                    ["docker-compose", "version"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+                if result.returncode == 0:
+                    return {"check": "docker_compose", "ok": True, "details": "docker-compose"}
+            except Exception:
+                pass
+        return {"check": "docker_compose", "ok": False, "details": "docker compose not available"}
+
     def check_systemd_available(self) -> Dict[str, Any]:
         ok = shutil.which("systemctl") is not None
         return {"check": "systemd_available", "ok": ok, "details": "systemctl in PATH"}
