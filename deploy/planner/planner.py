@@ -779,6 +779,18 @@ def plan(claims) -> ApplyPlan:
         )
     )
 
+    if getattr(claims, "imported_from_string", False):
+        unknown_blocks = []
+        kept_blocks = []
+        for msg in blocks:
+            if msg.message.startswith("Unknown parameter:"):
+                unknown_blocks.append(msg)
+            else:
+                kept_blocks.append(msg)
+        if unknown_blocks:
+            warnings.extend(unknown_blocks)
+            blocks = kept_blocks
+
     tax_warnings, tax_blocks, tax_recs = _evaluate_taxonomy(claims)
     warnings.extend(tax_warnings)
     blocks.extend(tax_blocks)

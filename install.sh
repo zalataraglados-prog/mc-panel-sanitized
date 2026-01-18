@@ -1051,38 +1051,44 @@ print(encode_claims(params))
 PY
 )
 
-echo ""
-echo "$(msg plan_run)"
-PLAN_OUTPUT=$(python3 -m deploy.cli plan \
-  --version "$VERSION" \
-  --profile "$PROFILE" \
-  --import-string "$CLAIMS_STRING")
-echo "$PLAN_OUTPUT"
-LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
-if [ -z "$LEVEL" ]; then
-  LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^级别:[[:space:]]*//p' | head -n 1)
-fi
-LEVEL="$(echo "$LEVEL" | xargs | tr 'A-Z' 'a-z')"
 WARN_CONFIRMED="0"
+while true; do
+  echo ""
+  echo "$(msg plan_run)"
+  PLAN_OUTPUT=$(python3 -m deploy.cli plan \
+    --version "$VERSION" \
+    --profile "$PROFILE" \
+    --import-string "$CLAIMS_STRING")
+  echo "$PLAN_OUTPUT"
+  LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
+  if [ -z "$LEVEL" ]; then
+    LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^级别:[[:space:]]*//p' | head -n 1)
+  fi
+  LEVEL="$(echo "$LEVEL" | xargs | tr 'A-Z' 'a-z')"
 
-case "$LEVEL" in
-  block)
-    echo "$(msg review_blocked)"
-    echo "$(msg edit_params)"
-    while true; do
-      ENTRY=$(read_tty "")
-      if [ -z "$ENTRY" ]; then
-        break
-      fi
-      if ! echo "$ENTRY" | grep -q "="; then
-        echo "[WARN] Invalid format, use key=value."
+  case "$LEVEL" in
+    block)
+      echo "$(msg review_blocked)"
+      echo "$(msg edit_params)"
+      CHANGED="0"
+      while true; do
+        ENTRY=$(read_tty "")
+        if [ -z "$ENTRY" ]; then
+          break
+        fi
+        if ! echo "$ENTRY" | grep -q "="; then
+          echo "[WARN] Invalid format, use key=value."
+          continue
+        fi
+        KEY="${ENTRY%%=*}"
+        VALUE="${ENTRY#*=}"
+        PARAM_KEY="$KEY" PARAM_VALUE="$VALUE" set_param "$KEY" "$VALUE"
+        CHANGED="1"
+      done
+      if [ "$CHANGED" != "1" ]; then
         continue
       fi
-      KEY="${ENTRY%%=*}"
-      VALUE="${ENTRY#*=}"
-      PARAM_KEY="$KEY" PARAM_VALUE="$VALUE" set_param "$KEY" "$VALUE"
-    done
-    CLAIMS_STRING=$(python3 - <<'PY'
+      CLAIMS_STRING=$(python3 - <<'PY'
 import json
 import os
 from deploy.claims_codec.encode import encode_claims
@@ -1091,41 +1097,29 @@ with open(os.environ["PARAMS_JSON"], "r", encoding="utf-8") as handle:
 print(encode_claims(params))
 PY
 )
-    echo "$(msg plan_run)"
-    PLAN_OUTPUT=$(python3 -m deploy.cli plan \
-      --version "$VERSION" \
-      --profile "$PROFILE" \
-      --import-string "$CLAIMS_STRING")
-    echo "$PLAN_OUTPUT"
-    LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
-    if [ -z "$LEVEL" ]; then
-      LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^级别:[[:space:]]*//p' | head -n 1)
-    fi
-    LEVEL="$(echo "$LEVEL" | xargs | tr 'A-Z' 'a-z')"
-    if [ "$LEVEL" = "block" ]; then
-      echo "$(msg review_still_block)"
-      exit 1
-    fi
-    ;;
-  warn)
+      continue
+      ;;
+    warn)
+      CONFIRM=$(read_tty "$(msg plan_warn)")
+      case "$CONFIRM" in
+        y|Y) echo "$(msg plan_ok)"; WARN_CONFIRMED="1" ;;
+        *) echo "$(msg review_canceled)"; exit 0 ;;
+      esac
+      ;;
+    *)
+      echo "$(msg plan_ok)"
+      ;;
+  esac
+
+  if [ "$LEVEL" = "warn" ] && [ "$WARN_CONFIRMED" != "1" ]; then
     CONFIRM=$(read_tty "$(msg plan_warn)")
     case "$CONFIRM" in
-      y|Y) echo "$(msg plan_ok)"; WARN_CONFIRMED="1" ;;
+      y|Y) WARN_CONFIRMED="1" ;;
       *) echo "$(msg review_canceled)"; exit 0 ;;
     esac
-    ;;
-  *)
-    echo "$(msg plan_ok)"
-    ;;
-esac
-
-if [ "$LEVEL" = "warn" ] && [ "$WARN_CONFIRMED" != "1" ]; then
-  CONFIRM=$(read_tty "$(msg plan_warn)")
-  case "$CONFIRM" in
-    y|Y) WARN_CONFIRMED="1" ;;
-    *) echo "$(msg review_canceled)"; exit 0 ;;
-  esac
-fi
+  fi
+  break
+done
 
 APPLY_FLAGS="--apply --no-review"
 if [ "$LEVEL" = "warn" ]; then

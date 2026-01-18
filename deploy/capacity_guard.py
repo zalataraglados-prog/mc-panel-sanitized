@@ -92,9 +92,7 @@ def capacity_status(estimate: CapacityEstimate) -> Tuple[str, Dict[str, Any]]:
     required = estimate.required_gb
     memory = estimate.memory_gb
 
-    if memory < 2.0:
-        return "block", _as_payload(estimate)
-    if memory < required * 0.85:
+    if memory < required * 0.70:
         return "block", _as_payload(estimate)
     if memory <= required:
         return "warn", _as_payload(estimate)
