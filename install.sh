@@ -14,6 +14,29 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # ------------------------------
+# Ensure dependencies
+# ------------------------------
+if command -v apt-get >/dev/null 2>&1; then
+  echo "[INFO] Checking system dependencies..."
+  apt-get update
+  apt-get install -y \
+    ca-certificates \
+    curl \
+    git \
+    unzip \
+    python3 \
+    python3-venv \
+    python3-pip \
+    nodejs \
+    npm
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "[INFO] Installing docker..."
+    apt-get install -y docker.io docker-compose-plugin
+    systemctl enable --now docker || true
+  fi
+fi
+
+# ------------------------------
 # Check git
 # ------------------------------
 if ! command -v git &> /dev/null; then
