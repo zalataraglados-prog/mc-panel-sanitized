@@ -24,6 +24,39 @@ This project is a configuration decision engine for Minecraft deployments with a
 curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/v1.0.1/install.sh | sudo bash
 ```
 
+## Network resilience / 网络可靠性
+
+The installer retries external HTTP fetches with backoff to survive flaky networks.
+安装脚本对外部请求自动重试并指数退避，减少因网络波动导致的失败。
+
+Optional environment variables:
+可选环境变量：
+
+- `MC_PANEL_HTTP_RETRIES` (default 3) / 重试次数
+- `MC_PANEL_HTTP_BACKOFF_SECONDS` (default 2) / 初始退避秒数
+
+### Docker mirror & proxy pull / Docker 镜像加速与代理拉取
+
+If Docker Hub is unreachable, the installer can prompt for a mirror or a proxy prefix:
+当 Docker Hub 不可达时，安装脚本会提示你配置镜像加速或代理前缀：
+
+- Mirror prompt (writes `/etc/docker/daemon.json`, restarts Docker)
+- Proxy pull prompt (pre-pulls via proxy and tags locally)
+
+Environment variables (skip prompts):
+环境变量（跳过交互）：
+
+- `MC_PANEL_DOCKER_MIRROR` (e.g. `https://<id>.mirror.aliyuncs.com`)
+- `MC_PANEL_DOCKER_PROXY_PREFIX` (e.g. `m.daocloud.io/docker.io`)
+
+Example (manual proxy pull):
+示例（手动代理拉取）：
+
+```
+sudo docker pull m.daocloud.io/docker.io/itzg/minecraft-server:latest
+sudo docker tag m.daocloud.io/docker.io/itzg/minecraft-server:latest itzg/minecraft-server:latest
+```
+
 ## Optional Web Panel / 可选 Web 面板
 
 The panel is optional. It can be installed during deploy or added later without affecting the server.
