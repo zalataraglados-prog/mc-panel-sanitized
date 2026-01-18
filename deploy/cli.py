@@ -398,7 +398,7 @@ def main():
     lang = os.environ.get("MC_PANEL_LANG", "en")
     if apply_plan.summary.level == "block":
         if lang == "zh":
-            print("宸茶璇勫闃绘锛屾棤娉曟墽琛?apply銆?)
+            print("已被评审阻止，无法执行 apply。")
         else:
             print("Apply is blocked by planner review.")
         return 1
@@ -406,7 +406,7 @@ def main():
     if args.apply:
         if apply_plan.summary.level == "warn" and not args.confirm_warn:
             if lang == "zh":
-                print("褰撳墠涓?warn 绾у埆锛屾墽琛?apply 闇€瑕?--confirm-warn銆?)
+                print("当前为 warn 级别，执行 apply 需要 --confirm-warn。")
             else:
                 print("Apply requires --confirm-warn when review level is warn.")
             return 1
@@ -443,7 +443,7 @@ def main():
     result = executor.execute(plan)
     if not result.ok:
         if lang == "zh":
-            print("鎵ц澶辫触銆?)
+            print("执行失败。")
         else:
             print("Execution failed.")
         for step in result.steps:
@@ -452,7 +452,7 @@ def main():
         return 1
 
     if lang == "zh":
-        print("鎵ц鎴愬姛銆?)
+        print("执行成功。")
     else:
         print("Execution succeeded.")
     for step in result.steps:
