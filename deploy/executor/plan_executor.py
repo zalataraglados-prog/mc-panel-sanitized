@@ -294,9 +294,19 @@ class ExecutionPlanExecutor:
                             cmd = ["docker", "compose", "up", "-d"]
                             if compose_service:
                                 cmd.append(compose_service)
-                            subprocess.run(cmd, cwd=compose_dir, check=True)
+                            subprocess.run(
+                                cmd,
+                                cwd=compose_dir,
+                                check=True,
+                                capture_output=True,
+                                text=True,
+                                timeout=120,
+                            )
                             fallback_ok = True
                             fallback_details = "started via docker compose fallback"
+                        except subprocess.TimeoutExpired:
+                            fallback_ok = True
+                            fallback_details = "docker compose up timed out; check container status"
                         except subprocess.CalledProcessError as exc:
                             fallback_details = f"fallback failed: {exc}"
                     if fallback_ok:
