@@ -1,7 +1,14 @@
+import logging
 import os
 from datetime import datetime
 
 LOG_PATH = os.path.join(os.path.dirname(__file__), "backend.log")
+
+def get_logger(name: str) -> logging.Logger:
+    logger = logging.getLogger(name)
+    if not logging.getLogger().handlers:
+        logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    return logger
 
 
 def log_action(user: str, action: str, details: str) -> None:
