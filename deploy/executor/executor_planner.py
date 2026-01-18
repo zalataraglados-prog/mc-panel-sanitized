@@ -275,6 +275,10 @@ def build_execution_plan(
                 "context": context,
             },
         ),
+        Action(
+            type="systemd_enable_now",
+            params={"service": f"{instance_name}.service"},
+        ),
     ]
     if panel_enabled:
         actions.append(
@@ -295,6 +299,12 @@ def build_execution_plan(
                     "template": "mc-panel.service.tpl",
                     "context": context,
                 },
+            )
+        )
+        actions.append(
+            Action(
+                type="systemd_enable_now",
+                params={"service": "mc-panel.service"},
             )
         )
 

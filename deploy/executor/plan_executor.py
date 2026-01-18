@@ -31,6 +31,7 @@ class ExecutionResult:
 class ExecutionPlanExecutor:
     def __init__(self, inspector: HostInspector | None = None):
         self.inspector = inspector or HostInspector()
+        self._systemd_reloaded = False
 
     def _check_precondition(self, precondition) -> ExecutionStep:
         check_type = precondition.type
@@ -267,6 +268,23 @@ class ExecutionPlanExecutor:
                 )
                 return ExecutionStep(name="action:download_file", ok=False, details=str(exc))
             return ExecutionStep(name="action:download_file", ok=True, details=target)
+
+        if action_type == "systemd_enable_now":
+            service = params.get("service")
+            if not service:
+                return ExecutionStep(name="action:systemd_enable_now", ok=False, details="missing service")
+            try:
+                if not self._systemd_reloaded:
+                    subprocess.run(["systemctl", "daemon-reload"], check=True)
+                    self._systemd_reloaded = True
+                subprocess.run(["systemctl", "enable", "--now", service], check=True)
+            except subprocess.CalledProcessError as exc:
+                return ExecutionStep(
+                    name="action:systemd_enable_now",
+                    ok=False,
+                    details=str(exc),
+                )
+            return ExecutionStep(name="action:systemd_enable_now", ok=True, details=service)
 
         return ExecutionStep(
             name=f"action:{action_type}",
