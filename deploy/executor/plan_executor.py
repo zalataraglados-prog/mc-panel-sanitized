@@ -44,6 +44,8 @@ class ExecutionPlanExecutor:
             result = self.inspector.check_port_free(int(value))
         elif check_type == "docker_available":
             result = self.inspector.check_docker_available()
+        elif check_type == "docker_daemon":
+            result = self.inspector.check_docker_daemon()
         elif check_type == "systemd_available":
             result = self.inspector.check_systemd_available()
         elif check_type == "systemd_pid1":
@@ -375,6 +377,8 @@ class ExecutionPlanExecutor:
     ) -> ExecutionStep | None:
         if compose_dir and shutil.which("docker"):
             try:
+                if shutil.which("systemctl"):
+                    subprocess.run(["systemctl", "start", "docker"], check=False, capture_output=True, text=True)
                 cmd = ["docker", "compose", "up", "-d"]
                 if compose_service:
                     cmd.append(compose_service)
@@ -398,10 +402,11 @@ class ExecutionPlanExecutor:
                     details=f"{service} not active; docker compose up timed out",
                 )
             except subprocess.CalledProcessError as exc:
+                detail = (exc.stderr or exc.stdout or str(exc)).strip()
                 return ExecutionStep(
                     name="action:systemd_enable_now",
                     ok=False,
-                    details=f"fallback failed: {exc}",
+                    details=f"fallback failed: {detail}",
                 )
         if panel_root and panel_port:
             venv_python = os.path.join(panel_root, ".venv", "bin", "python")

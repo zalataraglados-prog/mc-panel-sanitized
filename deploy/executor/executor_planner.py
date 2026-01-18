@@ -287,6 +287,7 @@ def build_execution_plan(
 
     if _needs_docker(params):
         preconditions.append(Precondition(type="docker_available", value="docker", required=True))
+        preconditions.append(Precondition(type="docker_daemon", value="docker", required=True))
         preconditions.append(Precondition(type="systemd_available", value="systemd", required=True))
         preconditions.append(Precondition(type="docker_rootless", value="docker", required=False))
 

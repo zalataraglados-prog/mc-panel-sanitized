@@ -158,6 +158,26 @@ class HostInspector:
         details = "rootless detected (low ports may fail)" if not ok else "rootless not detected"
         return {"check": "docker_rootless", "ok": ok, "details": details}
 
+    def check_docker_daemon(self) -> Dict[str, Any]:
+        if not shutil.which("docker"):
+            return {"check": "docker_daemon", "ok": False, "details": "docker not found"}
+        try:
+            result = subprocess.run(
+                ["docker", "info"],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=8,
+            )
+        except subprocess.TimeoutExpired:
+            return {"check": "docker_daemon", "ok": False, "details": "docker info timed out"}
+        except Exception as exc:
+            return {"check": "docker_daemon", "ok": False, "details": str(exc)}
+        if result.returncode == 0:
+            return {"check": "docker_daemon", "ok": True, "details": "docker daemon reachable"}
+        details = (result.stderr or result.stdout or "").strip() or "docker daemon unavailable"
+        return {"check": "docker_daemon", "ok": False, "details": details}
+
     def check_time_sync(self) -> Dict[str, Any]:
         if not shutil.which("timedatectl"):
             return {"check": "time_sync", "ok": False, "details": "timedatectl missing"}
