@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 set -e
 
 echo "======================================"
@@ -458,7 +458,7 @@ else
     i=$((i + 1))
   done
   echo "${i}) custom"
-  VERSION_CHOICE=$(read_tty "$(choice_prompt "1-${i}")")
+  VERSION_CHOICE=$(read_tty "$(choice_prompt 1-${i})")
   VERSION_CHOICE="${VERSION_CHOICE//$'\r'/}"
   VERSION_CHOICE="$(echo "$VERSION_CHOICE" | xargs)"
   FROM_CUSTOM="0"
@@ -495,7 +495,7 @@ else
   echo "$(msg edition_menu)"
   echo "$(msg edition_java)"
   echo "$(msg edition_bedrock)"
-  EDITION_CHOICE=$(read_tty "$(choice_prompt "1-2")")
+  EDITION_CHOICE=$(read_tty "$(choice_prompt 1-2)")
 
   case "$EDITION_CHOICE" in
     2) EDITION="bedrock" ;;
@@ -514,7 +514,7 @@ else
   echo "$(msg profile_beginner)"
   echo "$(msg profile_normal)"
   echo "$(msg profile_advanced)"
-  PROFILE_CHOICE=$(read_tty "$(choice_prompt "1-3")")
+  PROFILE_CHOICE=$(read_tty "$(choice_prompt 1-3)")
 
   case "$PROFILE_CHOICE" in
     1) PROFILE="beginner" ;;
@@ -728,7 +728,7 @@ if [ -z "$MAP_PLUGIN_EXISTS" ] && [ -z "$IMPORT_PRESENT" ]; then
   echo "$(msg map_none)"
   echo "$(msg map_dynmap)"
   echo "$(msg map_bluemap)"
-  PLUGIN_CHOICE=$(read_tty "$(choice_prompt "1-3")")
+  PLUGIN_CHOICE=$(read_tty "$(choice_prompt 1-3)")
   while true; do
     case "$PLUGIN_CHOICE" in
       2) MAP_PLUGIN="dynmap" ;;
@@ -751,7 +751,7 @@ if [ -z "$MAP_PLUGIN_EXISTS" ] && [ -z "$IMPORT_PRESENT" ]; then
     if [ -n "$MAP_URL" ] && command -v curl >/dev/null 2>&1; then
       if ! curl -fsSLI --max-time 10 "$MAP_URL" >/dev/null; then
         echo "$(msg map_url_fail)"
-        PLUGIN_CHOICE=$(read_tty "$(choice_prompt "1-3")")
+        PLUGIN_CHOICE=$(read_tty "$(choice_prompt 1-3)")
         continue
       fi
     fi
@@ -800,7 +800,7 @@ if [ -z "$INVENTORY_PLUGIN_EXISTS" ] && [ -z "$IMPORT_PRESENT" ]; then
   echo "1) none"
   echo "2) InvSee++ (recommended)"
   echo "3) OpenInv"
-  INV_PLUGIN_CHOICE=$(read_tty "$(choice_prompt "1-3")")
+  INV_PLUGIN_CHOICE=$(read_tty "$(choice_prompt 1-3)")
   case "$INV_PLUGIN_CHOICE" in
     2) INVENTORY_PLUGIN="invsee" ;;
     3) INVENTORY_PLUGIN="openinv" ;;
@@ -888,7 +888,7 @@ if [ "$OVERRIDE_JAVA" = "y" ] || [ "$OVERRIDE_JAVA" = "Y" ]; then
   echo "3) 11"
   echo "4) 16"
   echo "5) 17"
-  RUNTIME_CHOICE=$(read_tty "$(choice_prompt "1-5")")
+  RUNTIME_CHOICE=$(read_tty "$(choice_prompt 1-5)")
   case "$RUNTIME_CHOICE" in
     2) RUNTIME_JAVA="8" ;;
     3) RUNTIME_JAVA="11" ;;
@@ -1104,4 +1104,3 @@ echo "$CLAIMS_STRING"
 echo ""
 echo "[INFO] Execution plan complete."
 exit 0
-
