@@ -118,7 +118,7 @@ read_tty() {
 if [ "$AUTO_MODE" = "1" ] && [ -n "${MC_PANEL_LANG:-}" ]; then
   LANGUAGE="${MC_PANEL_LANG}"
 else
-  LANGUAGE=$(read_tty "Select language [1=EN, 2=ZH]: ")
+  LANGUAGE=$(read_tty "Select language [1=EN, 2=简体中文]: ")
 fi
 case "$LANGUAGE" in
   2) LANGUAGE="zh" ;;
@@ -313,16 +313,22 @@ else
 fi
 case "$IMPORT_MODE" in
   2)
-    if [ -z "${IMPORT_FILE:-}" ]; then
-      IMPORT_FILE=$(read_tty "$(msg import_file)")
-    fi
-    IMPORT_FILE="${IMPORT_FILE//$'\r'/}"
-    if [ -n "$IMPORT_FILE" ] && [ -f "$IMPORT_FILE" ]; then
-      IMPORT_STRING=$(cat "$IMPORT_FILE")
-    else
+    while true; do
+      if [ -z "${IMPORT_FILE:-}" ]; then
+        IMPORT_FILE=$(read_tty "$(msg import_file)")
+      fi
+      IMPORT_FILE="${IMPORT_FILE//$'\r'/}"
+      if [ -z "$IMPORT_FILE" ]; then
+        IMPORT_STRING=$(read_tty "$(msg import_string)")
+        break
+      fi
+      if [ -f "$IMPORT_FILE" ]; then
+        IMPORT_STRING=$(cat "$IMPORT_FILE")
+        break
+      fi
       echo "$(msg import_file_missing)"
-      IMPORT_STRING=$(read_tty "$(msg import_string)")
-    fi
+      IMPORT_FILE=""
+    done
     ;;
   1|"")
     IMPORT_STRING=$(read_tty "$(msg import_string)")
