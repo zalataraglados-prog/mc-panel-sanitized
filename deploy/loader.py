@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import subprocess
+import time
 import urllib.request
 
 
@@ -40,29 +41,51 @@ def _read_cache(url: str) -> dict | None:
 
 
 def _fetch_json(url: str) -> dict:
-    try:
-        with urllib.request.urlopen(url, timeout=15) as resp:
-            if resp.status != 200:
-                raise ValueError(f"HTTP {resp.status} for {url}")
-            raw = resp.read().decode("utf-8")
-        _write_cache(url, raw)
-        return json.loads(raw)
-    except Exception:
-        cached = _read_cache(url)
-        if cached is not None:
-            return cached
-        # Fallback to curl when available.
+    retries = int(os.environ.get("MC_PANEL_HTTP_RETRIES", "3"))
+    backoff = int(os.environ.get("MC_PANEL_HTTP_BACKOFF_SECONDS", "2"))
+    last_exc: Exception | None = None
+
+    for attempt in range(1, retries + 1):
         try:
-            result = subprocess.run(
-                ["curl", "-fsSL", url],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            _write_cache(url, result.stdout)
-            return json.loads(result.stdout)
-        except FileNotFoundError as exc:
-            raise RuntimeError("curl is not available and urllib fetch failed") from exc
+            with urllib.request.urlopen(url, timeout=15) as resp:
+                if resp.status != 200:
+                    raise ValueError(f"HTTP {resp.status} for {url}")
+                raw = resp.read().decode("utf-8")
+            _write_cache(url, raw)
+            return json.loads(raw)
+        except Exception as exc:
+            last_exc = exc
+            if attempt < retries:
+                time.sleep(backoff)
+                backoff *= 2
+
+    cached = _read_cache(url)
+    if cached is not None:
+        return cached
+    # Fallback to curl when available.
+    try:
+        result = subprocess.run(
+            [
+                "curl",
+                "-fsSL",
+                "--retry",
+                str(retries),
+                "--retry-delay",
+                "2",
+                url,
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        _write_cache(url, result.stdout)
+        return json.loads(result.stdout)
+    except FileNotFoundError as exc:
+        raise RuntimeError("curl is not available and urllib fetch failed") from exc
+    except Exception as exc:
+        if last_exc is not None:
+            raise last_exc
+        raise exc
 
 
 def _fetch_optional_json(url: str) -> dict:

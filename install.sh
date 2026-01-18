@@ -19,6 +19,73 @@ if [ "$AUTO_MODE" = "1" ]; then
   AUTO_YES="1"
 fi
 
+read_tty() {
+  local prompt="$1"
+  local var
+  if [ -t 0 ]; then
+    read -r -p "$prompt" var
+  else
+    read -r -p "$prompt" var < /dev/tty
+  fi
+  echo "$var"
+}
+
+retry_cmd() {
+  local attempts="$1"
+  local delay="$2"
+  shift 2
+  local n=1
+  local current_delay="$delay"
+  while true; do
+    "$@" && return 0
+    if [ "$n" -ge "$attempts" ]; then
+      return 1
+    fi
+    sleep "$current_delay"
+    current_delay=$((current_delay * 2))
+    n=$((n + 1))
+  done
+}
+
+configure_docker_mirror() {
+  local mirror="$1"
+  if [ -z "$mirror" ]; then
+    return 0
+  fi
+  mkdir -p /etc/docker
+  cat >/etc/docker/daemon.json <<EOF
+{"registry-mirrors":["$mirror"]}
+EOF
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl restart docker || true
+  else
+    service docker restart || true
+  fi
+}
+
+maybe_prompt_docker_mirror() {
+  local mirror="${MC_PANEL_DOCKER_MIRROR:-}"
+  if [ -n "$mirror" ]; then
+    configure_docker_mirror "$mirror"
+    return 0
+  fi
+  if [ "$AUTO_MODE" = "1" ]; then
+    return 0
+  fi
+  if ! command -v docker >/dev/null 2>&1; then
+    return 0
+  fi
+  if curl -fsSL --max-time 5 https://registry-1.docker.io/v2/ >/dev/null 2>&1; then
+    return 0
+  fi
+  echo "[WARN] Docker registry seems unreachable. Configure a mirror to continue."
+  mirror=$(read_tty "Docker mirror URL (Enter to skip): ")
+  mirror="$(echo "$mirror" | xargs)"
+  if [ -n "$mirror" ]; then
+    configure_docker_mirror "$mirror"
+  fi
+}
+
 ensure_docker_compose() {
   if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
     return 0
@@ -62,6 +129,7 @@ if command -v apt-get >/dev/null 2>&1; then
   if command -v systemctl >/dev/null 2>&1; then
     systemctl enable --now docker || true
   fi
+  maybe_prompt_docker_mirror
 fi
 
 # ------------------------------
@@ -99,26 +167,12 @@ fi
 mkdir -p /opt/mc-instances
 
 # ------------------------------
-# Interactive Claims builder
-# ------------------------------
-read_tty() {
-  local prompt="$1"
-  local var
-  if [ -t 0 ]; then
-    read -r -p "$prompt" var
-  else
-    read -r -p "$prompt" var < /dev/tty
-  fi
-  echo "$var"
-}
-
-# ------------------------------
 # Language selection
 # ------------------------------
 if [ "$AUTO_MODE" = "1" ] && [ -n "${MC_PANEL_LANG:-}" ]; then
   LANGUAGE="${MC_PANEL_LANG}"
 else
-  LANGUAGE=$(read_tty "Select language [1=EN, 2=简体中文]: ")
+  LANGUAGE=$(read_tty "Select language [1=EN, 2=中文(简体)]: ")
 fi
 case "$LANGUAGE" in
   2) LANGUAGE="zh" ;;
@@ -389,6 +443,7 @@ python3 - <<'PY' > "$VERSIONS_FILE"
 import json
 import re
 import sys
+import time
 import urllib.request
 
 url = "https://api.github.com/repos/zalataraglados-prog/vanilla_catalog/contents/catalog"
@@ -503,9 +558,22 @@ def version_key(v: str):
             nums.append(0)
     return tuple(nums + [0] * (3 - len(nums)))
 
-try:
-    with urllib.request.urlopen(url, timeout=10) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
+retries = int(os.environ.get("MC_PANEL_HTTP_RETRIES", "3"))
+backoff = int(os.environ.get("MC_PANEL_HTTP_BACKOFF_SECONDS", "2"))
+data = None
+for attempt in range(1, retries + 1):
+    try:
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        break
+    except Exception:
+        if attempt < retries:
+            time.sleep(backoff)
+            backoff *= 2
+
+if data is None:
+    versions = sorted(fallback, key=version_key, reverse=True)
+else:
     versions = []
     for item in data:
         name = item.get("name", "")
@@ -515,8 +583,6 @@ try:
     versions = sorted(set(versions), key=version_key, reverse=True)
     if not versions:
         versions = sorted(fallback, key=version_key, reverse=True)
-except Exception:
-    versions = sorted(fallback, key=version_key, reverse=True)
 
 for v in versions:
     print(v)
