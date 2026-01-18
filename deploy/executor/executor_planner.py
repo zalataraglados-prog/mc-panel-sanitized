@@ -95,10 +95,13 @@ def _stable_instance_name(params: dict) -> str:
 
 def _build_env_block(params: dict) -> str:
     lines = []
+    reserved = {"EULA", "VERSION", "MEMORY", "ENABLE_RCON", "RCON_PASSWORD", "RCON_PORT"}
     for key, value in params.items():
         if not key.startswith("docker.env."):
             continue
         env_key = key.split(".", 2)[2]
+        if env_key in reserved:
+            continue
         lines.append(f"      - {env_key}={value}")
     return "\n".join(lines)
 
