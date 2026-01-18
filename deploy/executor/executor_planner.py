@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import posixpath
+import socket
 from typing import Any, Dict, List
 
 from deploy.capacity_guard import capacity_status, estimate_capacity
@@ -117,16 +118,63 @@ def _build_volume_block(params: dict) -> str:
     return "\n".join(lines)
 
 
-def _build_template_context(params: dict, instance_name: str, instance_dir: str) -> Dict[str, Any]:
-    mc_port = _pick_server_port(params) or 25565
-    panel_port = _parse_int(params.get("panel.port")) or 15000
-    rcon_port = _parse_int(params.get("rcon.port")) or (mc_port + 10)
+def _is_port_free(port: int, host: str = "0.0.0.0") -> bool:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.bind((host, port))
+        return True
+    except OSError:
+        return False
+    finally:
+        sock.close()
+
+
+def _find_free_port(start_port: int, max_tries: int = 200) -> int | None:
+    port = start_port
+    for _ in range(max_tries):
+        if _is_port_free(port):
+            return port
+        port += 1
+    return None
+
+
+def _resolve_port(
+    requested: int,
+    *,
+    label: str,
+    notes: List[str],
+    allow_fallback: bool = True,
+) -> int:
+    if _is_port_free(requested):
+        return requested
+    if not allow_fallback:
+        notes.append(f"{label} port {requested} is in use")
+        return requested
+    resolved = _find_free_port(requested + 1)
+    if resolved is None:
+        notes.append(f"{label} port {requested} is in use; no free port found")
+        return requested
+    notes.append(f"{label} port {requested} is in use; switched to {resolved}")
+    return resolved
+
+
+def _build_template_context(
+    params: dict,
+    instance_name: str,
+    instance_dir: str,
+    *,
+    ports: Dict[str, int] | None = None,
+) -> Dict[str, Any]:
+    ports = ports or {}
+    mc_port = ports.get("mc_port") or _pick_server_port(params) or 25565
+    panel_port = ports.get("panel_port") or _parse_int(params.get("panel.port")) or 15000
+    rcon_port = ports.get("rcon_port") or _parse_int(params.get("rcon.port")) or (mc_port + 10)
     mc_version = params.get("minecraft.version", DEFAULT_MC_VERSION)
     mc_memory = params.get("docker.env.MEMORY", "2G")
     docker_image = params.get("docker.image", DEFAULT_DOCKER_IMAGE)
     docker_tag = params.get("docker.tag", DEFAULT_DOCKER_TAG)
 
-    map_port = _parse_int(params.get("map.plugin_port")) or 8123
+    map_port = ports.get("map_port") or _parse_int(params.get("map.plugin_port")) or 8123
     render_interval = _parse_int(params.get("map.render_interval")) or 5
     render_interval_seconds = render_interval * 60
     panel_enabled = str(params.get("panel.enable", "false")).lower() in ("true", "1", "yes", "y")
@@ -206,15 +254,22 @@ def build_execution_plan(
         Precondition(type="ipv4_available", value="ipv4", required=False),
     ]
 
-    port = _pick_server_port(params)
-    if port is not None:
-        preconditions.append(Precondition(type="port_free", value=port, required=True))
+    port_notes: List[str] = []
+    resolved_ports: Dict[str, int] = {}
+    port = _pick_server_port(params) or 25565
+    resolved_ports["mc_port"] = _resolve_port(port, label="MC", notes=port_notes)
+    preconditions.append(
+        Precondition(type="port_free", value=resolved_ports["mc_port"], required=True)
+    )
 
     panel_enabled = str(params.get("panel.enable", "false")).lower() in ("true", "1", "yes", "y")
     panel_installed = _has_service(host_facts, "mc-panel.service")
     if panel_enabled and not panel_installed:
         panel_port = _parse_int(params.get("panel.port")) or 15000
-        preconditions.append(Precondition(type="port_free", value=panel_port, required=True))
+        resolved_ports["panel_port"] = _resolve_port(panel_port, label="Panel", notes=port_notes)
+        preconditions.append(
+            Precondition(type="port_free", value=resolved_ports["panel_port"], required=True)
+        )
         preconditions.append(Precondition(type="systemd_available", value="systemd", required=True))
 
     if _needs_docker(params):
@@ -241,9 +296,20 @@ def build_execution_plan(
             )
         )
 
+    map_plugin = params.get("map.plugin")
+    if map_plugin in MAP_PLUGIN_URLS:
+        map_port = _parse_int(params.get("map.plugin_port")) or 8123
+        resolved_ports["map_port"] = _resolve_port(map_port, label="Map", notes=port_notes)
+
+    rcon_port = _parse_int(params.get("rcon.port"))
+    if rcon_port is None:
+        rcon_port = resolved_ports["mc_port"] + 10
+    if rcon_port is not None:
+        resolved_ports["rcon_port"] = _resolve_port(rcon_port, label="RCON", notes=port_notes)
+
     instance_name = _stable_instance_name(params)
     instance_dir = posixpath.join(base_dir, instance_name)
-    context = _build_template_context(params, instance_name, instance_dir)
+    context = _build_template_context(params, instance_name, instance_dir, ports=resolved_ports)
     context["BASE_DIR"] = base_dir
 
     actions: List[Action] = [
@@ -312,7 +378,6 @@ def build_execution_plan(
             )
         )
 
-    map_plugin = params.get("map.plugin")
     if map_plugin in MAP_PLUGIN_URLS:
         plugin_spec = MAP_PLUGIN_URLS[map_plugin]
         plugin_dir = posixpath.join(instance_dir, "data", "plugins")
@@ -457,5 +522,8 @@ def build_execution_plan(
         preconditions=preconditions,
         actions=actions,
     )
+    plan.meta["resolved_ports"] = resolved_ports
+    if port_notes:
+        plan.meta["port_notes"] = port_notes
     plan.finalize()
     return plan

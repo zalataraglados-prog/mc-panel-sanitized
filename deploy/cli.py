@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 
 from deploy.claims_codec import (
@@ -111,6 +112,19 @@ def _label(lang: str, text: str) -> str:
         "Recommendations:": "建议：",
         "=== Execution Plan (dry-run) ===": "=== 执行计划（dry-run）===",
         "=== Execution Plan (apply) ===": "=== 执行计划（apply）===",
+        "Mode": "模式",
+        "Review": "评审",
+        "Preconditions": "前置检查",
+        "Actions": "执行动作",
+        "Notes": "备注",
+        "Required": "必需",
+        "Optional": "可选",
+        "Execution Summary": "执行结果",
+        "Instance": "实例",
+        "MC": "MC",
+        "Panel": "面板",
+        "Map": "地图",
+        "RCON": "RCON",
         "parameter": "参数",
     }
     return mapping.get(text, text)
@@ -158,12 +172,93 @@ def print_review(apply_plan, claims: Claims | None = None):
     print()
 
 
+def _guess_host_ip() -> str:
+    try:
+        result = subprocess.run(
+            ["hostname", "-I"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        output = (result.stdout or "").strip()
+        for token in output.split():
+            if re.match(r"^\\d+\\.\\d+\\.\\d+\\.\\d+$", token):
+                return token
+    except Exception:
+        pass
+    return "127.0.0.1"
+
+
+def _extract_context(plan) -> dict:
+    for action in getattr(plan, "actions", []):
+        if action.type != "write_file":
+            continue
+        context = (action.params or {}).get("context") or {}
+        if context.get("INSTANCE_NAME") and context.get("INSTANCE_DIR"):
+            return context
+    return {}
+
+
 def print_execution_plan(plan) -> None:
-    payload = plan.to_dict()
     lang = os.environ.get("MC_PANEL_LANG", "en")
     label = "=== Execution Plan (apply) ===" if getattr(plan, "mode", "") == "apply" else "=== Execution Plan (dry-run) ==="
     print(_label(lang, label))
-    print(json.dumps(payload, indent=2, ensure_ascii=True))
+    print(f"{_label(lang, 'Mode')}: {getattr(plan, 'mode', '')}")
+    print(f"{_label(lang, 'Review')}: {getattr(plan, 'review_level', '')}")
+
+    notes = getattr(plan, "meta", {}).get("port_notes", [])
+    if notes:
+        print(f"\n{_label(lang, 'Notes')}:")
+        for note in notes:
+            print(f"- {note}")
+
+    print(f"\n{_label(lang, 'Preconditions')}:")
+    for pre in getattr(plan, "preconditions", []):
+        req = _label(lang, "Required") if pre.required else _label(lang, "Optional")
+        print(f"- [{req}] {pre.type} {pre.value}")
+
+    print(f"\n{_label(lang, 'Actions')}:")
+    for action in getattr(plan, "actions", []):
+        params = action.params or {}
+        if action.type == "mkdir":
+            detail = params.get("path", "")
+        elif action.type == "write_file":
+            detail = params.get("path", "")
+        elif action.type == "download_file":
+            detail = params.get("target", "")
+        elif action.type == "systemd_enable_now":
+            detail = params.get("service", "")
+        else:
+            detail = ""
+        suffix = f" {detail}" if detail else ""
+        print(f"- {action.type}{suffix}")
+    print()
+
+
+def print_execution_summary(plan, claims) -> None:
+    lang = os.environ.get("MC_PANEL_LANG", "en")
+    context = _extract_context(plan)
+    ports = getattr(plan, "meta", {}).get("resolved_ports", {})
+    host_ip = _guess_host_ip()
+    instance_dir = context.get("INSTANCE_DIR", "")
+    mc_port = ports.get("mc_port") or context.get("MC_PORT")
+    panel_port = ports.get("panel_port") or context.get("PANEL_PORT")
+    map_port = ports.get("map_port") or context.get("MAP_PORT")
+    rcon_port = ports.get("rcon_port") or context.get("RCON_PORT")
+    panel_enabled = str(claims.params.get("panel.enable", "false")).lower() in ("true", "1", "yes", "y")
+    map_plugin = claims.params.get("map.plugin")
+
+    print(f"\n{_label(lang, 'Execution Summary')}:")
+    if instance_dir:
+        print(f"- {_label(lang, 'Instance')}: {instance_dir}")
+    if mc_port:
+        print(f"- {_label(lang, 'MC')}: {host_ip}:{mc_port}")
+    if panel_enabled and panel_port:
+        print(f"- {_label(lang, 'Panel')}: http://{host_ip}:{panel_port}/")
+    if map_plugin and map_port:
+        print(f"- {_label(lang, 'Map')}: http://{host_ip}:{map_port}/")
+    if rcon_port:
+        print(f"- {_label(lang, 'RCON')}: {host_ip}:{rcon_port}")
     print()
 
 
@@ -459,6 +554,7 @@ def main():
         print("Execution succeeded.")
     for step in result.steps:
         print(f"- {step.name:24} OK {step.details}")
+    print_execution_summary(plan, claims)
     return 0
 
 
