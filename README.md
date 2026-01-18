@@ -49,6 +49,9 @@ Environment variables (skip prompts):
 - `MC_PANEL_DOCKER_MIRROR` (e.g. `https://<id>.mirror.aliyuncs.com`)
 - `MC_PANEL_DOCKER_PROXY_PREFIX` (e.g. `m.daocloud.io/docker.io`)
 
+If `itzg/minecraft-server:latest` already exists locally, the installer skips the proxy prompt.
+若本地已存在 `itzg/minecraft-server:latest`，安装脚本会跳过代理提示。
+
 Example (manual proxy pull):
 示例（手动代理拉取）：
 
