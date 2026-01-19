@@ -30,6 +30,11 @@ class RCONClient:
             return "RCON disabled"
         if not self.password:
             return "RCON password missing"
+        command = (command or "").strip()
+        if command.startswith("/"):
+            command = command[1:]
+        if not command:
+            return "RCON empty command"
         try:
             with socket.create_connection((self.host, self.port), timeout=self.timeout) as sock:
                 sock.settimeout(self.timeout)

@@ -48,7 +48,8 @@ If Docker Hub is unreachable, the installer can prompt for a mirror or a proxy p
 Environment variables (skip prompts):
 环境变量（跳过交互）：
 
-- `MC_PANEL_DOCKER_MIRROR` (e.g. `https://<id>.mirror.aliyuncs.com`)
+- `MC_PANEL_DOCKER_MIRRORS` (comma-separated, e.g. `https://a.mirror,https://b.mirror`)
+- `MC_PANEL_DOCKER_MIRROR` (legacy single mirror, still supported)
 - `MC_PANEL_DOCKER_PROXY_PREFIX` (e.g. `m.daocloud.io/docker.io`)
 
 If `itzg/minecraft-server:latest` already exists locally, the installer skips the proxy prompt.
@@ -66,6 +67,9 @@ sudo docker tag m.daocloud.io/docker.io/itzg/minecraft-server:latest itzg/minecr
 
 Docker will try registry mirrors in order; configure multiple mirrors to improve resilience.
 Docker 会按顺序尝试镜像源；配置多个镜像源能提升成功率。
+
+The mirror prompt also accepts multiple comma-separated URLs.
+镜像提示同样支持多个逗号分隔的地址。
 
 ```
 sudo tee /etc/docker/daemon.json >/dev/null <<'EOF'
@@ -86,6 +90,15 @@ The panel is optional. It can be installed during deploy or added later without 
 
 - Python 依赖：`fastapi`, `uvicorn`
 - 前端构建产物：`frontend/dist`（使用 Node.js + npm 构建）
+
+The installer auto-builds the frontend when panel is enabled and npm is available.
+若启用面板且 npm 可用，安装脚本会自动构建前端。
+
+Command input rule:
+Panel commands do NOT need a leading `/`. In-game chat commands still use `/`.
+
+指令输入规则：
+面板指令不需要前置 `/`，游戏聊天中仍需 `/`。
 
 ### Install panel during deploy / 部署时安装面板
 
@@ -154,6 +167,12 @@ Map tiles are served by the panel API when BlueMap is detected.
 The panel also reads BlueMap `settings.json` to surface `startLocation` and map list for 2D/3D switching.
 面板同时读取 BlueMap 的 `settings.json`，用于获取 `startLocation` 与地图列表，支持 2D/3D 切换。
 
+If no tiles are detected, place tiles under `map-tiles/` in the instance directory, or run:
+`bluemap render world` (panel/RCON) or `/bluemap render world` (in-game).
+
+若未检测到瓦片，可将瓦片放入实例目录 `map-tiles/`，或执行：
+`bluemap render world`（面板/RCON）或 `/bluemap render world`（游戏内）。
+
 ## Inventory plugins / 背包插件
 
 During deploy, you can optionally install an inventory plugin for richer inventory editing.
@@ -205,3 +224,11 @@ Catalog/Taxonomy 存放在外部规则仓库。
 
 - https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/catalog/vanilla_1.21.4.json
 - https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/taxonomy/vanilla_1.21.4.json
+
+## Memory format / 内存格式
+
+`docker.env.MEMORY` accepts integers or decimals (e.g. `2G`, `2.5G`).
+Decimals are normalized to MB before starting the server to avoid JVM errors.
+
+`docker.env.MEMORY` 支持整数或小数（如 `2G`, `2.5G`）。
+小数会自动转换为 MB 再启动服务器，避免 JVM 参数报错。

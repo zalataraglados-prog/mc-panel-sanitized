@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import subprocess
+import time
 import urllib.request
 from datetime import datetime
 from dataclasses import dataclass, field
@@ -391,31 +392,32 @@ class ExecutionPlanExecutor:
                 cmd = [*compose_cmd, "up", "-d"]
                 if compose_service:
                     cmd.append(compose_service)
-                subprocess.run(
-                    cmd,
-                    cwd=compose_dir,
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                    timeout=120,
-                )
-                return ExecutionStep(
-                    name="action:systemd_enable_now",
-                    ok=True,
-                    details=f"{service} not active; started via docker compose fallback",
-                )
-            except subprocess.TimeoutExpired:
-                return ExecutionStep(
-                    name="action:systemd_enable_now",
-                    ok=True,
-                    details=f"{service} not active; docker compose up timed out",
-                )
-            except subprocess.CalledProcessError as exc:
-                detail = (exc.stderr or exc.stdout or str(exc)).strip()
+                last_error = ""
+                for attempt in range(1, 4):
+                    try:
+                        subprocess.run(
+                            cmd,
+                            cwd=compose_dir,
+                            check=True,
+                            capture_output=True,
+                            text=True,
+                            timeout=120,
+                        )
+                        return ExecutionStep(
+                            name="action:systemd_enable_now",
+                            ok=True,
+                            details=f"{service} not active; started via docker compose fallback",
+                        )
+                    except subprocess.TimeoutExpired:
+                        last_error = "docker compose up timed out"
+                    except subprocess.CalledProcessError as exc:
+                        last_error = (exc.stderr or exc.stdout or str(exc)).strip()
+                    if attempt < 3:
+                        time.sleep(5 * attempt)
                 return ExecutionStep(
                     name="action:systemd_enable_now",
                     ok=False,
-                    details=f"fallback failed: {detail}",
+                    details=f"fallback failed: {last_error}",
                 )
         if panel_root and panel_port:
             venv_python = os.path.join(panel_root, ".venv", "bin", "python")

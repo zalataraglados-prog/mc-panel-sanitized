@@ -30,6 +30,7 @@ const translations = {
     rules: "Server Rules",
     map: "World Map",
     command: "Command",
+    commandHint: "Panel: no leading '/' | In-game chat: use '/'",
     rcon: "RCON",
     control: "Control",
     login: "Login",
@@ -153,6 +154,7 @@ const translations = {
     rules: "\u670d\u52a1\u5668\u89c4\u5219",
     map: "\u4e16\u754c\u5730\u56fe",
     command: "\u6307\u4ee4",
+    commandHint: "\u9762\u677f\u6307\u4ee4\u4e0d\u7528\u52a0 / \uff0c\u6e38\u620f\u804a\u5929\u9700\u8981 /",
     rcon: "RCON",
     control: "\u63a7\u5236",
     login: "\u767b\u5f55",
@@ -1666,6 +1668,7 @@ export function App() {
                 {t.rcon}
               </button>
             </div>
+            <div className="command-hint">{t.commandHint}</div>
           </div>
         </div>
       </section>

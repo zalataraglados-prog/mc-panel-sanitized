@@ -47,15 +47,25 @@ retry_cmd() {
   done
 }
 
-configure_docker_mirror() {
-  local mirror="$1"
-  if [ -z "$mirror" ]; then
+configure_docker_mirrors() {
+  local mirrors_raw="$1"
+  if [ -z "$mirrors_raw" ]; then
+    return 0
+  fi
+  local mirror_json
+  mirror_json=$(MIRRORS_RAW="$mirrors_raw" python3 - <<'PY'
+import json
+import os
+raw = os.environ.get("MIRRORS_RAW", "")
+parts = [item.strip() for item in raw.split(",") if item.strip()]
+print(json.dumps({"registry-mirrors": parts}, ensure_ascii=True))
+PY
+)
+  if [ -z "$mirror_json" ]; then
     return 0
   fi
   mkdir -p /etc/docker
-  cat >/etc/docker/daemon.json <<EOF
-{"registry-mirrors":["$mirror"]}
-EOF
+  echo "$mirror_json" >/etc/docker/daemon.json
   if command -v systemctl >/dev/null 2>&1; then
     systemctl restart docker || true
   else
@@ -64,9 +74,12 @@ EOF
 }
 
 maybe_prompt_docker_mirror() {
-  local mirror="${MC_PANEL_DOCKER_MIRROR:-}"
-  if [ -n "$mirror" ]; then
-    configure_docker_mirror "$mirror"
+  local mirrors="${MC_PANEL_DOCKER_MIRRORS:-}"
+  if [ -z "$mirrors" ]; then
+    mirrors="${MC_PANEL_DOCKER_MIRROR:-}"
+  fi
+  if [ -n "$mirrors" ]; then
+    configure_docker_mirrors "$mirrors"
     return 0
   fi
   if [ "$AUTO_MODE" = "1" ]; then
@@ -79,10 +92,10 @@ maybe_prompt_docker_mirror() {
     return 0
   fi
   echo "[WARN] Docker registry seems unreachable. Configure a mirror to continue."
-  mirror=$(read_tty "Docker mirror URL (Enter to skip): ")
-  mirror="$(echo "$mirror" | xargs)"
-  if [ -n "$mirror" ]; then
-    configure_docker_mirror "$mirror"
+  mirrors=$(read_tty "Docker mirror URL(s), comma-separated (Enter to skip): ")
+  mirrors="$(echo "$mirrors" | xargs)"
+  if [ -n "$mirrors" ]; then
+    configure_docker_mirrors "$mirrors"
   fi
 }
 
@@ -227,7 +240,7 @@ msg() {
         import_string) echo "粘贴配置串（回车跳过）：" ;;
         import_mode) echo "导入方式：1) 粘贴配置串 2) 从文件导入（回车跳过）" ;;
         import_file) echo "配置串文件路径：" ;;
-        import_file_missing) echo "[WARN] 文件不存在或不可读，将改为粘贴输入。" ;;
+        import_file_missing) echo "[WARN] 文件不存在或不可读，可重新输入路径或回车改为粘贴输入。" ;;
         import_list_header) echo "已导入配置（编号）：" ;;
         import_edit_prompt) echo "是否修改导入配置？输入行号（逗号分隔），回车跳过：" ;;
         import_confirm_prompt) echo "输入 sure 确认修改，回车跳过：" ;;
@@ -286,7 +299,7 @@ msg() {
         import_string) echo "Paste claims string (or press Enter to continue): " ;;
         import_mode) echo "Import mode: 1) Paste string 2) From file (Enter to skip)" ;;
         import_file) echo "Claims file path: " ;;
-        import_file_missing) echo "[WARN] File not found or not readable; falling back to paste." ;;
+        import_file_missing) echo "[WARN] File not found or not readable; re-enter path or press Enter to paste." ;;
         import_list_header) echo "Imported config (indexed):" ;;
         import_edit_prompt) echo "Edit imported config? Enter line numbers (comma-separated) or Enter to skip: " ;;
         import_confirm_prompt) echo "Type sure to confirm edits, or Enter to skip: " ;;

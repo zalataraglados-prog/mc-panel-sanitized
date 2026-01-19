@@ -7,7 +7,7 @@ from backend.runtime.mc_client import MCClient
 from backend.runtime.metrics import gather_metrics
 from backend.runtime.rcon_client import RCONClient
 
-_STATUS_CACHE = TTLCache(ttl_seconds=2.0)
+_STATUS_CACHE = TTLCache(ttl_seconds=10.0)
 
 
 def get_status_snapshot(instance_dir: str) -> dict:
