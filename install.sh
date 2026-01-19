@@ -266,8 +266,7 @@ msg() {
         plan_ok) echo "[INFO] Review 通过，生成执行计划..." ;;
         edit_params) echo "调整参数（key=value，空行结束）：" ;;
         frontend_missing) echo "[WARN] 缺少 frontend/dist，面板需要构建。" ;;
-        frontend_build_now) echo "是否现在构建前端？[y/N] " ;;
-        frontend_build_skip) echo "[WARN] 已跳过前端构建，面板可能无法启动。" ;;
+        frontend_building) echo "[INFO] 正在构建前端，请稍候..." ;;
         npm_missing) echo "[WARN] 未检测到 npm，请安装 Node.js 后再构建。" ;;
         review_blocked) echo "[INFO] Review 被阻拦，可调整参数后重试。" ;;
         review_still_block) echo "[INFO] 仍被阻拦，已退出。" ;;
@@ -326,8 +325,7 @@ msg() {
         plan_ok) echo "[INFO] Review passed. Generating execution plan..." ;;
         edit_params) echo "Adjust params (key=value, blank to finish): " ;;
         frontend_missing) echo "[WARN] frontend/dist not found. Panel will require a frontend build." ;;
-        frontend_build_now) echo "Build frontend now? [y/N] " ;;
-        frontend_build_skip) echo "[WARN] Skipped frontend build. Panel service may fail until built." ;;
+        frontend_building) echo "[INFO] Building frontend..." ;;
         npm_missing) echo "[WARN] npm not found. Install Node.js then run npm install && npm run build." ;;
         review_blocked) echo "[INFO] Review blocked. You can adjust params and retry." ;;
         review_still_block) echo "[INFO] Review still blocked. Exiting." ;;
@@ -894,16 +892,8 @@ if [ "$PANEL_ENABLED" = "true" ]; then
       fi
     fi
     if command -v npm >/dev/null 2>&1; then
-      if [ -z "$IMPORT_PRESENT" ]; then
-        BUILD_PANEL=$(read_tty "$(msg frontend_build_now)")
-        if [ "$BUILD_PANEL" = "y" ] || [ "$BUILD_PANEL" = "Y" ]; then
-          (cd "$INSTALL_DIR/frontend" && npm install && npm run build)
-        else
-          echo "$(msg frontend_build_skip)"
-        fi
-      else
-        (cd "$INSTALL_DIR/frontend" && npm install && npm run build)
-      fi
+      echo "$(msg frontend_building)"
+      (cd "$INSTALL_DIR/frontend" && npm install && npm run build)
     fi
   fi
 fi
