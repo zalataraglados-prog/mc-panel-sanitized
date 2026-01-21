@@ -1031,7 +1031,7 @@ export function App() {
     if (!canManagePlayers) {
       return;
     }
-    fetch("/api/command", {
+    fetch("/api/rcon", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeader },
       body: JSON.stringify({ command: cmd, instance_dir: instanceDir || undefined }),
