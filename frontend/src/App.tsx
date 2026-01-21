@@ -31,6 +31,10 @@ const translations = {
     map: "World Map",
     command: "Command",
     commandHint: "Panel: no leading '/' | In-game chat: use '/'",
+    commandSuccess: "Command sent",
+    commandResponse: "Response",
+    commandPlayerOnly: "This command only works in-game. Use /invsee in-game or install OpenInv.",
+    commandEmpty: "No response",
     rcon: "RCON",
     control: "Control",
     login: "Login",
@@ -83,6 +87,7 @@ const translations = {
     height: "Y Level",
     refresh: "Refresh (s)",
     mapHint: "Tiles are read-only. Provide tiles via map-tiles/ in instance dir.",
+    mapOpenExternal: "Open BlueMap (port 8100)",
     mapPluginMissing: "No map plugin detected.",
     mapPluginMissingDetail: "No map plugin detected. Place tiles in map-tiles/ under the instance directory.",
     mapSourceNone: "none",
@@ -155,6 +160,10 @@ const translations = {
     map: "\u4e16\u754c\u5730\u56fe",
     command: "\u6307\u4ee4",
     commandHint: "\u9762\u677f\u6307\u4ee4\u4e0d\u7528\u52a0 / \uff0c\u6e38\u620f\u804a\u5929\u9700\u8981 /",
+    commandSuccess: "\u6307\u4ee4\u5df2\u53d1\u9001",
+    commandResponse: "\u8fd4\u56de",
+    commandPlayerOnly: "\u8be5\u547d\u4ee4\u4ec5\u5728\u6e38\u620f\u5185\u53ef\u7528\uff0c\u8bf7\u6e38\u620f\u5185\u4f7f\u7528 /invsee \uff0c\u6216\u5b89\u88c5 OpenInv\u3002",
+    commandEmpty: "\u65e0\u8fd4\u56de",
     rcon: "RCON",
     control: "\u63a7\u5236",
     login: "\u767b\u5f55",
@@ -207,6 +216,7 @@ const translations = {
     height: "\u9ad8\u5ea6",
     refresh: "\u5237\u65b0\u95f4\u9694(\u79d2)",
     mapHint: "\u53ea\u8bfb\u74e6\u7247\u3002\u5c06\u74e6\u7247\u653e\u5165\u5b9e\u4f8b\u76ee\u5f55 map-tiles/ \u3002",
+    mapOpenExternal: "\u6253\u5f00 BlueMap (8100 \u7aef\u53e3)",
     mapPluginMissing: "\u672a\u68c0\u6d4b\u5230\u5730\u56fe\u63d2\u4ef6\u3002",
     mapPluginMissingDetail: "\u672a\u68c0\u6d4b\u5230\u5730\u56fe\u63d2\u4ef6\u3002\u8bf7\u5c06\u74e6\u7247\u653e\u5165\u5b9e\u4f8b\u76ee\u5f55 map-tiles/ \u3002",
     mapSourceNone: "\u65e0",
@@ -422,6 +432,8 @@ export function App() {
   const [command, setCommand] = useState("");
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [commandStatus, setCommandStatus] = useState("");
+  const [commandStatusType, setCommandStatusType] = useState<"" | "ok" | "error">("");
   const [opLevels, setOpLevels] = useState<Record<string, string>>({});
   const [exportOpen, setExportOpen] = useState(false);
   const [exportClaims, setExportClaims] = useState("");
@@ -523,6 +535,10 @@ export function App() {
   const mapScale = mapMeta?.scale ?? 1;
   const mapZoomScale = Math.pow(2, mapZoom);
   const mapTileScale = mapScale * mapZoomScale;
+  const mapExternalUrl = useMemo(() => {
+    const host = window.location.hostname || "127.0.0.1";
+    return `http://${host}:8100/`;
+  }, []);
   const mapHash = useMemo(() => {
     const raw = mapMeta?.start_location;
     if (!raw) {
@@ -927,6 +943,8 @@ export function App() {
     if (endpoint === "/api/command" && !canCommand) {
       return;
     }
+    setCommandStatus("");
+    setCommandStatusType("");
     fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeader },
@@ -935,19 +953,32 @@ export function App() {
       .then((res) => res.json())
       .then((data) => {
         if (data?.ok === false || data?.error) {
-          setLogError(data.error || t.commandFailed);
-          appendLogLine(data.error || t.commandFailed);
+          const message = data.error || t.commandFailed;
+          setLogError(message);
+          appendLogLine(message);
+          setCommandStatus(message);
+          setCommandStatusType("error");
           return;
         }
         const response = data.result || data.response;
+        const responseText = response ? String(response) : t.commandEmpty;
+        if (responseText.includes("only be used by players")) {
+          setCommandStatus(t.commandPlayerOnly);
+          setCommandStatusType("error");
+        } else {
+          setCommandStatus(`${t.commandResponse}: ${responseText}`);
+          setCommandStatusType("ok");
+        }
         if (response) {
           appendLogLine(`> ${command}`);
-          appendLogLine(String(response));
+          appendLogLine(responseText);
         }
       })
       .catch(() => {
         setLogError(t.commandFailed);
         appendLogLine(t.commandFailed);
+        setCommandStatus(t.commandFailed);
+        setCommandStatusType("error");
       });
     setCommandHistory((prev) => [command, ...prev].slice(0, 20));
     setCommand("");
@@ -1586,6 +1617,11 @@ export function App() {
               {t.mapStatus}: {mapStatus?.source ?? t.mapSourceNone} - {mapStatus?.source ? t.mapHint : t.mapPluginMissingDetail}
             </div>
             <div className="map-config-actions">
+              {mapStatus?.source === "bluemap" ? (
+                <a className="btn" href={mapExternalUrl} target="_blank" rel="noreferrer">
+                  {t.mapOpenExternal}
+                </a>
+              ) : null}
               <button className="btn" onClick={toggleMapConfig}>
                 {mapConfigOpen ? t.close : t.open}
               </button>
@@ -1669,6 +1705,9 @@ export function App() {
               </button>
             </div>
             <div className="command-hint">{t.commandHint}</div>
+            {commandStatus ? (
+              <div className={`command-feedback ${commandStatusType}`}>{commandStatus}</div>
+            ) : null}
           </div>
         </div>
       </section>

@@ -681,6 +681,24 @@ textarea::placeholder {
   color: var(--muted);
 }
 
+.command-feedback {
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--fg);
+}
+
+.command-feedback.ok {
+  background: rgba(63, 185, 80, 0.18);
+  color: #b7f0c2;
+}
+
+.command-feedback.error {
+  background: rgba(248, 81, 73, 0.2);
+  color: #ffd3cf;
+}
+
 .users-panel {
   display: grid;
   gap: 12px;

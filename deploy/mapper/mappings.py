@@ -23,6 +23,10 @@ PARAMETER_MAPPINGS = {
     "network.mc_port": ("network", "mc_port"),
     "network.rcon_port": ("network", "rcon_port"),
     "network.query_port": ("network", "query_port"),
+    "server-port": ("network", "mc_port"),
+    "rcon.port": ("network", "rcon_port"),
+    "panel.port": ("network", "panel_port"),
+    "query.port": ("network", "query_port"),
 
     # ─────────────────────────
     # Minecraft Core
@@ -36,11 +40,18 @@ PARAMETER_MAPPINGS = {
     "minecraft.gamemode": ("minecraft", "gamemode"),
     "minecraft.view_distance": ("minecraft", "view_distance"),
     "minecraft.simulation_distance": ("minecraft", "simulation_distance"),
+    "max-players": ("minecraft", "max_players"),
+    "motd": ("minecraft", "motd"),
+    "online-mode": ("minecraft", "online_mode"),
+    "difficulty": ("minecraft", "difficulty"),
+    "gamemode": ("minecraft", "game_mode"),
+    "view-distance": ("minecraft", "view_distance"),
+    "simulation-distance": ("minecraft", "simulation_distance"),
 
     # ─────────────────────────
     # Docker / JVM
     # ─────────────────────────
-    "docker.env.MEMORY": ("docker", "memory"),
+    "docker.env.MEMORY": ("minecraft", "jvm", "memory"),
     "docker.env.TYPE": ("docker", "type"),
     "docker.env.JVM_OPTS": ("docker", "jvm_opts"),
     "docker.restart_policy": ("docker", "restart"),
