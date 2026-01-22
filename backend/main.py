@@ -2,7 +2,7 @@ import os
 from typing import Iterable
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
 from backend.logging import get_logger
@@ -38,6 +38,26 @@ app.include_router(instances_router)
 app.include_router(rules_router)
 app.include_router(templates_router)
 app.include_router(users_router)
+
+_TRAILING_PATH_CHARS = "”\"’‘。．，、；：!！?？）)]}"
+
+def _strip_trailing_path_chars(path: str) -> str:
+    cleaned = path
+    while cleaned and cleaned[-1] in _TRAILING_PATH_CHARS:
+        cleaned = cleaned[:-1]
+    return cleaned
+
+
+@app.middleware("http")
+async def normalize_request_path(request: Request, call_next):
+    path = request.url.path
+    cleaned = _strip_trailing_path_chars(path)
+    if cleaned != path:
+        scope = request.scope
+        scope["path"] = cleaned
+        scope["raw_path"] = cleaned.encode()
+        request = Request(scope, request.receive)
+    return await call_next(request)
 
 def _static_candidates() -> Iterable[Path]:
     env_dir = os.environ.get("MC_PANEL_STATIC_DIR")
