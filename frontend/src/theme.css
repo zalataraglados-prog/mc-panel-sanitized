@@ -644,6 +644,7 @@ textarea::placeholder {
   justify-content: space-between;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.75);
+  position: relative;
 }
 
 .inventory-slot-cell.filled {
@@ -662,6 +663,27 @@ textarea::placeholder {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.6);
   text-align: right;
+}
+
+.inventory-slot-index {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.inventory-slot-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.inventory-slot-icon {
+  width: 20px;
+  height: 20px;
+  image-rendering: pixelated;
 }
 
 .inventory-item input {

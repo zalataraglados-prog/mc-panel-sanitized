@@ -529,6 +529,13 @@ export function App() {
     }
     return value.replace(/^minecraft:/, "");
   };
+  const itemTextureUrl = (value: string) => {
+    const name = formatItemId(value);
+    if (!name) {
+      return "";
+    }
+    return `https://fastly.jsdelivr.net/gh/InventivetalentDev/minecraft-assets@1.21.4/assets/minecraft/textures/item/${name}.png`;
+  };
   const formatRuleKey = (key: string) => {
     if (lang !== "zh") {
       return key;
@@ -1907,11 +1914,20 @@ export function App() {
                 <div className="inventory-grid inventory-grid-slots">
                   {inventorySlots.map((item, slot) => (
                     <div key={`slot-${slot}`} className={`inventory-slot-cell${item ? " filled" : ""}`}>
+                      <div className="inventory-slot-index">{slot}</div>
                       {item ? (
-                        <>
+                        <div className="inventory-slot-content">
+                          <img
+                            className="inventory-slot-icon"
+                            src={itemTextureUrl(item.id)}
+                            alt={formatItemId(item.id)}
+                            onError={(event) => {
+                              event.currentTarget.style.display = "none";
+                            }}
+                          />
                           <div className="inventory-slot-id">{formatItemId(item.id)}</div>
                           <div className="inventory-slot-count">{item.count > 1 ? `x${item.count}` : ""}</div>
-                        </>
+                        </div>
                       ) : null}
                     </div>
                   ))}
