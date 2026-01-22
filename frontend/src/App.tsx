@@ -104,6 +104,7 @@ const translations = {
     inventoryOpen: "Open Inventory",
     inventoryClose: "Close",
     inventoryEmpty: "No inventory data.",
+    inventoryEmptyDetail: "Player has no items or data not saved yet.",
     inventoryUnsupported: "Inventory editing requires a compatible plugin.",
     inventoryProvider: "Provider",
     inventoryReadOnly: "Read-only",
@@ -233,6 +234,7 @@ const translations = {
     inventoryOpen: "\u67e5\u770b\u80cc\u5305",
     inventoryClose: "\u5173\u95ed",
     inventoryEmpty: "\u6682\u65e0\u80cc\u5305\u6570\u636e\u3002",
+    inventoryEmptyDetail: "\u73a9\u5bb6\u65e0\u7269\u54c1\u6216\u6570\u636e\u5c1a\u672a\u5199\u5165\u3002",
     inventoryUnsupported: "\u80cc\u5305\u7f16\u8f91\u9700\u8981\u76f8\u5bb9\u63d2\u4ef6\u3002",
     inventoryProvider: "\u63d0\u4f9b\u65b9",
     inventoryReadOnly: "\u4ec5\u53ef\u67e5\u770b",
@@ -510,6 +512,23 @@ export function App() {
   };
   const mapSupported = mapStatus?.source === "bluemap" || mapStatus?.source === "dynmap";
   const mapSupports3d = mapStatus?.source === "bluemap";
+  const inventorySlotCount = 36;
+  const inventoryViewItems = inventoryEditing ? inventoryDraft : inventoryItems;
+  const inventorySlots = useMemo(() => {
+    const slots: Array<InventoryItem | null> = Array.from({ length: inventorySlotCount }, () => null);
+    for (const item of inventoryViewItems) {
+      if (item.slot >= 0 && item.slot < inventorySlotCount) {
+        slots[item.slot] = item;
+      }
+    }
+    return slots;
+  }, [inventoryViewItems]);
+  const formatItemId = (value: string) => {
+    if (!value) {
+      return "";
+    }
+    return value.replace(/^minecraft:/, "");
+  };
   const formatRuleKey = (key: string) => {
     if (lang !== "zh") {
       return key;
@@ -1857,31 +1876,23 @@ export function App() {
             {!inventorySupported ? (
               <p>{inventoryMessage || t.inventoryUnsupported}</p>
             ) : inventoryItems.length ? (
-              <div className="inventory-grid">
-                {(inventoryEditing ? inventoryDraft : inventoryItems).map((item, index) => (
-                  <div key={`${item.slot}-${item.id}-${index}`} className="inventory-item">
-                    <div className="inventory-id">
-                      {inventoryEditing ? (
+              inventoryEditing ? (
+                <div className="inventory-grid">
+                  {inventoryDraft.map((item, index) => (
+                    <div key={`${item.slot}-${item.id}-${index}`} className="inventory-item">
+                      <div className="inventory-id">
                         <input
                           value={item.id}
                           onChange={(event) => updateInventoryDraft(index, "id", event.target.value)}
                         />
-                      ) : (
-                        item.id
-                      )}
-                    </div>
-                    <div className="inventory-count">
-                      {inventoryEditing ? (
+                      </div>
+                      <div className="inventory-count">
                         <input
                           type="number"
                           value={item.count}
                           onChange={(event) => updateInventoryDraft(index, "count", event.target.value)}
                         />
-                      ) : (
-                        `x${item.count}`
-                      )}
-                    </div>
-                    {inventoryEditing ? (
+                      </div>
                       <div className="inventory-slot">
                         <input
                           type="number"
@@ -1889,12 +1900,25 @@ export function App() {
                           onChange={(event) => updateInventoryDraft(index, "slot", event.target.value)}
                         />
                       </div>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="inventory-grid inventory-grid-slots">
+                  {inventorySlots.map((item, slot) => (
+                    <div key={`slot-${slot}`} className={`inventory-slot-cell${item ? " filled" : ""}`}>
+                      {item ? (
+                        <>
+                          <div className="inventory-slot-id">{formatItemId(item.id)}</div>
+                          <div className="inventory-slot-count">{item.count > 1 ? `x${item.count}` : ""}</div>
+                        </>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )
             ) : (
-              <p>{inventoryMessage || t.inventoryEmpty}</p>
+              <p>{inventoryMessage || t.inventoryEmptyDetail}</p>
             )}
           </div>
         </div>

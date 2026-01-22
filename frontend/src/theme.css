@@ -628,6 +628,42 @@ textarea::placeholder {
   color: var(--muted);
 }
 
+.inventory-grid-slots {
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.inventory-slot-cell {
+  height: 54px;
+  background: rgba(15, 18, 26, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.inventory-slot-cell.filled {
+  border-color: rgba(79, 156, 255, 0.7);
+  background: rgba(36, 72, 128, 0.35);
+}
+
+.inventory-slot-id {
+  font-weight: 600;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.inventory-slot-count {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: right;
+}
+
 .inventory-item input {
   width: 100%;
   margin-top: 4px;
