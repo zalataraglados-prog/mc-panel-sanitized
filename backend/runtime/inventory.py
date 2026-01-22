@@ -174,11 +174,11 @@ def _parse_inventory_payload(payload: str) -> list[dict]:
         return items
     if "No entity was found" in payload:
         return items
-    for match in re.finditer(r"\{[^{}]*?Slot:(-?\d+)b[^{}]*?\}", payload):
+    for match in re.finditer(r"\{[^{}]*?Slot:\s*(-?\d+)b?[^{}]*?\}", payload):
         block = match.group(0)
         slot = int(match.group(1))
         id_match = re.search(r'id:"([^"]+)"', block, re.IGNORECASE)
-        count_match = re.search(r"(?:Count|count):(\d+)b", block)
+        count_match = re.search(r"(?:Count|count):\s*(\d+)b?", block)
         if not id_match or not count_match:
             continue
         items.append(
