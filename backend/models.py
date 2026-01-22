@@ -81,6 +81,7 @@ class PlayerInventoryResponse(BaseModel):
     editable: bool = False
     items: List[InventoryItem] = Field(default_factory=list)
     message: Optional[str] = None
+    raw: Optional[str] = None
 
 
 class PlayerInventoryUpdateRequest(BaseModel):

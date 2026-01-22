@@ -253,12 +253,14 @@ def get_inventory(instance_dir: str, player: str) -> dict:
         }
     items = _parse_inventory_payload(response)
     if not items:
+        raw_snippet = response[:800] if response and "Inventory" in response else None
         return {
             "supported": True,
             "provider": provider or "vanilla_rcon",
             "editable": True,
             "items": [],
-            "message": "Inventory is empty.",
+            "message": "Inventory is empty." if raw_snippet is None else "Inventory parse failed.",
+            "raw": raw_snippet,
         }
     return {
         "supported": True,
