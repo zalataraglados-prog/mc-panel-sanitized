@@ -177,8 +177,8 @@ def _parse_inventory_payload(payload: str) -> list[dict]:
     for match in re.finditer(r"\{[^{}]*?Slot:(-?\d+)b[^{}]*?\}", payload):
         block = match.group(0)
         slot = int(match.group(1))
-        id_match = re.search(r'id:"([^"]+)"', block)
-        count_match = re.search(r"Count:(\d+)b", block)
+        id_match = re.search(r'id:"([^"]+)"', block, re.IGNORECASE)
+        count_match = re.search(r"(?:Count|count):(\d+)b", block)
         if not id_match or not count_match:
             continue
         items.append(
