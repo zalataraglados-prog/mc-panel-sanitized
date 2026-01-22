@@ -1411,7 +1411,7 @@ export function App() {
                   <button
                     className="btn"
                     disabled={!canManagePlayers}
-                    onClick={() => sendPlayerCommand(`op ${p.name} ${opLevels[p.uuid] || "4"}`)}
+                    onClick={() => sendPlayerCommand(`op ${p.name}`)}
                   >
                     {t.op}
                   </button>
