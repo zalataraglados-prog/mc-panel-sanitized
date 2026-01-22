@@ -191,6 +191,30 @@ def _parse_inventory_payload(payload: str) -> list[dict]:
     return items
 
 
+def _resolve_online_player_name(client: RCONClient, player: str) -> str:
+    try:
+        names = client.list_players()
+    except Exception:
+        return player
+    for name in names:
+        if name.lower() == player.lower():
+            return name
+    return player
+
+
+def _query_live_inventory(client: RCONClient, player: str) -> str:
+    commands = [
+        f"data get entity {player} Inventory",
+        f"data get entity @a[name={player},limit=1] Inventory",
+    ]
+    for command in commands:
+        response = client.execute(command)
+        if response.startswith("RCON ") or "No entity was found" in response:
+            continue
+        return response
+    return "No entity was found"
+
+
 def get_inventory(instance_dir: str, player: str) -> dict:
     instance_path = Path(instance_dir)
     provider = _detect_provider(instance_path)
@@ -206,7 +230,8 @@ def get_inventory(instance_dir: str, player: str) -> dict:
         }
 
     client = RCONClient.from_instance_dir(instance_dir)
-    response = client.execute(f"data get entity {player} Inventory")
+    player_name = _resolve_online_player_name(client, player)
+    response = _query_live_inventory(client, player_name)
     if response.startswith("RCON ") or "No entity was found" in response:
         offline = _get_offline_inventory(instance_path, player)
         if offline is not None:
