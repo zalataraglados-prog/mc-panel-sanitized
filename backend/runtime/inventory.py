@@ -10,7 +10,7 @@ from backend.runtime.rcon_client import RCONClient
 
 PLUGIN_SIGNATURES = {
     "openinv": ("openinv", "openinv.jar"),
-    "invsee": ("invsee", "invsee++.jar"),
+    "invsee": ("invsee", "invsee++.jar", "invseeplusplus.jar"),
     "essentialsx": ("essentials", "essentialsx.jar"),
 }
 
@@ -208,18 +208,17 @@ def get_inventory(instance_dir: str, player: str) -> dict:
     client = RCONClient.from_instance_dir(instance_dir)
     response = client.execute(f"data get entity {player} Inventory")
     if response.startswith("RCON ") or "No entity was found" in response:
-        if provider:
-            offline = _get_offline_inventory(instance_path, player)
-            if offline is not None:
-                items = _inventory_items_from_tags(offline["items"])
-                return {
-                    "supported": True,
-                    "provider": provider,
-                    "editable": True,
-                    "items": items,
-                    "message": None if items else "Offline inventory loaded.",
-                }
-        message = "Player is offline. Install OpenInv to access offline inventories."
+        offline = _get_offline_inventory(instance_path, player)
+        if offline is not None:
+            items = _inventory_items_from_tags(offline["items"])
+            return {
+                "supported": True,
+                "provider": provider or "offline",
+                "editable": True,
+                "items": items,
+                "message": None if items else "Offline inventory loaded.",
+            }
+        message = "Player is offline or not found. Join once to create player data."
         return {
             "supported": False,
             "provider": provider or "vanilla_rcon",
@@ -230,11 +229,11 @@ def get_inventory(instance_dir: str, player: str) -> dict:
     items = _parse_inventory_payload(response)
     if not items:
         return {
-            "supported": False,
+            "supported": True,
             "provider": provider or "vanilla_rcon",
-            "editable": False,
+            "editable": True,
             "items": [],
-            "message": "No inventory data available.",
+            "message": "Inventory is empty.",
         }
     return {
         "supported": True,
