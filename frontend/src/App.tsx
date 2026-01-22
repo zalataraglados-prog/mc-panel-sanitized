@@ -1031,6 +1031,8 @@ export function App() {
     if (!canManagePlayers) {
       return;
     }
+    setCommandStatus("");
+    setCommandStatusType("");
     fetch("/api/rcon", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeader },
@@ -1038,9 +1040,16 @@ export function App() {
     })
       .then((res) => res.json())
       .then((data) => {
+        const responseText = String(data?.response || "");
         if (data?.ok === false || data?.error) {
-          setLogError(data.error || t.commandFailed);
+          setCommandStatus(data.error || t.commandFailed);
+          setCommandStatusType("error");
           appendLogLine(data.error || t.commandFailed);
+          return;
+        }
+        if (responseText) {
+          setCommandStatus(`${t.commandResponse}: ${responseText}`);
+          setCommandStatusType("ok");
         }
       })
       .catch(() => {});
