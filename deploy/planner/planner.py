@@ -355,6 +355,35 @@ def _parse_memory_gb(value) -> float | None:
     return None
 
 
+def _normalize_memory_string(value) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, int):
+        return f"{value}G"
+    if isinstance(value, float):
+        if value.is_integer():
+            return f"{int(value)}G"
+        return f"{int((value * 1024) + 0.9999)}M"
+    if not isinstance(value, str):
+        return None
+    raw = value.strip().upper()
+    if not raw:
+        return None
+    suffix = raw[-1]
+    num_text = raw[:-1] if suffix in ("G", "M") else raw
+    try:
+        num = float(num_text)
+    except ValueError:
+        return None
+    if suffix == "G" or suffix not in ("G", "M"):
+        if num.is_integer():
+            return f"{int(num)}G"
+        return f"{int((num * 1024) + 0.9999)}M"
+    if suffix == "M":
+        return f"{int(num + 0.9999)}M"
+    return None
+
+
 def _performance_advice(params: dict) -> tuple[List[PlanMessage], List[PlanRecommendation]]:
     warnings: List[PlanMessage] = []
     recommendations: List[PlanRecommendation] = []
@@ -789,6 +818,11 @@ def plan(claims) -> ApplyPlan:
     blocks: List[PlanMessage] = []
     warnings: List[PlanMessage] = []
     recommendations: List[PlanRecommendation] = []
+    normalized = _normalize_memory_string(claims.params.get("docker.env.MEMORY") if claims.params else None)
+    if normalized and claims.params.get("docker.env.MEMORY") != normalized:
+        claims.params = dict(claims.params or {})
+        claims.params["docker.env.MEMORY"] = normalized
+
     blocks.extend(_validate_profile(claims.profile))
     blocks.extend(_validate_params(claims.params, getattr(claims, "catalog", None)))
     blocks.extend(_validate_edition_rules(claims.params))

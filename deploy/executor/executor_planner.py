@@ -274,6 +274,10 @@ def build_execution_plan(
     mode: str = "dry-run",
 ) -> ExecutionPlan:
     params = getattr(claims, "params", {}) or {}
+    normalized_memory = _normalize_memory(params.get("docker.env.MEMORY"))
+    if normalized_memory and normalized_memory != params.get("docker.env.MEMORY"):
+        params = dict(params)
+        params["docker.env.MEMORY"] = normalized_memory
     map_plugin = params.get("map.plugin")
     if map_plugin in ("dynmap", "bluemap") and "docker.env.TYPE" not in params:
         params = dict(params)
