@@ -174,11 +174,11 @@ def _parse_inventory_payload(payload: str) -> list[dict]:
         return items
     if "No entity was found" in payload:
         return items
-    for match in re.finditer(r"\{[^{}]*?Slot:\s*(-?\d+)b?[^{}]*?\}", payload):
+    for match in re.finditer(r"\{[^{}]*?(?:Slot|slot):\s*(-?\d+)b?[^{}]*?\}", payload, re.IGNORECASE):
         block = match.group(0)
         slot = int(match.group(1))
-        id_match = re.search(r'id:"([^"]+)"', block, re.IGNORECASE)
-        count_match = re.search(r"(?:Count|count):\s*(\d+)b?", block)
+        id_match = re.search(r'id:\s*"?([a-z0-9_:\.\-]+)"?', block, re.IGNORECASE)
+        count_match = re.search(r"(?:Count|count):\s*(\d+)", block, re.IGNORECASE)
         if not id_match or not count_match:
             continue
         items.append(
@@ -253,7 +253,7 @@ def get_inventory(instance_dir: str, player: str) -> dict:
         }
     items = _parse_inventory_payload(response)
     if not items:
-        raw_snippet = response[:800] if response and "Inventory" in response else None
+        raw_snippet = response[:1200] if response else None
         return {
             "supported": True,
             "provider": provider or "vanilla_rcon",
