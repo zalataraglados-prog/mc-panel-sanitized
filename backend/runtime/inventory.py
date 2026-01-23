@@ -216,7 +216,7 @@ def _query_live_inventory(client: RCONClient, player: str, uuid: str | None = No
         f"data get entity @a[name={player},limit=1] Inventory",
     ]
     if uuid:
-        commands.append(f"data get entity @e[uuid={uuid},limit=1] Inventory")
+        commands.append(f"data get entity {uuid} Inventory")
     for command in commands:
         response = client.execute(command)
         if response.startswith("RCON ") or "No entity was found" in response:
