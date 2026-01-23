@@ -245,6 +245,18 @@ def get_inventory(instance_dir: str, player: str) -> dict:
     online_names = client.list_players()
     is_online = any(name.lower() == player.lower() for name in online_names)
     player_name = _resolve_online_player_name(client, player)
+
+    offline = _get_offline_inventory(instance_path, player_name)
+    if offline is not None:
+        items = _inventory_items_from_tags(offline["items"])
+        return {
+            "supported": True,
+            "provider": provider or "playerdata",
+            "editable": True,
+            "items": items,
+            "message": "Loaded from playerdata (may be stale while online)." if is_online else None,
+        }
+
     uuid = _resolve_player_uuid(instance_path, player_name)
     response = _query_live_inventory(client, player_name, uuid)
     if response.startswith("RCON "):
@@ -264,17 +276,6 @@ def get_inventory(instance_dir: str, player: str) -> dict:
                 "editable": True,
                 "items": [],
                 "message": "Inventory fetch failed for online player.",
-                "raw": response,
-            }
-        offline = _get_offline_inventory(instance_path, player)
-        if offline is not None:
-            items = _inventory_items_from_tags(offline["items"])
-            return {
-                "supported": True,
-                "provider": provider or "offline",
-                "editable": True,
-                "items": items,
-                "message": None if items else "Offline inventory loaded.",
                 "raw": response,
             }
         message = "Player is offline or not found. Join once to create player data."
