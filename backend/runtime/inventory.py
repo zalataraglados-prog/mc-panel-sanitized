@@ -214,6 +214,8 @@ def _query_live_inventory(client: RCONClient, player: str, uuid: str | None = No
     commands = [
         f"data get entity {player} Inventory",
         f"data get entity @a[name={player},limit=1] Inventory",
+        f"data get entity @a[name=\"{player}\",limit=1] Inventory",
+        f"execute as @a[name=\"{player}\",limit=1] run data get entity @s Inventory",
     ]
     if uuid:
         commands.append(f"data get entity {uuid} Inventory")
