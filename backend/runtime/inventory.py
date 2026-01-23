@@ -230,9 +230,29 @@ def get_inventory(instance_dir: str, player: str) -> dict:
         }
 
     client = RCONClient.from_instance_dir(instance_dir)
+    online_names = client.list_players()
+    is_online = any(name.lower() == player.lower() for name in online_names)
     player_name = _resolve_online_player_name(client, player)
     response = _query_live_inventory(client, player_name)
-    if response.startswith("RCON ") or "No entity was found" in response:
+    if response.startswith("RCON "):
+        return {
+            "supported": False,
+            "provider": provider or "vanilla_rcon",
+            "editable": False,
+            "items": [],
+            "message": response,
+            "raw": response,
+        }
+    if "No entity was found" in response:
+        if is_online:
+            return {
+                "supported": True,
+                "provider": provider or "vanilla_rcon",
+                "editable": True,
+                "items": [],
+                "message": "Inventory fetch failed for online player.",
+                "raw": response,
+            }
         offline = _get_offline_inventory(instance_path, player)
         if offline is not None:
             items = _inventory_items_from_tags(offline["items"])
@@ -242,6 +262,7 @@ def get_inventory(instance_dir: str, player: str) -> dict:
                 "editable": True,
                 "items": items,
                 "message": None if items else "Offline inventory loaded.",
+                "raw": response,
             }
         message = "Player is offline or not found. Join once to create player data."
         return {
@@ -250,6 +271,7 @@ def get_inventory(instance_dir: str, player: str) -> dict:
             "editable": False,
             "items": [],
             "message": message,
+            "raw": response,
         }
     items = _parse_inventory_payload(response)
     if not items:
