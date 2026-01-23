@@ -64,6 +64,14 @@ def _load_usercache(instance_dir: Path) -> dict:
     return mapping
 
 
+def _resolve_player_uuid(instance_dir: Path, player: str) -> str | None:
+    usercache = _load_usercache(instance_dir)
+    for name, uuid in usercache.items():
+        if name.lower() == player.lower():
+            return uuid
+    return None
+
+
 def _resolve_playerdata(instance_dir: Path, player: str) -> Path | None:
     usercache = _load_usercache(instance_dir)
     uuid = usercache.get(player)
@@ -202,11 +210,13 @@ def _resolve_online_player_name(client: RCONClient, player: str) -> str:
     return player
 
 
-def _query_live_inventory(client: RCONClient, player: str) -> str:
+def _query_live_inventory(client: RCONClient, player: str, uuid: str | None = None) -> str:
     commands = [
         f"data get entity {player} Inventory",
         f"data get entity @a[name={player},limit=1] Inventory",
     ]
+    if uuid:
+        commands.append(f"data get entity @e[uuid={uuid},limit=1] Inventory")
     for command in commands:
         response = client.execute(command)
         if response.startswith("RCON ") or "No entity was found" in response:
@@ -233,7 +243,8 @@ def get_inventory(instance_dir: str, player: str) -> dict:
     online_names = client.list_players()
     is_online = any(name.lower() == player.lower() for name in online_names)
     player_name = _resolve_online_player_name(client, player)
-    response = _query_live_inventory(client, player_name)
+    uuid = _resolve_player_uuid(instance_path, player_name)
+    response = _query_live_inventory(client, player_name, uuid)
     if response.startswith("RCON "):
         return {
             "supported": False,
