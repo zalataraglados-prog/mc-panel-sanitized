@@ -77,9 +77,16 @@ def _resolve_playerdata(instance_dir: Path, player: str) -> Path | None:
     uuid = usercache.get(player)
     if not uuid:
         return None
-    playerdata = instance_dir / "data" / "world" / "playerdata" / f"{uuid}.dat"
-    if playerdata.exists():
-        return playerdata
+    props = _read_server_properties(instance_dir)
+    level_name = props.get("level-name", "world") or "world"
+    primary = instance_dir / "data" / level_name / "playerdata" / f"{uuid}.dat"
+    if primary.exists():
+        return primary
+    data_dir = instance_dir / "data"
+    if data_dir.exists():
+        for candidate in data_dir.rglob(f"{uuid}.dat"):
+            if candidate.name == f"{uuid}.dat" and "playerdata" in candidate.parts:
+                return candidate
     return None
 
 
