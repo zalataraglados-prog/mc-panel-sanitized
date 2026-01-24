@@ -9,13 +9,13 @@
 
 ## Release / 当前发布
 
-- Current release: `v1.0.1`
-- Tag: `https://github.com/zalataraglados-prog/mc-panel-sanitized/releases/tag/v1.0.1`
-- Notes: see `RELEASE_DRAFT_v1.0.1.md`
+- Current release: `v1.0.2`
+- Tag: `https://github.com/zalataraglados-prog/mc-panel-sanitized/releases/tag/v1.0.2`
+- Notes: see `RELEASE_DRAFT_v1.0.2.md`
 
-- 当前版本：`v1.0.1`
-- 标签：`https://github.com/zalataraglados-prog/mc-panel-sanitized/releases/tag/v1.0.1`
-- 说明：见 `RELEASE_DRAFT_v1.0.1.md`
+- 当前版本：`v1.0.2`
+- 标签：`https://github.com/zalataraglados-prog/mc-panel-sanitized/releases/tag/v1.0.2`
+- 说明：见 `RELEASE_DRAFT_v1.0.2.md`
 
 This project is a configuration decision engine for Minecraft deployments with an optional runtime panel.
 本项目是一个 Minecraft 部署前的配置裁决引擎，运行期面板为可选组件。
@@ -23,7 +23,7 @@ This project is a configuration decision engine for Minecraft deployments with a
 ## Quick start (plan + dry-run) / 快速开始（仅 plan + dry-run）
 
 ```
-curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/v1.0.1/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/v1.0.2/install.sh | sudo bash
 ```
 
 ## Network resilience / 网络可靠性
@@ -161,16 +161,14 @@ The deployer sets `accept-download: true` by default.
 BlueMap 需要在 `core.conf` 中允许资源下载，生成瓦片后才会渲染。
 部署器默认设置 `accept-download: true`。
 
-Map tiles are served by the panel API when BlueMap is detected.
-检测到 BlueMap 后，面板 API 会提供瓦片服务。
+The panel shows a live preview by embedding the external BlueMap viewer (port 8100),
+and provides a button to open the detailed map in a new window.
+面板内嵌 8100 端口的 BlueMap 页面作为预览，并提供按钮打开详细地图。
 
-The panel also reads BlueMap `settings.json` to surface `startLocation` and map list for 2D/3D switching.
-面板同时读取 BlueMap 的 `settings.json`，用于获取 `startLocation` 与地图列表，支持 2D/3D 切换。
-
-If no tiles are detected, place tiles under `map-tiles/` in the instance directory, or run:
+If BlueMap has no tiles yet, run:
 `bluemap render world` (panel/RCON) or `/bluemap render world` (in-game).
 
-若未检测到瓦片，可将瓦片放入实例目录 `map-tiles/`，或执行：
+若 BlueMap 尚未生成瓦片，请执行：
 `bluemap render world`（面板/RCON）或 `/bluemap render world`（游戏内）。
 
 ## Inventory plugins / 背包插件

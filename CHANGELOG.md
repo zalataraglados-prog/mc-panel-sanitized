@@ -2,6 +2,25 @@
 
 ## [Unreleased] / 未发布
 
+## [2026-01-24]
+### Added / 新增
+- Full Chinese item name map in inventory UI using the official `zh_cn.json`.
+  - 背包界面接入官方 `zh_cn.json`，物品中文名全量覆盖。
+- Owner panel with per-instance `owners.json`, owner-only controls, and logout button.
+  - 新增服主栏（实例级 `owners.json`）、服主专属操作与退出登录按钮。
+
+### Changed / 调整
+- Map view simplified to embed the external BlueMap page (port 8100) with a dedicated open button.
+  - 地图改为内嵌 8100 端口 BlueMap 预览，并提供“打开详细地图”按钮。
+- Inventory editing UI switched to a slot grid with hotbar at the bottom.
+  - 背包编辑界面改为格子布局，快捷栏在底部。
+
+### Fixed / 修复
+- Inventory read/write supports offline playerdata and online editing via RCON item replace.
+  - 支持离线 NBT 读取与在线 RCON 写入背包。
+- Memory format normalization for decimal values to avoid JVM `-Xmx` errors.
+  - 内存小数格式自动标准化，避免 JVM 启动失败。
+
 ## [2026-01-06]
 ### Added / 新增
 - RCON health check endpoint and UI status badge (`/api/rcon/health`, status tag in dashboard).
