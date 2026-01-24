@@ -539,15 +539,13 @@ export function App() {
     }
     return slots;
   }, [inventoryViewItems]);
-  const inventoryDisplayOrder = useMemo(() => {
-    const order: number[] = [];
-    for (let slot = 9; slot < inventorySlotCount; slot += 1) {
-      order.push(slot);
-    }
-    for (let slot = 0; slot < 9; slot += 1) {
-      order.push(slot);
-    }
-    return order;
+  const inventoryDisplayRows = useMemo(() => {
+    return [
+      Array.from({ length: 9 }, (_, index) => index + 9),
+      Array.from({ length: 9 }, (_, index) => index + 18),
+      Array.from({ length: 9 }, (_, index) => index + 27),
+      Array.from({ length: 9 }, (_, index) => index),
+    ];
   }, []);
   const formatItemId = (value: string) => {
     if (!value) {
@@ -2024,28 +2022,32 @@ export function App() {
                 </div>
               ) : (
                 <div className="inventory-grid inventory-grid-slots">
-                  {inventoryDisplayOrder.map((slot) => {
-                    const item = inventorySlots[slot];
-                    return (
-                      <div key={`slot-${slot}`} className={`inventory-slot-cell${item ? " filled" : ""}`}>
-                        <div className="inventory-slot-index">{slot}</div>
-                      {item ? (
-                        <div className="inventory-slot-content">
-                          <img
-                            className="inventory-slot-icon"
-                            src={itemTextureUrl(item.id)}
-                            alt={formatItemId(item.id)}
-                            onError={(event) => {
-                              event.currentTarget.style.display = "none";
-                            }}
-                          />
-                          <div className="inventory-slot-id">{formatItemId(item.id)}</div>
-                          <div className="inventory-slot-count">{item.count > 1 ? `x${item.count}` : ""}</div>
-                        </div>
-                      ) : null}
-                      </div>
-                    );
-                  })}
+                  {inventoryDisplayRows.map((row, rowIndex) => (
+                    <div key={`inv-row-${rowIndex}`} className="inventory-row">
+                      {row.map((slot) => {
+                        const item = inventorySlots[slot];
+                        return (
+                          <div key={`slot-${slot}`} className={`inventory-slot-cell${item ? " filled" : ""}`}>
+                            <div className="inventory-slot-index">{slot}</div>
+                            {item ? (
+                              <div className="inventory-slot-content">
+                                <img
+                                  className="inventory-slot-icon"
+                                  src={itemTextureUrl(item.id)}
+                                  alt={formatItemId(item.id)}
+                                  onError={(event) => {
+                                    event.currentTarget.style.display = "none";
+                                  }}
+                                />
+                                <div className="inventory-slot-id">{formatItemId(item.id)}</div>
+                                <div className="inventory-slot-count">{item.count > 1 ? `x${item.count}` : ""}</div>
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
                 </div>
               )
             ) : (

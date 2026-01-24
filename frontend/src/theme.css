@@ -674,6 +674,10 @@ textarea::placeholder {
   gap: 8px;
 }
 
+.inventory-row {
+  display: contents;
+}
+
 .inventory-slot-cell {
   height: 54px;
   background: rgba(15, 18, 26, 0.7);
