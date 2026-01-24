@@ -1,4 +1,4 @@
-Patch Announcement / 补丁公告 (v1.0.2)
+﻿Patch Announcement / 补丁公告 (v1.0.2)
 
 This is a patch announcement for v1.0.2. It does not change the release tag.
 这是 v1.0.2 的补丁公告，不更改发布标签。
