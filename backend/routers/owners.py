@@ -16,6 +16,7 @@ def owners_endpoint(instance_dir: str | None = Query(None), user=Depends(get_cur
 
 
 @router.put("/api/owners", response_model=OwnersResponse)
-def update_owners(payload: OwnersUpdateRequest, user=Depends(require_roles("owner"))):
+def update_owners(payload: OwnersUpdateRequest, user=Depends(get_current_user)):
+    require_roles(user, ["owner"])
     instance = payload.instance_dir or "/opt/mc-instances"
     return OwnersResponse(owners=write_owners(instance, payload.owners))
