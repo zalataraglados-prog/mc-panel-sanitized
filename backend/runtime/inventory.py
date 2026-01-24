@@ -360,6 +360,13 @@ def set_inventory(instance_dir: str, player: str, items: list[dict]) -> dict:
                 "editable": True,
                 "message": f"Offline inventory updated ({offline['applied']} items).",
             }
+    def slot_target(slot_index: int) -> str | None:
+        if 0 <= slot_index <= 8:
+            return f"slot.hotbar.{slot_index}"
+        if 9 <= slot_index <= 35:
+            return f"slot.inventory.{slot_index - 9}"
+        return None
+
     applied = 0
     for item in items:
         slot = item.get("slot")
@@ -367,7 +374,10 @@ def set_inventory(instance_dir: str, player: str, items: list[dict]) -> dict:
         count = item.get("count", 1)
         if slot is None or not item_id:
             continue
-        command = f"item replace entity {player} slot.inventory.{slot} {item_id} {count}"
+        target = slot_target(int(slot))
+        if not target:
+            continue
+        command = f"item replace entity {player} {target} {item_id} {count}"
         client.execute(command)
         applied += 1
     return {
