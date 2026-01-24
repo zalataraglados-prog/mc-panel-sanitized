@@ -2,7 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 type Metric = { label: string; value: string };
 type MetricPoint = { timestamp: number; value: number };
-type Player = { name: string; uuid: string; skin_url: string; position: { x: number; y: number; z: number } };
+type Player = {
+  name: string;
+  uuid: string;
+  skin_url: string;
+  position: { x: number; y: number; z: number };
+  session_seconds?: number;
+  online?: boolean;
+  last_seen?: string | null;
+};
 type Rule = { key: string; value: string };
 type CommandTemplate = { name: string; command: string };
 type InstanceItem = { name?: string; path?: string };
@@ -27,6 +35,10 @@ const translations = {
     instances: "Instances",
     logs: "Logs",
     players: "Players",
+    owners: "Owners",
+    onlinePlayers: "Online",
+    offlinePlayers: "Offline",
+    lastSeen: "Last Seen",
     rules: "Server Rules",
     map: "World Map",
     command: "Command",
@@ -157,6 +169,10 @@ const translations = {
     instances: "\u5b9e\u4f8b\u5217\u8868",
     logs: "\u5b9e\u65f6\u65e5\u5fd7",
     players: "\u73a9\u5bb6\u5217\u8868",
+    owners: "\u670d\u4e3b",
+    onlinePlayers: "\u5728\u7ebf",
+    offlinePlayers: "\u79bb\u7ebf",
+    lastSeen: "\u4e0a\u6b21\u8bbf\u95ee",
     rules: "\u670d\u52a1\u5668\u89c4\u5219",
     map: "\u4e16\u754c\u5730\u56fe",
     command: "\u6307\u4ee4",
@@ -584,6 +600,7 @@ export function App() {
   const mapMarkers =
     mapView === "2d" && mapStatus?.source !== "bluemap" && mapOrigin && mapMeta?.tile_size && mapMeta?.scale
       ? players
+          .filter((player) => player.online !== false)
           .map((player) => {
             const px = (player.position.x - mapOrigin.x) / mapTileScale - mapX * mapTileSize;
             const pz = (player.position.z - mapOrigin.z) / mapTileScale - mapZ * mapTileSize;
@@ -1085,6 +1102,10 @@ export function App() {
     setOpLevels((prev) => ({ ...prev, [uuid]: value }));
   };
 
+  const ownerUsers = useMemo(() => users.filter((entry) => entry.role === "owner"), [users]);
+  const onlinePlayers = useMemo(() => players.filter((player) => player.online !== false), [players]);
+  const offlinePlayers = useMemo(() => players.filter((player) => player.online === false), [players]);
+
   const openTeleport = (player: Player) => {
     setTeleportTarget(player);
     setTeleportPos({
@@ -1417,67 +1438,142 @@ export function App() {
       </section>
       <section className="section">
         <h2>{t.players}</h2>
-        <div className="players">
-          {players.map((p) => (
-            <div key={p.uuid} className="player-card">
-              <img src={p.skin_url} alt={p.name} />
-              <div>
-                <div className="player-name">{p.name}</div>
-                <div className="player-meta">
-                  {formatCoord(p.position.x)},{formatCoord(p.position.y)},{formatCoord(p.position.z)}
-                </div>
-                <div className="player-meta">
-                  {t.session}: {Math.floor((p as any).session_seconds || 0)}s
-                </div>
-                <div className="player-actions">
-                  <label className="op-level">
-                    <span>{t.opLevel}</span>
-                    <select
-                      value={opLevels[p.uuid] || "4"}
-                      onChange={(event) => updateOpLevel(p.uuid, event.target.value)}
-                      disabled={!canManagePlayers}
-                    >
-                      <option value="1">1</option>
-                      <option value="2">2</option>
-                      <option value="3">3</option>
-                      <option value="4">4</option>
-                    </select>
-                  </label>
-                  <button
-                    className="btn"
-                    disabled={!canManagePlayers}
-                    onClick={() => sendPlayerCommand(`op ${p.name}`)}
-                  >
-                    {t.op}
-                  </button>
-                  <button
-                    className="btn"
-                    disabled={!canManagePlayers}
-                    onClick={() => sendPlayerCommand(`deop ${p.name}`)}
-                  >
-                    {t.deop}
-                  </button>
-                  <button
-                    className="btn"
-                    disabled={!canManagePlayers}
-                    onClick={() => sendPlayerCommand(`kick ${p.name}`)}
-                  >
-                    {t.kick}
-                  </button>
-                  <button
-                    className="btn"
-                    disabled={!canManagePlayers}
-                    onClick={() => openTeleport(p)}
-                  >
-                    {t.teleport}
-                  </button>
-                  <button className="btn" disabled={!canManagePlayers} onClick={() => openInventory(p.name)}>
-                    {t.inventory}
-                  </button>
-                </div>
-              </div>
+        {ownerUsers.length ? (
+          <div className="player-owners">
+            <span className="player-owners-label">{t.owners}</span>
+            {ownerUsers.map((owner) => (
+              <span key={owner.username} className="tag">
+                {owner.username}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        <div className="players-split">
+          <div className="players-column">
+            <div className="players-heading">
+              <span>{t.onlinePlayers}</span>
+              <span className="players-heading-meta">{t.session}</span>
             </div>
-          ))}
+            <div className="players">
+              {onlinePlayers.map((p) => (
+                <div key={p.uuid} className="player-card">
+                  <img src={p.skin_url} alt={p.name} />
+                  <div>
+                    <div className="player-name">{p.name}</div>
+                    <div className="player-meta">
+                      {formatCoord(p.position.x)},{formatCoord(p.position.y)},{formatCoord(p.position.z)}
+                    </div>
+                    <div className="player-meta">
+                      {t.session}: {Math.floor(p.session_seconds || 0)}s
+                    </div>
+                    <div className="player-actions">
+                      <label className="op-level">
+                        <span>{t.opLevel}</span>
+                        <select
+                          value={opLevels[p.uuid] || "4"}
+                          onChange={(event) => updateOpLevel(p.uuid, event.target.value)}
+                          disabled={!canManagePlayers}
+                        >
+                          <option value="1">1</option>
+                          <option value="2">2</option>
+                          <option value="3">3</option>
+                          <option value="4">4</option>
+                        </select>
+                      </label>
+                      <button
+                        className="btn"
+                        disabled={!canManagePlayers}
+                        onClick={() => sendPlayerCommand(`op ${p.name}`)}
+                      >
+                        {t.op}
+                      </button>
+                      <button
+                        className="btn"
+                        disabled={!canManagePlayers}
+                        onClick={() => sendPlayerCommand(`deop ${p.name}`)}
+                      >
+                        {t.deop}
+                      </button>
+                      <button
+                        className="btn"
+                        disabled={!canManagePlayers}
+                        onClick={() => sendPlayerCommand(`kick ${p.name}`)}
+                      >
+                        {t.kick}
+                      </button>
+                      <button
+                        className="btn"
+                        disabled={!canManagePlayers}
+                        onClick={() => openTeleport(p)}
+                      >
+                        {t.teleport}
+                      </button>
+                      <button className="btn" disabled={!canManagePlayers} onClick={() => openInventory(p.name)}>
+                        {t.inventory}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {!onlinePlayers.length ? <div className="subtle">{t.noData}</div> : null}
+            </div>
+          </div>
+          <div className="players-column">
+            <div className="players-heading">
+              <span>{t.offlinePlayers}</span>
+              <span className="players-heading-meta">{t.lastSeen}</span>
+            </div>
+            <div className="players">
+              {offlinePlayers.map((p) => (
+                <div key={p.uuid} className="player-card">
+                  <img src={p.skin_url} alt={p.name} />
+                  <div>
+                    <div className="player-name">{p.name}</div>
+                    <div className="player-meta">
+                      {t.lastSeen}: {p.last_seen || "-"}
+                    </div>
+                    <div className="player-actions">
+                      <label className="op-level">
+                        <span>{t.opLevel}</span>
+                        <select
+                          value={opLevels[p.uuid] || "4"}
+                          onChange={(event) => updateOpLevel(p.uuid, event.target.value)}
+                          disabled={!canManagePlayers}
+                        >
+                          <option value="1">1</option>
+                          <option value="2">2</option>
+                          <option value="3">3</option>
+                          <option value="4">4</option>
+                        </select>
+                      </label>
+                      <button
+                        className="btn"
+                        disabled={!canManagePlayers}
+                        onClick={() => sendPlayerCommand(`op ${p.name}`)}
+                      >
+                        {t.op}
+                      </button>
+                      <button
+                        className="btn"
+                        disabled={!canManagePlayers}
+                        onClick={() => sendPlayerCommand(`deop ${p.name}`)}
+                      >
+                        {t.deop}
+                      </button>
+                      <button
+                        className="btn"
+                        disabled={!canManagePlayers}
+                        onClick={() => openInventory(p.name)}
+                      >
+                        {t.inventory}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {!offlinePlayers.length ? <div className="subtle">{t.noData}</div> : null}
+            </div>
+          </div>
         </div>
       </section>
 

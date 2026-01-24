@@ -192,6 +192,47 @@ textarea::placeholder {
   gap: 12px;
 }
 
+.players-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.players-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.players-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.players-heading-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.player-owners {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.player-owners-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
 .player-card {
   display: flex;
   gap: 10px;

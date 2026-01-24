@@ -64,6 +64,8 @@ class PlayerInfo(BaseModel):
     skin_url: str
     session_seconds: int
     position: Dict[str, float]
+    online: bool = True
+    last_seen: Optional[str] = None
     role: Optional[str] = None
 
 
