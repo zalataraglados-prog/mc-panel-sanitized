@@ -99,7 +99,7 @@ const translations = {
     zoom: "Zoom",
     height: "Y Level",
     refresh: "Refresh (s)",
-    mapHint: "Use the external map viewer (port 8100).",
+    mapHint: "Map preview uses the external viewer (port 8100).",
     mapOpenExternal: "Open Detailed Map (8100)",
     mapPluginMissing: "No map plugin detected.",
     mapPluginMissingDetail: "No map plugin detected. Place tiles in map-tiles/ under the instance directory.",
@@ -243,7 +243,7 @@ const translations = {
     zoom: "\u7f29\u653e",
     height: "\u9ad8\u5ea6",
     refresh: "\u5237\u65b0\u95f4\u9694(\u79d2)",
-    mapHint: "\u4f7f\u7528\u5916\u90e8\u5730\u56fe\u9875\uff08\u7aef\u53e3 8100\uff09\u3002",
+    mapHint: "\u5730\u56fe\u9884\u89c8\u4f7f\u7528\u5916\u90e8\u5730\u56fe\u9875\uff08\u7aef\u53e3 8100\uff09\u3002",
     mapOpenExternal: "\u6253\u5f00\u8be6\u7ec6\u5730\u56fe\uff088100\uff09",
     mapPluginMissing: "\u672a\u68c0\u6d4b\u5230\u5730\u56fe\u63d2\u4ef6\u3002",
     mapPluginMissingDetail: "\u672a\u68c0\u6d4b\u5230\u5730\u56fe\u63d2\u4ef6\u3002\u8bf7\u5c06\u74e6\u7247\u653e\u5165\u5b9e\u4f8b\u76ee\u5f55 map-tiles/ \u3002",
@@ -1787,7 +1787,15 @@ export function App() {
         <div className="map-area">
           <h2>{t.map}</h2>
           <div className="map-panel map-external-panel">
-            <div className="map-placeholder">
+            <div className="map-canvas map-external-canvas">
+              <iframe
+                className="map-iframe"
+                title="map-preview"
+                src={mapExternalUrl}
+                loading="lazy"
+              />
+            </div>
+            <div className="map-hint">
               {mapStatus?.source ? t.mapHint : t.mapPluginMissingDetail}
             </div>
             <div className="map-config-actions">
