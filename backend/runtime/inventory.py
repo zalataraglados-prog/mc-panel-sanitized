@@ -351,8 +351,22 @@ def set_inventory(instance_dir: str, player: str, items: list[dict]) -> dict:
             "message": "RCON disabled in server.properties",
         }
     client = RCONClient.from_instance_dir(instance_dir)
-    if player not in client.list_players() and provider:
-        offline = _set_offline_inventory(instance_path, player, items)
+    online_names = client.list_players()
+    player_name = _resolve_online_player_name(client, player)
+    desired = []
+    for item in items:
+        slot = item.get("slot")
+        item_id = item.get("id")
+        count = item.get("count", 1)
+        if slot is None or not item_id:
+            continue
+        if int(count) <= 0:
+            continue
+        if 0 <= int(slot) <= 35:
+            desired.append({"slot": int(slot), "id": item_id, "count": int(count)})
+
+    if player_name not in online_names and provider:
+        offline = _set_offline_inventory(instance_path, player_name, desired)
         if offline is not None:
             return {
                 "supported": True,
@@ -367,17 +381,26 @@ def set_inventory(instance_dir: str, player: str, items: list[dict]) -> dict:
             return f"slot.inventory.{slot_index - 9}"
         return None
 
+    if player_name not in online_names:
+        return {
+            "supported": False,
+            "provider": provider or "vanilla_rcon",
+            "editable": False,
+            "message": "Player is offline; join once or edit offline inventory.",
+        }
+
     applied = 0
-    for item in items:
-        slot = item.get("slot")
-        item_id = item.get("id")
-        count = item.get("count", 1)
-        if slot is None or not item_id:
-            continue
-        target = slot_target(int(slot))
+    for slot_index in range(36):
+        target = slot_target(slot_index)
         if not target:
             continue
-        command = f"item replace entity {player} {target} {item_id} {count}"
+        client.execute(f"item replace entity {player_name} {target} with air")
+
+    for item in desired:
+        target = slot_target(int(item["slot"]))
+        if not target:
+            continue
+        command = f"item replace entity {player_name} {target} {item['id']} {item['count']}"
         client.execute(command)
         applied += 1
     return {

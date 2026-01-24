@@ -123,6 +123,8 @@ const translations = {
     inventoryReadOnly: "Read-only",
     inventoryRequestFailed: "Inventory request failed.",
     inventoryUpdateFailed: "Inventory update failed.",
+    inventoryAddItem: "Add Item",
+    inventoryRemoveItem: "Remove",
     users: "Users",
     owners: "Owners",
     ownerPanel: "Server Owners",
@@ -263,6 +265,8 @@ const translations = {
     inventoryReadOnly: "\u4ec5\u53ef\u67e5\u770b",
     inventoryRequestFailed: "\u80cc\u5305\u8bf7\u6c42\u5931\u8d25\u3002",
     inventoryUpdateFailed: "\u80cc\u5305\u66f4\u65b0\u5931\u8d25\u3002",
+    inventoryAddItem: "\u6dfb\u52a0\u7269\u54c1",
+    inventoryRemoveItem: "\u5220\u9664",
     users: "\u8d26\u53f7\u7ba1\u7406",
     owners: "\u670d\u4e3b",
     ownerPanel: "\u670d\u4e3b\u680f",
@@ -1434,6 +1438,24 @@ export function App() {
     );
   };
 
+  const addInventoryItem = () => {
+    setInventoryDraft((prev) => {
+      const used = new Set(prev.map((item) => item.slot));
+      let slot = 0;
+      for (let i = 0; i < 36; i += 1) {
+        if (!used.has(i)) {
+          slot = i;
+          break;
+        }
+      }
+      return [...prev, { slot, id: "minecraft:stone", count: 1 }];
+    });
+  };
+
+  const removeInventoryItem = (index: number) => {
+    setInventoryDraft((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
   const saveInventory = () => {
     if (!inventoryEditable) {
       return;
@@ -2062,6 +2084,11 @@ export function App() {
                   {t.save}
                 </button>
               ) : null}
+              {inventoryEditing ? (
+                <button className="btn" onClick={addInventoryItem}>
+                  {t.inventoryAddItem}
+                </button>
+              ) : null}
             </div>
             {!inventorySupported ? (
               <p>{inventoryMessage || t.inventoryUnsupported}</p>
@@ -2090,6 +2117,9 @@ export function App() {
                           onChange={(event) => updateInventoryDraft(index, "slot", event.target.value)}
                         />
                       </div>
+                      <button className="btn" onClick={() => removeInventoryItem(index)}>
+                        {t.inventoryRemoveItem}
+                      </button>
                     </div>
                   ))}
                 </div>
