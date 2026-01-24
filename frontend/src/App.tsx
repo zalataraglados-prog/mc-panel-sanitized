@@ -1102,9 +1102,15 @@ export function App() {
     setOpLevels((prev) => ({ ...prev, [uuid]: value }));
   };
 
-  const ownerUsers = useMemo(() => users.filter((entry) => entry.role === "owner"), [users]);
-  const onlinePlayers = useMemo(() => players.filter((player) => player.online !== false), [players]);
-  const offlinePlayers = useMemo(() => players.filter((player) => player.online === false), [players]);
+  const ownerPlayers = useMemo(() => players.filter((player) => player.role === "owner"), [players]);
+  const onlinePlayers = useMemo(
+    () => players.filter((player) => player.online !== false && player.role !== "owner"),
+    [players]
+  );
+  const offlinePlayers = useMemo(
+    () => players.filter((player) => player.online === false && player.role !== "owner"),
+    [players]
+  );
 
   const openTeleport = (player: Player) => {
     setTeleportTarget(player);
@@ -1438,12 +1444,12 @@ export function App() {
       </section>
       <section className="section">
         <h2>{t.players}</h2>
-        {ownerUsers.length ? (
+        {ownerPlayers.length ? (
           <div className="player-owners">
             <span className="player-owners-label">{t.owners}</span>
-            {ownerUsers.map((owner) => (
-              <span key={owner.username} className="tag">
-                {owner.username}
+            {ownerPlayers.map((owner) => (
+              <span key={owner.uuid} className="tag">
+                {owner.name}
               </span>
             ))}
           </div>

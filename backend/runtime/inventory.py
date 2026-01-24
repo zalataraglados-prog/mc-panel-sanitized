@@ -90,17 +90,41 @@ def _resolve_playerdata(instance_dir: Path, player: str) -> Path | None:
     return None
 
 
+def _is_inventory_list(tag: dict) -> bool:
+    if not isinstance(tag, dict) or tag.get("type") != TAG_LIST:
+        return False
+    inv_value = tag.get("value", {})
+    if inv_value.get("item_type") != TAG_COMPOUND:
+        return False
+    items = inv_value.get("items", [])
+    if not items:
+        return False
+    sample = items[0]
+    if not isinstance(sample, dict):
+        return False
+    return "Slot" in sample and "id" in sample
+
+
+def _find_inventory_list(compound: dict) -> list[dict] | None:
+    for key, tag in compound.items():
+        if key.lower() == "inventory" and _is_inventory_list(tag):
+            return tag["value"]["items"]
+    for key, tag in compound.items():
+        if isinstance(tag, dict) and tag.get("type") == TAG_COMPOUND:
+            nested = _find_inventory_list(tag.get("value", {}))
+            if nested is not None:
+                return nested
+        if _is_inventory_list(tag):
+            return tag["value"]["items"]
+    return None
+
+
 def _extract_inventory_list(root: dict) -> list[dict]:
     if root.get("type") != TAG_COMPOUND:
         return []
     compound = root.get("value", {})
-    inv_tag = compound.get("Inventory")
-    if not inv_tag or inv_tag.get("type") != TAG_LIST:
-        return []
-    inv_value = inv_tag.get("value", {})
-    if inv_value.get("item_type") != TAG_COMPOUND:
-        return []
-    return inv_value.get("items", [])
+    inv_items = _find_inventory_list(compound)
+    return inv_items or []
 
 
 def _inventory_items_from_tags(items: list[dict]) -> list[dict]:
@@ -110,7 +134,7 @@ def _inventory_items_from_tags(items: list[dict]) -> list[dict]:
             continue
         slot_tag = entry.get("Slot")
         id_tag = entry.get("id")
-        count_tag = entry.get("Count")
+        count_tag = entry.get("Count") or entry.get("count")
         if not slot_tag or not id_tag or not count_tag:
             continue
         result.append(
