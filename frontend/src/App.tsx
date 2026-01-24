@@ -99,8 +99,8 @@ const translations = {
     zoom: "Zoom",
     height: "Y Level",
     refresh: "Refresh (s)",
-    mapHint: "Tiles are read-only. Provide tiles via map-tiles/ in instance dir.",
-    mapOpenExternal: "Open BlueMap (port 8100)",
+    mapHint: "Use the external map viewer (port 8100).",
+    mapOpenExternal: "Open Detailed Map (8100)",
     mapPluginMissing: "No map plugin detected.",
     mapPluginMissingDetail: "No map plugin detected. Place tiles in map-tiles/ under the instance directory.",
     mapSourceNone: "none",
@@ -243,8 +243,8 @@ const translations = {
     zoom: "\u7f29\u653e",
     height: "\u9ad8\u5ea6",
     refresh: "\u5237\u65b0\u95f4\u9694(\u79d2)",
-    mapHint: "\u53ea\u8bfb\u74e6\u7247\u3002\u5c06\u74e6\u7247\u653e\u5165\u5b9e\u4f8b\u76ee\u5f55 map-tiles/ \u3002",
-    mapOpenExternal: "\u6253\u5f00 BlueMap (8100 \u7aef\u53e3)",
+    mapHint: "\u4f7f\u7528\u5916\u90e8\u5730\u56fe\u9875\uff08\u7aef\u53e3 8100\uff09\u3002",
+    mapOpenExternal: "\u6253\u5f00\u8be6\u7ec6\u5730\u56fe\uff088100\uff09",
     mapPluginMissing: "\u672a\u68c0\u6d4b\u5230\u5730\u56fe\u63d2\u4ef6\u3002",
     mapPluginMissingDetail: "\u672a\u68c0\u6d4b\u5230\u5730\u56fe\u63d2\u4ef6\u3002\u8bf7\u5c06\u74e6\u7247\u653e\u5165\u5b9e\u4f8b\u76ee\u5f55 map-tiles/ \u3002",
     mapSourceNone: "\u65e0",
@@ -1786,187 +1786,16 @@ export function App() {
       <section className="section runtime-grid">
         <div className="map-area">
           <h2>{t.map}</h2>
-          {!mapSupported ? (
-            <div className="map-panel">
-              <div className="map-placeholder">{t.mapPluginMissingDetail}</div>
-            </div>
-          ) : (
-            <div className="map-panel">
-            <div className="map-toolbar">
-              <div className="map-tabs">
-                <button
-                  className="btn"
-                  disabled={!mapStatus?.available?.overworld}
-                  onClick={() => setMapDimension("overworld")}
-                >
-                  {t.overworld}
-                </button>
-                <button
-                  className="btn"
-                  disabled={!mapStatus?.available?.nether}
-                  onClick={() => setMapDimension("nether")}
-                >
-                  {t.nether}
-                </button>
-                <button className="btn" disabled={!mapStatus?.available?.end} onClick={() => setMapDimension("end")}>
-                  {t.end}
-                </button>
-              </div>
-              <div className="map-controls">
-                {mapStatus?.source === "bluemap" && mapMeta?.maps?.length ? (
-                  <label>
-                    {t.mapSelector}
-                    <select value={mapId} onChange={(event) => setMapId(event.target.value)}>
-                      {mapMeta.maps.map((entry) => (
-                        <option key={entry.id} value={entry.id}>
-                          {entry.name ? `${entry.name} (${entry.id})` : entry.id}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-                <div className="map-view-toggle">
-                  <button className="btn" onClick={() => setMapView("2d")} disabled={mapView === "2d"}>
-                    {t.mapView2d}
-                  </button>
-                  <button className="btn" onClick={() => setMapView("3d")} disabled={!mapSupports3d || mapView === "3d"}>
-                    {t.mapView3d}
-                  </button>
-                </div>
-                <label>
-                  {t.zoom}
-                  <input
-                    type="range"
-                    min="0"
-                    max="6"
-                    value={mapZoom}
-                    onChange={(event) => setMapZoom(Number(event.target.value))}
-                  />
-                </label>
-                <label>
-                  {t.height}
-                  <input
-                    type="range"
-                    min={mapStatus?.y_min ?? -64}
-                    max={mapStatus?.y_max ?? 320}
-                    value={mapY}
-                    onChange={(event) => setMapY(Number(event.target.value))}
-                  />
-                </label>
-                <label>
-                  {t.refresh}
-                  <input
-                    type="range"
-                    min="1"
-                    max="30"
-                    value={mapRefreshSec}
-                    onChange={(event) => setMapRefreshSec(Number(event.target.value))}
-                  />
-                  <span>{mapRefreshSec}s</span>
-                </label>
-                <label>
-                  {t.avatarSize}
-                  <input
-                    type="range"
-                    min="12"
-                    max="48"
-                    value={mapAvatarSize}
-                    onChange={(event) => setMapAvatarSize(Number(event.target.value))}
-                  />
-                  <span>{mapAvatarSize}px</span>
-                </label>
-              </div>
-            </div>
-            <div className="map-canvas">
-              {mapStatus?.source === "bluemap" ? (
-                <iframe
-                  title="bluemap"
-                  src={`/api/map/bluemap/?instance_dir=${encodeURIComponent(
-                    instanceDir || ""
-                  )}&token=${encodeURIComponent(token)}${mapHash}`}
-                />
-              ) : (
-                <div className="map-stage">
-                  <img
-                    ref={mapImageRef}
-                    alt="map"
-                    src={`/api/map/tile?dimension=${mapDimension}&x=${mapX}&z=${mapZ}&zoom=${mapZoom}&y=${mapY}&instance_dir=${encodeURIComponent(
-                      instanceDir || ""
-                    )}&tick=${mapTick}&token=${encodeURIComponent(token)}`}
-                  />
-                  {mapMarkers ? <div className="map-markers">{mapMarkers}</div> : null}
-                </div>
-              )}
-            </div>
-            <div className="map-pan">
-              <button className="btn" onClick={() => setMapZ((value) => value - 1)}>
-                {t.up}
-              </button>
-              <div className="map-pan-row">
-                <button className="btn" onClick={() => setMapX((value) => value - 1)}>
-                  {t.left}
-                </button>
-                <button className="btn" onClick={() => setMapX((value) => value + 1)}>
-                  {t.right}
-                </button>
-              </div>
-              <button className="btn" onClick={() => setMapZ((value) => value + 1)}>
-                {t.down}
-              </button>
-            </div>
-            <div className="map-hint">
-              {t.mapStatus}: {mapStatus?.source ?? t.mapSourceNone} - {mapStatus?.source ? t.mapHint : t.mapPluginMissingDetail}
+          <div className="map-panel map-external-panel">
+            <div className="map-placeholder">
+              {mapStatus?.source ? t.mapHint : t.mapPluginMissingDetail}
             </div>
             <div className="map-config-actions">
-              {mapStatus?.source === "bluemap" ? (
-                <a className="btn" href={mapExternalUrl} target="_blank" rel="noreferrer">
-                  {t.mapOpenExternal}
-                </a>
-              ) : null}
-              <button className="btn" onClick={toggleMapConfig}>
-                {mapConfigOpen ? t.close : t.open}
-              </button>
-              <button className="btn" disabled={!canEditMapConfig} onClick={startEditMapConfig}>
-                {t.edit}
-              </button>
-              <button className="btn" disabled={!mapConfigEditing} onClick={saveMapConfig}>
-                {t.save}
-              </button>
-              <button className="btn" disabled={!mapConfigEditing} onClick={cancelEditMapConfig}>
-                {t.cancel}
-              </button>
-              <button className="btn" disabled={!canEditMapConfig} onClick={reloadMapPlugin}>
-                {t.reload}
-              </button>
+              <a className="btn" href={mapExternalUrl} target="_blank" rel="noreferrer">
+                {t.mapOpenExternal}
+              </a>
             </div>
-            {mapConfigOpen ? (
-              <div className="map-config">
-                <div className="map-config-title">
-                  {t.mapSettings} {mapConfig?.plugin ? `(${mapConfig.plugin})` : ""}
-                </div>
-                {mapConfig?.files?.length ? (
-                  mapConfig.files.map((file) => (
-                    <div key={file.name} className="map-config-file">
-                      <div className="map-config-name">{file.name}</div>
-                      {mapConfigEditing ? (
-                        <textarea
-                          value={mapConfigDraft[file.name] ?? ""}
-                          onChange={(event) =>
-                            setMapConfigDraft({ ...mapConfigDraft, [file.name]: event.target.value })
-                          }
-                        />
-                      ) : (
-                        <pre>{file.content}</pre>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <div className="map-config-empty">{t.mapConfigEmpty}</div>
-                )}
-              </div>
-            ) : null}
-            </div>
-          )}
+          </div>
         </div>
         <div className="log-area">
           <h2>{t.logs}</h2>
