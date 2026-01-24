@@ -123,6 +123,11 @@ const translations = {
     inventoryRequestFailed: "Inventory request failed.",
     inventoryUpdateFailed: "Inventory update failed.",
     users: "Users",
+    owners: "Owners",
+    ownerPanel: "Server Owners",
+    ownerSelect: "Select player",
+    ownerAdd: "Set Owner",
+    ownerRemove: "Remove",
     userName: "Username",
     userRole: "Role",
     userPassword: "Password",
@@ -257,6 +262,11 @@ const translations = {
     inventoryRequestFailed: "\u80cc\u5305\u8bf7\u6c42\u5931\u8d25\u3002",
     inventoryUpdateFailed: "\u80cc\u5305\u66f4\u65b0\u5931\u8d25\u3002",
     users: "\u8d26\u53f7\u7ba1\u7406",
+    owners: "\u670d\u4e3b",
+    ownerPanel: "\u670d\u4e3b\u680f",
+    ownerSelect: "\u9009\u62e9\u73a9\u5bb6",
+    ownerAdd: "\u8bbe\u4e3a\u670d\u4e3b",
+    ownerRemove: "\u79fb\u9664",
     userName: "\u7528\u6237\u540d",
     userRole: "\u89d2\u8272",
     userPassword: "\u5bc6\u7801",
@@ -494,6 +504,8 @@ export function App() {
   const [teleportPos, setTeleportPos] = useState({ x: "", y: "", z: "" });
   const [users, setUsers] = useState<UserEntry[]>([]);
   const [userForm, setUserForm] = useState({ username: "", password: "", role: "viewer" });
+  const [owners, setOwners] = useState<string[]>([]);
+  const [ownerDraft, setOwnerDraft] = useState("");
 
   const t = translations[lang];
   const canControl = role === "owner" || role === "admin";
@@ -520,6 +532,7 @@ export function App() {
   const canEditRules = role === "owner" || role === "admin";
   const canEditMapConfig = role === "owner" || role === "admin";
   const canEditUsers = role === "owner";
+  const canEditOwners = role === "owner";
   const roleLabels: Record<string, string> = {
     owner: t.ownerRole,
     admin: t.adminRole,
@@ -802,6 +815,19 @@ export function App() {
       .catch(() => {});
   };
 
+  const refreshOwners = () => {
+    if (!token) {
+      return;
+    }
+    const query = instanceDir ? `?instance_dir=${encodeURIComponent(instanceDir)}` : "";
+    fetch(`/api/owners${query}`, { headers: authHeader })
+      .then((res) => res.json())
+      .then((data) => {
+        setOwners(Array.isArray(data.owners) ? data.owners : []);
+      })
+      .catch(() => {});
+  };
+
   const refreshAll = () => {
     refreshPrimaryData();
     refreshInstances();
@@ -809,6 +835,7 @@ export function App() {
     refreshRules();
     refreshMapConfig();
     refreshUsers();
+    refreshOwners();
   };
 
   useEffect(() => {
@@ -818,6 +845,7 @@ export function App() {
       refreshTemplates();
       refreshRules();
       refreshUsers();
+      refreshOwners();
     }
   }, [token]);
 
@@ -825,6 +853,7 @@ export function App() {
     if (token) {
       refreshPrimaryData();
       refreshRules();
+      refreshOwners();
     }
   }, [instanceDir]);
 
@@ -1110,15 +1139,53 @@ export function App() {
     setOpLevels((prev) => ({ ...prev, [uuid]: value }));
   };
 
-  const ownerPlayers = useMemo(() => players.filter((player) => player.role === "owner"), [players]);
+  const ownerPlayers = useMemo(() => {
+    if (!owners.length) {
+      return [];
+    }
+    return owners
+      .map((name) => players.find((player) => player.name === name) || { name, uuid: name, skin_url: "", online: false })
+      .filter(Boolean) as Player[];
+  }, [owners, players]);
   const onlinePlayers = useMemo(
-    () => players.filter((player) => player.online !== false && player.role !== "owner"),
-    [players]
+    () => players.filter((player) => player.online !== false && !owners.includes(player.name)),
+    [players, owners]
   );
   const offlinePlayers = useMemo(
-    () => players.filter((player) => player.online === false && player.role !== "owner"),
-    [players]
+    () => players.filter((player) => player.online === false && !owners.includes(player.name)),
+    [players, owners]
   );
+
+  const ownerCandidates = useMemo(() => {
+    const names = players.map((player) => player.name);
+    return names.filter((name) => !owners.includes(name));
+  }, [players, owners]);
+
+  const updateOwners = (nextOwners: string[]) => {
+    if (!canEditOwners) {
+      return;
+    }
+    fetch("/api/owners", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeader },
+      body: JSON.stringify({ owners: nextOwners, instance_dir: instanceDir || undefined }),
+    })
+      .then((res) => res.json())
+      .then((data) => setOwners(Array.isArray(data.owners) ? data.owners : nextOwners))
+      .catch(() => {});
+  };
+
+  const addOwner = () => {
+    if (!ownerDraft || owners.includes(ownerDraft)) {
+      return;
+    }
+    updateOwners([...owners, ownerDraft]);
+    setOwnerDraft("");
+  };
+
+  const removeOwner = (name: string) => {
+    updateOwners(owners.filter((owner) => owner !== name));
+  };
 
   const openTeleport = (player: Player) => {
     setTeleportTarget(player);
@@ -1452,14 +1519,45 @@ export function App() {
       </section>
       <section className="section">
         <h2>{t.players}</h2>
-        {ownerPlayers.length ? (
+        {ownerPlayers.length || canEditOwners ? (
           <div className="player-owners">
             <span className="player-owners-label">{t.owners}</span>
-            {ownerPlayers.map((owner) => (
-              <span key={owner.uuid} className="tag">
-                {owner.name}
-              </span>
-            ))}
+            {ownerPlayers.length ? (
+              ownerPlayers.map((owner) => (
+                <span key={owner.uuid} className="tag owner-tag">
+                  {owner.name}
+                  {canEditOwners ? (
+                    <button
+                      type="button"
+                      className="owner-remove"
+                      onClick={() => removeOwner(owner.name)}
+                    >
+                      {t.ownerRemove}
+                    </button>
+                  ) : null}
+                </span>
+              ))
+            ) : (
+              <span className="tag">{t.noData}</span>
+            )}
+            {canEditOwners ? (
+              <div className="player-owners-controls">
+                <select
+                  value={ownerDraft}
+                  onChange={(event) => setOwnerDraft(event.target.value)}
+                >
+                  <option value="">{t.ownerSelect}</option>
+                  {ownerCandidates.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+                <button className="btn" disabled={!ownerDraft} onClick={addOwner}>
+                  {t.ownerAdd}
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
         <div className="players-split">

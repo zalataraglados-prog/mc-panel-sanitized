@@ -34,6 +34,15 @@ class UserListResponse(BaseModel):
     users: List[UserEntry]
 
 
+class OwnersResponse(BaseModel):
+    owners: List[str]
+
+
+class OwnersUpdateRequest(BaseModel):
+    owners: List[str]
+    instance_dir: Optional[str] = None
+
+
 class StatusResponse(BaseModel):
     running: bool
     players: int
