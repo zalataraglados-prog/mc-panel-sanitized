@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import zhCn from "./assets/zh_cn.json";
 
 type Metric = { label: string; value: string };
 type MetricPoint = { timestamp: number; value: number };
@@ -572,21 +573,22 @@ export function App() {
       Array.from({ length: 9 }, (_, index) => index),
     ];
   }, []);
-  const itemNameMapZh: Record<string, string> = {
-    diamond: "\u94bb\u77f3",
-    diamond_axe: "\u94bb\u77f3\u65a7",
-    stone_shovel: "\u77f3\u94f2",
-    stone_hoe: "\u77f3\u9504",
-    stone_pickaxe: "\u77f3\u9550",
-    wooden_pickaxe: "\u6728\u9550",
-    netherite_hoe: "\u4e0b\u754c\u5408\u91d1\u9504",
-    netherite_axe: "\u4e0b\u754c\u5408\u91d1\u65a7",
-    golden_helmet: "\u91d1\u5934\u76d4",
-    resin_clump: "\u6811\u8102\u5757",
-    heart_of_the_sea: "\u6d77\u6d0b\u4e4b\u5fc3",
-    fire_charge: "\u706b\u7403",
-    netherite_scrap: "\u4e0b\u754c\u5408\u91d1\u788e\u7247",
-  };
+  const itemNameMapZh = useMemo(() => {
+    const map: Record<string, string> = {};
+    const source = zhCn as Record<string, string>;
+    for (const [key, value] of Object.entries(source)) {
+      if (key.startsWith("item.minecraft.")) {
+        const id = key.replace("item.minecraft.", "");
+        map[id] = value;
+      } else if (key.startsWith("block.minecraft.")) {
+        const id = key.replace("block.minecraft.", "");
+        if (!map[id]) {
+          map[id] = value;
+        }
+      }
+    }
+    return map;
+  }, []);
   const formatItemId = (value: string) => {
     if (!value) {
       return "";
@@ -596,7 +598,7 @@ export function App() {
   const formatItemName = (value: string) => {
     const id = formatItemId(value);
     if (lang === "zh" && itemNameMapZh[id]) {
-      return itemNameMapZh[id];
+      return fixMojibake(itemNameMapZh[id]);
     }
     return id.replace(/_/g, " ");
   };
@@ -1651,24 +1653,35 @@ export function App() {
       </section>
       <section className="section">
         <h2>{t.players}</h2>
-        {canViewOwners && (ownerPlayers.length || canEditOwners) ? (
+        {ownerPlayers.length || canEditOwners ? (
           <div className="player-owners">
-            <span className="player-owners-label">{t.owners}</span>
+            <span className="player-owners-label">{t.ownerPanel}</span>
             {ownerPlayers.length ? (
-              ownerPlayers.map((owner) => (
-                <span key={owner.uuid} className="tag owner-tag">
-                  {owner.name}
-                  {canEditOwners ? (
-                    <button
-                      type="button"
-                      className="owner-remove"
-                      onClick={() => removeOwner(owner.name)}
-                    >
-                      {t.ownerRemove}
-                    </button>
-                  ) : null}
-                </span>
-              ))
+              canViewOwners ? (
+                ownerPlayers.map((owner) => (
+                  <span key={owner.uuid} className="tag owner-tag">
+                    {owner.name}
+                    {canEditOwners ? (
+                      <button
+                        type="button"
+                        className="owner-remove"
+                        onClick={() => removeOwner(owner.name)}
+                      >
+                        {t.ownerRemove}
+                      </button>
+                    ) : null}
+                  </span>
+                ))
+              ) : (
+                ownerPlayers.map((owner) => (
+                  <span
+                    key={owner.uuid}
+                    className={`tag ${owner.online === false ? "status-offline" : "status-live"}`}
+                  >
+                    {owner.name} · {owner.online === false ? t.offline : t.live}
+                  </span>
+                ))
+              )
             ) : (
               <span className="tag">{t.noData}</span>
             )}
