@@ -112,6 +112,7 @@ const translations = {
     right: "Right",
     theme: "Dark / Light",
     language: "\u4e2d\u6587 / EN",
+    logout: "Logout",
     inventory: "Inventory",
     inventoryOpen: "Open Inventory",
     inventoryClose: "Close",
@@ -251,6 +252,7 @@ const translations = {
     right: "\u53f3",
     theme: "\u6df1\u8272 / \u6d45\u8272",
     language: "\u4e2d\u6587 / EN",
+    logout: "\u9000\u51fa\u767b\u5f55",
     inventory: "\u80cc\u5305",
     inventoryOpen: "\u67e5\u770b\u80cc\u5305",
     inventoryClose: "\u5173\u95ed",
@@ -533,6 +535,7 @@ export function App() {
   const canEditMapConfig = role === "owner" || role === "admin";
   const canEditUsers = role === "owner";
   const canEditOwners = role === "owner";
+  const canViewOwners = role === "owner";
   const roleLabels: Record<string, string> = {
     owner: t.ownerRole,
     admin: t.adminRole,
@@ -953,6 +956,19 @@ export function App() {
         setRole(data.role || "");
       })
       .catch(() => setAuthError("Login failed"));
+  };
+
+  const handleLogout = () => {
+    setToken("");
+    setRole("");
+    setAuthError("");
+    setUsers([]);
+    setOwners([]);
+    setInstances([]);
+    setInstanceDir("");
+    setPlayers([]);
+    setMetrics([]);
+    setRules([]);
   };
 
   const connectLogs = () => {
@@ -1458,6 +1474,11 @@ export function App() {
           <button className="btn" onClick={() => setLang((value) => (value === "en" ? "zh" : "en"))}>
             {t.language}
           </button>
+          {token ? (
+            <button className="btn" onClick={handleLogout}>
+              {t.logout}
+            </button>
+          ) : null}
         </div>
       </header>
 
@@ -1519,7 +1540,7 @@ export function App() {
       </section>
       <section className="section">
         <h2>{t.players}</h2>
-        {ownerPlayers.length || canEditOwners ? (
+        {canViewOwners && (ownerPlayers.length || canEditOwners) ? (
           <div className="player-owners">
             <span className="player-owners-label">{t.owners}</span>
             {ownerPlayers.length ? (
