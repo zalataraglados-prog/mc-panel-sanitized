@@ -539,6 +539,16 @@ export function App() {
     }
     return slots;
   }, [inventoryViewItems]);
+  const inventoryDisplayOrder = useMemo(() => {
+    const order: number[] = [];
+    for (let slot = 9; slot < inventorySlotCount; slot += 1) {
+      order.push(slot);
+    }
+    for (let slot = 0; slot < 9; slot += 1) {
+      order.push(slot);
+    }
+    return order;
+  }, []);
   const formatItemId = (value: string) => {
     if (!value) {
       return "";
@@ -2014,9 +2024,11 @@ export function App() {
                 </div>
               ) : (
                 <div className="inventory-grid inventory-grid-slots">
-                  {inventorySlots.map((item, slot) => (
-                    <div key={`slot-${slot}`} className={`inventory-slot-cell${item ? " filled" : ""}`}>
-                      <div className="inventory-slot-index">{slot}</div>
+                  {inventoryDisplayOrder.map((slot) => {
+                    const item = inventorySlots[slot];
+                    return (
+                      <div key={`slot-${slot}`} className={`inventory-slot-cell${item ? " filled" : ""}`}>
+                        <div className="inventory-slot-index">{slot}</div>
                       {item ? (
                         <div className="inventory-slot-content">
                           <img
@@ -2031,8 +2043,9 @@ export function App() {
                           <div className="inventory-slot-count">{item.count > 1 ? `x${item.count}` : ""}</div>
                         </div>
                       ) : null}
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </div>
               )
             ) : (
