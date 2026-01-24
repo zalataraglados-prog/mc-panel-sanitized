@@ -125,6 +125,8 @@ const translations = {
     inventoryUpdateFailed: "Inventory update failed.",
     inventoryAddItem: "Add Item",
     inventoryRemoveItem: "Remove",
+    inventoryTapToAdd: "Click an empty slot to add an item.",
+    inventoryCount: "Count",
     users: "Users",
     owners: "Owners",
     ownerPanel: "Server Owners",
@@ -267,6 +269,8 @@ const translations = {
     inventoryUpdateFailed: "\u80cc\u5305\u66f4\u65b0\u5931\u8d25\u3002",
     inventoryAddItem: "\u6dfb\u52a0\u7269\u54c1",
     inventoryRemoveItem: "\u5220\u9664",
+    inventoryTapToAdd: "\u70b9\u51fb\u7a7a\u683c\u5b50\u6dfb\u52a0\u7269\u54c1\u3002",
+    inventoryCount: "\u6570\u91cf",
     users: "\u8d26\u53f7\u7ba1\u7406",
     owners: "\u670d\u4e3b",
     ownerPanel: "\u670d\u4e3b\u680f",
@@ -505,6 +509,7 @@ export function App() {
   const [inventoryEditable, setInventoryEditable] = useState(false);
   const [inventoryEditing, setInventoryEditing] = useState(false);
   const [inventoryDraft, setInventoryDraft] = useState<InventoryItem[]>([]);
+  const [inventorySelectedSlot, setInventorySelectedSlot] = useState<number | null>(null);
   const [teleportOpen, setTeleportOpen] = useState(false);
   const [teleportTarget, setTeleportTarget] = useState<Player | null>(null);
   const [teleportPos, setTeleportPos] = useState({ x: "", y: "", z: "" });
@@ -567,11 +572,33 @@ export function App() {
       Array.from({ length: 9 }, (_, index) => index),
     ];
   }, []);
+  const itemNameMapZh: Record<string, string> = {
+    diamond: "\u94bb\u77f3",
+    diamond_axe: "\u94bb\u77f3\u65a7",
+    stone_shovel: "\u77f3\u94f2",
+    stone_hoe: "\u77f3\u9504",
+    stone_pickaxe: "\u77f3\u9550",
+    wooden_pickaxe: "\u6728\u9550",
+    netherite_hoe: "\u4e0b\u754c\u5408\u91d1\u9504",
+    netherite_axe: "\u4e0b\u754c\u5408\u91d1\u65a7",
+    golden_helmet: "\u91d1\u5934\u76d4",
+    resin_clump: "\u6811\u8102\u5757",
+    heart_of_the_sea: "\u6d77\u6d0b\u4e4b\u5fc3",
+    fire_charge: "\u706b\u7403",
+    netherite_scrap: "\u4e0b\u754c\u5408\u91d1\u788e\u7247",
+  };
   const formatItemId = (value: string) => {
     if (!value) {
       return "";
     }
     return value.replace(/^minecraft:/, "");
+  };
+  const formatItemName = (value: string) => {
+    const id = formatItemId(value);
+    if (lang === "zh" && itemNameMapZh[id]) {
+      return itemNameMapZh[id];
+    }
+    return id.replace(/_/g, " ");
   };
   const itemTextureUrl = (value: string) => {
     const name = formatItemId(value);
@@ -1456,6 +1483,27 @@ export function App() {
     setInventoryDraft((prev) => prev.filter((_, idx) => idx !== index));
   };
 
+  const getDraftItem = (slot: number) => inventoryDraft.find((item) => item.slot === slot) || null;
+
+  const setDraftItem = (slot: number, next: InventoryItem | null) => {
+    setInventoryDraft((prev) => {
+      const without = prev.filter((item) => item.slot !== slot);
+      if (!next) {
+        return without;
+      }
+      return [...without, next].sort((a, b) => a.slot - b.slot);
+    });
+  };
+
+  const handleSlotClick = (slot: number) => {
+    const existing = getDraftItem(slot);
+    if (!existing) {
+      const next = { slot, id: "minecraft:stone", count: 1 };
+      setDraftItem(slot, next);
+    }
+    setInventorySelectedSlot(slot);
+  };
+
   const saveInventory = () => {
     if (!inventoryEditable) {
       return;
@@ -2094,34 +2142,77 @@ export function App() {
               <p>{inventoryMessage || t.inventoryUnsupported}</p>
             ) : inventoryItems.length ? (
               inventoryEditing ? (
-                <div className="inventory-grid">
-                  {inventoryDraft.map((item, index) => (
-                    <div key={`${item.slot}-${item.id}-${index}`} className="inventory-item">
-                      <div className="inventory-id">
-                        <input
-                          value={item.id}
-                          onChange={(event) => updateInventoryDraft(index, "id", event.target.value)}
-                        />
+                <div className="inventory-edit">
+                  <div className="subtle">{t.inventoryTapToAdd}</div>
+                  <div className="inventory-grid inventory-grid-slots">
+                    {inventoryDisplayRows.map((row, rowIndex) => (
+                      <div key={`inv-row-${rowIndex}`} className="inventory-row">
+                        {row.map((slot) => {
+                          const item = inventorySlots[slot];
+                          const selected = inventorySelectedSlot === slot;
+                          return (
+                            <div
+                              key={`slot-${slot}`}
+                              className={`inventory-slot-cell${item ? " filled" : ""}${selected ? " selected" : ""}`}
+                              onClick={() => handleSlotClick(slot)}
+                            >
+                              <div className="inventory-slot-index">{slot}</div>
+                              {item ? (
+                                <div className="inventory-slot-content">
+                                  <img
+                                    className="inventory-slot-icon"
+                                    src={itemTextureUrl(item.id)}
+                                    alt={formatItemId(item.id)}
+                                    onError={(event) => {
+                                      event.currentTarget.style.display = "none";
+                                    }}
+                                  />
+                                  <div className="inventory-slot-id">{formatItemName(item.id)}</div>
+                                  <div className="inventory-slot-count">{item.count > 1 ? `x${item.count}` : ""}</div>
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })}
                       </div>
-                      <div className="inventory-count">
-                        <input
-                          type="number"
-                          value={item.count}
-                          onChange={(event) => updateInventoryDraft(index, "count", event.target.value)}
-                        />
-                      </div>
-                      <div className="inventory-slot">
-                        <input
-                          type="number"
-                          value={item.slot}
-                          onChange={(event) => updateInventoryDraft(index, "slot", event.target.value)}
-                        />
-                      </div>
-                      <button className="btn" onClick={() => removeInventoryItem(index)}>
-                        {t.inventoryRemoveItem}
-                      </button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  {inventorySelectedSlot !== null ? (
+                    (() => {
+                      const slot = inventorySelectedSlot;
+                      const item = getDraftItem(slot);
+                      if (!item) {
+                        return null;
+                      }
+                      return (
+                        <div className="inventory-editor">
+                          <div className="inventory-editor-title">
+                            {t.inventory} #{slot}
+                          </div>
+                          <label>
+                            ID
+                            <input
+                              value={item.id}
+                              onChange={(event) => setDraftItem(slot, { ...item, id: event.target.value })}
+                            />
+                          </label>
+                          <label>
+                            {t.inventoryCount}
+                            <input
+                              type="number"
+                              value={item.count}
+                              onChange={(event) => setDraftItem(slot, { ...item, count: Number(event.target.value) })}
+                            />
+                          </label>
+                          <div className="inventory-editor-actions">
+                            <button className="btn" onClick={() => setDraftItem(slot, null)}>
+                              {t.inventoryRemoveItem}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()
+                  ) : null}
                 </div>
               ) : (
                 <div className="inventory-grid inventory-grid-slots">
@@ -2142,7 +2233,7 @@ export function App() {
                                     event.currentTarget.style.display = "none";
                                   }}
                                 />
-                                <div className="inventory-slot-id">{formatItemId(item.id)}</div>
+                                <div className="inventory-slot-id">{formatItemName(item.id)}</div>
                                 <div className="inventory-slot-count">{item.count > 1 ? `x${item.count}` : ""}</div>
                               </div>
                             ) : null}

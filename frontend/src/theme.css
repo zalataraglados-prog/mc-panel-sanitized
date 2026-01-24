@@ -686,6 +686,12 @@ textarea::placeholder {
   gap: 8px;
 }
 
+.inventory-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .inventory-item {
   border: 1px solid rgba(148, 163, 184, 0.3);
   border-radius: 8px;
@@ -729,6 +735,11 @@ textarea::placeholder {
   background: rgba(36, 72, 128, 0.35);
 }
 
+.inventory-slot-cell.selected {
+  border-color: rgba(121, 194, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(121, 194, 255, 0.35) inset;
+}
+
 .inventory-slot-id {
   font-weight: 600;
   overflow: hidden;
@@ -761,6 +772,44 @@ textarea::placeholder {
   width: 20px;
   height: 20px;
   image-rendering: pixelated;
+}
+
+.inventory-editor {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  background: rgba(15, 18, 26, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.inventory-editor-title {
+  grid-column: 1 / -1;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.inventory-editor label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.inventory-editor input {
+  background: rgba(8, 10, 16, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 6px 8px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.inventory-editor-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .inventory-item input {
