@@ -23,5 +23,5 @@ If you encounter errors, copy the error output + this release note and ask an AI
 如遇报错，请将报错与本说明一并复制给可接触的 AI，通常能快速定位问题。
 
 Acknowledgements / 致谢
-Thanks to MRBHZ, Galetta_886, tsien666, and Long_Huangei for stress testing, reproduction steps, and fast feedback.
-感谢 MRBHZ、Galetta_886、tsien666、Long_Huangei 在测试期间提供压力测试、问题复现与及时反馈。
+Thanks to MRBHZ, Galetta_886, tsien666, and Long_Huangei for helping with testing.
+感谢 MRBHZ、Galetta_886、tsien666、Long_Huangei 在测试期间的支持与帮助。
