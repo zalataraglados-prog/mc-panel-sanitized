@@ -354,6 +354,8 @@ def set_inventory(instance_dir: str, player: str, items: list[dict]) -> dict:
     online_names = client.list_players()
     player_name = _resolve_online_player_name(client, player)
     desired = []
+    allowed_slots = set(range(0, 36))
+    allowed_slots.update({100, 101, 102, 103, -106})
     for item in items:
         slot = item.get("slot")
         item_id = item.get("id")
@@ -362,8 +364,9 @@ def set_inventory(instance_dir: str, player: str, items: list[dict]) -> dict:
             continue
         if int(count) <= 0:
             continue
-        if 0 <= int(slot) <= 35:
-            desired.append({"slot": int(slot), "id": item_id, "count": int(count)})
+        slot_value = int(slot)
+        if slot_value in allowed_slots:
+            desired.append({"slot": slot_value, "id": item_id, "count": int(count)})
 
     if player_name not in online_names and provider:
         offline = _set_offline_inventory(instance_path, player_name, desired)
@@ -379,6 +382,16 @@ def set_inventory(instance_dir: str, player: str, items: list[dict]) -> dict:
             return f"slot.hotbar.{slot_index}"
         if 9 <= slot_index <= 35:
             return f"slot.inventory.{slot_index - 9}"
+        if slot_index == 100:
+            return "armor.feet"
+        if slot_index == 101:
+            return "armor.legs"
+        if slot_index == 102:
+            return "armor.chest"
+        if slot_index == 103:
+            return "armor.head"
+        if slot_index == -106:
+            return "weapon.offhand"
         return None
 
     if player_name not in online_names:
@@ -390,11 +403,11 @@ def set_inventory(instance_dir: str, player: str, items: list[dict]) -> dict:
         }
 
     applied = 0
-    for slot_index in range(36):
+    slots_to_clear = list(range(36)) + [100, 101, 102, 103, -106]
+    for slot_index in slots_to_clear:
         target = slot_target(slot_index)
-        if not target:
-            continue
-        client.execute(f"item replace entity {player_name} {target} with air")
+        if target:
+            client.execute(f"item replace entity {player_name} {target} with air")
 
     for item in desired:
         target = slot_target(int(item["slot"]))

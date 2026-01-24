@@ -12,6 +12,14 @@ type Player = {
   online?: boolean;
   last_seen?: string | null;
 };
+type BanEntry = {
+  name: string;
+  uuid?: string | null;
+  created?: string | null;
+  source?: string | null;
+  expires?: string | null;
+  reason?: string | null;
+};
 type Rule = { key: string; value: string };
 type CommandTemplate = { name: string; command: string };
 type InstanceItem = { name?: string; path?: string };
@@ -75,6 +83,8 @@ const translations = {
     opLevel: "OP Level",
     op: "OP",
     kick: "Kick",
+    ban: "Ban (Permanent)",
+    unban: "Unban",
     teleport: "Teleport",
     teleportTitle: "Teleport Player",
     teleportToCoords: "Teleport to coordinates",
@@ -128,6 +138,8 @@ const translations = {
     inventoryRemoveItem: "Remove",
     inventoryTapToAdd: "Click an empty slot to add an item.",
     inventoryCount: "Count",
+    bannedPlayers: "Banned",
+    banListEmpty: "No banned players",
     users: "Users",
     owners: "Owners",
     ownerPanel: "Server Owners",
@@ -219,6 +231,8 @@ const translations = {
     opLevel: "OP \u7b49\u7ea7",
     op: "\u6388\u4e88OP",
     kick: "\u8e22\u51fa",
+    ban: "\u6c38\u4e45\u5c01\u7981",
+    unban: "\u89e3\u9664\u5c01\u7981",
     teleport: "\u4f20\u9001",
     teleportTitle: "\u4f20\u9001\u73a9\u5bb6",
     teleportToCoords: "\u4f20\u9001\u5230\u5750\u6807",
@@ -272,6 +286,8 @@ const translations = {
     inventoryRemoveItem: "\u5220\u9664",
     inventoryTapToAdd: "\u70b9\u51fb\u7a7a\u683c\u5b50\u6dfb\u52a0\u7269\u54c1\u3002",
     inventoryCount: "\u6570\u91cf",
+    bannedPlayers: "\u5c01\u7981\u73a9\u5bb6",
+    banListEmpty: "\u6682\u65e0\u5c01\u7981\u73a9\u5bb6",
     users: "\u8d26\u53f7\u7ba1\u7406",
     owners: "\u670d\u4e3b",
     ownerPanel: "\u670d\u4e3b\u680f",
@@ -455,6 +471,7 @@ export function App() {
   const [instances, setInstances] = useState<InstanceItem[]>([]);
   const [instanceDir, setInstanceDir] = useState("");
   const [players, setPlayers] = useState<Player[]>([]);
+  const [bans, setBans] = useState<BanEntry[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
   const [rulesDraft, setRulesDraft] = useState<Record<string, string>>({});
   const [rulesEditing, setRulesEditing] = useState(false);
@@ -546,6 +563,7 @@ export function App() {
   const canEditUsers = role === "owner";
   const canEditOwners = role === "owner";
   const canViewOwners = role === "owner";
+  const canBanPlayers = role === "owner" || role === "admin";
   const roleLabels: Record<string, string> = {
     owner: t.ownerRole,
     admin: t.adminRole,
@@ -554,25 +572,40 @@ export function App() {
   };
   const mapSupported = mapStatus?.source === "bluemap" || mapStatus?.source === "dynmap";
   const mapSupports3d = mapStatus?.source === "bluemap";
-  const inventorySlotCount = 36;
   const inventoryViewItems = inventoryEditing ? inventoryDraft : inventoryItems;
-  const inventorySlots = useMemo(() => {
-    const slots: Array<InventoryItem | null> = Array.from({ length: inventorySlotCount }, () => null);
-    for (const item of inventoryViewItems) {
-      if (item.slot >= 0 && item.slot < inventorySlotCount) {
-        slots[item.slot] = item;
-      }
-    }
-    return slots;
-  }, [inventoryViewItems]);
-  const inventoryDisplayRows = useMemo(() => {
-    return [
+  const inventoryArmorSlots = useMemo(() => [103, 102, 101, 100, -106], []);
+  const inventoryBaseRows = useMemo(
+    () => [
       Array.from({ length: 9 }, (_, index) => index + 9),
       Array.from({ length: 9 }, (_, index) => index + 18),
       Array.from({ length: 9 }, (_, index) => index + 27),
       Array.from({ length: 9 }, (_, index) => index),
-    ];
-  }, []);
+    ],
+    []
+  );
+  const inventoryDisplayRows = useMemo(() => {
+    const armorRow: Array<number | null> = [...inventoryArmorSlots, null, null, null, null];
+    return [armorRow, ...inventoryBaseRows];
+  }, [inventoryArmorSlots, inventoryBaseRows]);
+  const inventoryAllowedSlots = useMemo(() => {
+    const slots = Array.from({ length: 36 }, (_, index) => index);
+    inventoryArmorSlots.forEach((slot) => slots.push(slot));
+    return slots;
+  }, [inventoryArmorSlots]);
+  const inventorySlots = useMemo(() => {
+    const slots = new Map<number, InventoryItem>();
+    for (const item of inventoryViewItems) {
+      slots.set(item.slot, item);
+    }
+    return slots;
+  }, [inventoryViewItems]);
+  const inventorySlotLabels: Record<number, string> = {
+    103: lang === "zh" ? "头" : "Head",
+    102: lang === "zh" ? "胸" : "Chest",
+    101: lang === "zh" ? "腿" : "Legs",
+    100: lang === "zh" ? "靴" : "Feet",
+    [-106]: lang === "zh" ? "副" : "Off",
+  };
   const itemNameMapZh = useMemo(() => {
     const map: Record<string, string> = {};
     const source = zhCn as Record<string, string>;
@@ -864,6 +897,17 @@ export function App() {
       .catch(() => {});
   };
 
+  const refreshBans = () => {
+    if (!token) {
+      return;
+    }
+    const query = instanceDir ? `?instance_dir=${encodeURIComponent(instanceDir)}` : "";
+    fetch(`/api/bans${query}`, { headers: authHeader })
+      .then((res) => res.json())
+      .then((data) => setBans(data.bans || []))
+      .catch(() => {});
+  };
+
   const refreshAll = () => {
     refreshPrimaryData();
     refreshInstances();
@@ -872,6 +916,7 @@ export function App() {
     refreshMapConfig();
     refreshUsers();
     refreshOwners();
+    refreshBans();
   };
 
   useEffect(() => {
@@ -882,6 +927,7 @@ export function App() {
       refreshRules();
       refreshUsers();
       refreshOwners();
+      refreshBans();
     }
   }, [token]);
 
@@ -890,6 +936,7 @@ export function App() {
       refreshPrimaryData();
       refreshRules();
       refreshOwners();
+      refreshBans();
     }
   }, [instanceDir]);
 
@@ -1184,10 +1231,44 @@ export function App() {
       .catch(() => {});
   };
 
+  const banPlayer = (name: string) => {
+    if (!canBanPlayers) {
+      return;
+    }
+    fetch("/api/bans", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeader },
+      body: JSON.stringify({ name, instance_dir: instanceDir || undefined }),
+    })
+      .then((res) => res.json())
+      .then((data) => setBans(data.bans || []))
+      .catch(() => {});
+  };
+
+  const unbanPlayer = (name: string) => {
+    if (!canBanPlayers) {
+      return;
+    }
+    const params = new URLSearchParams({ name });
+    if (instanceDir) {
+      params.set("instance_dir", instanceDir);
+    }
+    fetch(`/api/bans?${params.toString()}`, {
+      method: "DELETE",
+      headers: { ...authHeader },
+    })
+      .then((res) => res.json())
+      .then((data) => setBans(data.bans || []))
+      .catch(() => {});
+  };
+
   const updateOpLevel = (uuid: string, value: string) => {
     setOpLevels((prev) => ({ ...prev, [uuid]: value }));
   };
 
+  const bannedNames = useMemo(() => {
+    return new Set(bans.map((entry) => entry.name.toLowerCase()));
+  }, [bans]);
   const ownerPlayers = useMemo(() => {
     if (!owners.length) {
       return [];
@@ -1197,18 +1278,30 @@ export function App() {
       .filter(Boolean) as Player[];
   }, [owners, players]);
   const onlinePlayers = useMemo(
-    () => players.filter((player) => player.online !== false && !owners.includes(player.name)),
-    [players, owners]
+    () =>
+      players.filter(
+        (player) =>
+          player.online !== false &&
+          !owners.includes(player.name) &&
+          !bannedNames.has(player.name.toLowerCase())
+      ),
+    [players, owners, bannedNames]
   );
   const offlinePlayers = useMemo(
-    () => players.filter((player) => player.online === false && !owners.includes(player.name)),
-    [players, owners]
+    () =>
+      players.filter(
+        (player) =>
+          player.online === false &&
+          !owners.includes(player.name) &&
+          !bannedNames.has(player.name.toLowerCase())
+      ),
+    [players, owners, bannedNames]
   );
 
   const ownerCandidates = useMemo(() => {
     const names = players.map((player) => player.name);
-    return names.filter((name) => !owners.includes(name));
-  }, [players, owners]);
+    return names.filter((name) => !owners.includes(name) && !bannedNames.has(name.toLowerCase()));
+  }, [players, owners, bannedNames]);
 
   const updateOwners = (nextOwners: string[]) => {
     if (!canEditOwners) {
@@ -1289,6 +1382,9 @@ export function App() {
           </button>
           <button className="btn" disabled={!canManagePlayers} onClick={() => sendPlayerCommand(`kick ${p.name}`)}>
             {t.kick}
+          </button>
+          <button className="btn" disabled={!canBanPlayers} onClick={() => banPlayer(p.name)}>
+            {t.ban}
           </button>
           <button className="btn" disabled={!canManagePlayers} onClick={() => openTeleport(p)}>
             {t.teleport}
@@ -1470,13 +1566,8 @@ export function App() {
   const addInventoryItem = () => {
     setInventoryDraft((prev) => {
       const used = new Set(prev.map((item) => item.slot));
-      let slot = 0;
-      for (let i = 0; i < 36; i += 1) {
-        if (!used.has(i)) {
-          slot = i;
-          break;
-        }
-      }
+      const nextSlot = inventoryAllowedSlots.find((candidate) => !used.has(candidate));
+      const slot = nextSlot ?? 0;
       return [...prev, { slot, id: "minecraft:stone", count: 1 }];
     });
   };
@@ -1744,6 +1835,32 @@ export function App() {
               {!offlinePlayers.length ? <div className="subtle">{t.noData}</div> : null}
             </div>
           </div>
+          <div className="players-column">
+            <div className="players-heading">
+              <span>{t.bannedPlayers}</span>
+              <span className="players-heading-meta">{canBanPlayers ? t.unban : ""}</span>
+            </div>
+            <div className="players">
+              {bans.map((entry) => {
+                const related = players.find((player) => player.name === entry.name);
+                return (
+                  <div key={`ban-${entry.name}`} className="player-card">
+                    {related?.skin_url ? <img src={related.skin_url} alt={entry.name} /> : null}
+                    <div>
+                      <div className="player-name">{entry.name}</div>
+                      {entry.reason ? <div className="player-meta">{entry.reason}</div> : null}
+                      <div className="player-actions">
+                        <button className="btn" disabled={!canBanPlayers} onClick={() => unbanPlayer(entry.name)}>
+                          {t.unban}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {!bans.length ? <div className="subtle">{t.banListEmpty}</div> : null}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1997,16 +2114,25 @@ export function App() {
                   <div className="inventory-grid inventory-grid-slots">
                     {inventoryDisplayRows.map((row, rowIndex) => (
                       <div key={`inv-row-${rowIndex}`} className="inventory-row">
-                        {row.map((slot) => {
-                          const item = inventorySlots[slot];
+                        {row.map((slot, slotIndex) => {
+                          if (slot === null) {
+                            return (
+                              <div
+                                key={`slot-null-${rowIndex}-${slotIndex}`}
+                                className="inventory-slot-cell disabled"
+                              />
+                            );
+                          }
+                          const item = inventorySlots.get(slot) || null;
                           const selected = inventorySelectedSlot === slot;
+                          const label = inventorySlotLabels[slot] ?? String(slot);
                           return (
                             <div
                               key={`slot-${slot}`}
                               className={`inventory-slot-cell${item ? " filled" : ""}${selected ? " selected" : ""}`}
                               onClick={() => handleSlotClick(slot)}
                             >
-                              <div className="inventory-slot-index">{slot}</div>
+                              <div className="inventory-slot-index">{label}</div>
                               {item ? (
                                 <div className="inventory-slot-content">
                                   <img
@@ -2068,11 +2194,20 @@ export function App() {
                 <div className="inventory-grid inventory-grid-slots">
                   {inventoryDisplayRows.map((row, rowIndex) => (
                     <div key={`inv-row-${rowIndex}`} className="inventory-row">
-                      {row.map((slot) => {
-                        const item = inventorySlots[slot];
+                      {row.map((slot, slotIndex) => {
+                        if (slot === null) {
+                          return (
+                            <div
+                              key={`slot-null-view-${rowIndex}-${slotIndex}`}
+                              className="inventory-slot-cell disabled"
+                            />
+                          );
+                        }
+                        const item = inventorySlots.get(slot) || null;
+                        const label = inventorySlotLabels[slot] ?? String(slot);
                         return (
                           <div key={`slot-${slot}`} className={`inventory-slot-cell${item ? " filled" : ""}`}>
-                            <div className="inventory-slot-index">{slot}</div>
+                            <div className="inventory-slot-index">{label}</div>
                             {item ? (
                               <div className="inventory-slot-content">
                                 <img

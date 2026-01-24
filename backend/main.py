@@ -14,6 +14,7 @@ from backend.routers.map import router as map_router
 from backend.routers.metrics import router as metrics_router
 from backend.routers.players import router as players_router
 from backend.routers.owners import router as owners_router
+from backend.routers.bans import router as bans_router
 from backend.routers.rcon import router as rcon_router
 from backend.routers.status import router as status_router
 from backend.routers.summary import router as summary_router
@@ -36,6 +37,7 @@ app.include_router(control_router)
 app.include_router(rcon_router)
 app.include_router(players_router)
 app.include_router(owners_router)
+app.include_router(bans_router)
 app.include_router(instances_router)
 app.include_router(rules_router)
 app.include_router(templates_router)

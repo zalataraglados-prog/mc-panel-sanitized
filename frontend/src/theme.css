@@ -753,6 +753,12 @@ textarea::placeholder {
   box-shadow: 0 0 0 1px rgba(121, 194, 255, 0.35) inset;
 }
 
+.inventory-slot-cell.disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .inventory-slot-id {
   font-weight: 600;
   overflow: hidden;

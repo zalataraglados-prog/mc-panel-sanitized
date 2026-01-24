@@ -43,6 +43,25 @@ class OwnersUpdateRequest(BaseModel):
     instance_dir: Optional[str] = None
 
 
+class BanEntry(BaseModel):
+    name: str
+    uuid: Optional[str] = None
+    created: Optional[str] = None
+    source: Optional[str] = None
+    expires: Optional[str] = None
+    reason: Optional[str] = None
+
+
+class BanListResponse(BaseModel):
+    bans: List[BanEntry]
+
+
+class BanUpdateRequest(BaseModel):
+    name: str
+    reason: Optional[str] = None
+    instance_dir: Optional[str] = None
+
+
 class StatusResponse(BaseModel):
     running: bool
     players: int
