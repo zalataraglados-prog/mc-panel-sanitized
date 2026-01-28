@@ -1,0 +1,115 @@
+﻿<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MCIC 引导向导</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 24px; }
+    h1 { margin: 0 0 12px; font-size: 22px; }
+    .card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; margin: 12px 0; }
+    label { display: block; margin: 8px 0 6px; font-size: 13px; color: #cbd5f5; }
+    input, select, textarea { width: 100%; background: #0b1220; color: #e2e8f0; border: 1px solid #1f2937; border-radius: 8px; padding: 8px 10px; }
+    textarea { min-height: 140px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    button { background: #2563eb; color: #fff; border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+    button.secondary { background: #334155; }
+    .output { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #0b1220; border-radius: 8px; padding: 12px; border: 1px solid #1f2937; }
+    .hint { font-size: 12px; color: #94a3b8; }
+    a { color: #93c5fd; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>MCIC 引导向导（无需面板）</h1>
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>版本（默认 1.21.4）</label>
+          <input id="version" placeholder="1.21.4" />
+        </div>
+        <div>
+          <label>配置档位</label>
+          <select id="profile">
+            <option value="beginner">新手</option>
+            <option value="normal" selected>标准</option>
+            <option value="advanced">高级</option>
+          </select>
+        </div>
+      </div>
+      <label>导入方式</label>
+      <select id="import_mode">
+        <option value="none">不导入</option>
+        <option value="paste">粘贴配置串</option>
+        <option value="file">从文件路径导入</option>
+      </select>
+      <label>配置串 / 文件路径</label>
+      <textarea id="import_value" placeholder="粘贴配置串，或填写文件路径"></textarea>
+      <div class="hint">提示：若选择“从文件路径导入”，这里填写服务器上的文件路径。</div>
+    </div>
+
+    <div class="card">
+      <label>参数（key=value，每行一条；可留空）</label>
+      <textarea id="params" placeholder="例如：\nmax-players=3\nview-distance=4\nkeepInventory=true"></textarea>
+      <div class="hint">你可以在这里设置全部参数；为空则使用默认值或导入配置串。</div>
+    </div>
+
+    <div class="card">
+      <div class="actions">
+        <button id="btn_plan">运行 Plan（评审）</button>
+        <button id="btn_apply">执行 Apply</button>
+        <button id="btn_save" class="secondary">保存配置</button>
+      </div>
+      <label style="margin-top:12px;">输出</label>
+      <div id="output" class="output"></div>
+      <div class="hint">若已安装主面板，可访问：<a id="panel_link" href="/" target="_blank">面板首页</a></div>
+    </div>
+  </div>
+<script>
+const $ = (id) => document.getElementById(id);
+const output = $('output');
+const panelLink = $('panel_link');
+
+async function loadState() {
+  const res = await fetch('/api/wizard/state');
+  if (!res.ok) return;
+  const data = await res.json();
+  $('version').value = data.version || '1.21.4';
+  $('profile').value = data.profile || 'normal';
+  $('import_mode').value = data.import_mode || 'none';
+  $('import_value').value = data.import_value || '';
+  $('params').value = data.params_text || '';
+  if (data.panel_url) panelLink.href = data.panel_url;
+}
+
+function gather() {
+  return {
+    version: $('version').value.trim() || '1.21.4',
+    profile: $('profile').value,
+    import_mode: $('import_mode').value,
+    import_value: $('import_value').value.trim(),
+    params_text: $('params').value
+  };
+}
+
+async function saveState() {
+  await fetch('/api/wizard/state', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(gather())});
+}
+
+async function runAction(path) {
+  output.textContent = '运行中...';
+  const res = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(gather())});
+  const data = await res.json();
+  output.textContent = data.output || data.error || JSON.stringify(data);
+}
+
+$('btn_plan').onclick = async () => { await runAction('/api/wizard/plan'); };
+$('btn_apply').onclick = async () => { await runAction('/api/wizard/apply'); };
+$('btn_save').onclick = async () => { await saveState(); output.textContent = '已保存'; };
+
+loadState();
+</script>
+</body>
+</html>

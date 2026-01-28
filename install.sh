@@ -243,6 +243,19 @@ maybe_prompt_docker_proxy_pull
 install_mcic
 
 # ------------------------------
+# Web wizard (default) / ????????
+# ------------------------------
+MC_PANEL_WIZARD="${MC_PANEL_WIZARD:-1}"
+if [ "$MC_PANEL_WIZARD" = "1" ] && [ "$SKIP_PROMPTS" != "1" ]; then
+  WIZARD_PORT="${MC_PANEL_WIZARD_PORT:-15001}"
+  echo "[INFO] Starting web wizard on port ${WIZARD_PORT}..."
+  nohup python3 -m deploy.wizard_server > /tmp/mc_wizard.log 2>&1 &
+  echo "[INFO] Open: http://<server-ip>:${WIZARD_PORT}/"
+  echo "[INFO] To skip wizard, set MC_PANEL_WIZARD=0"
+  exit 0
+fi
+
+# ------------------------------
 # Language selection
 # ------------------------------
 if [ "$AUTO_MODE" = "1" ] && [ -n "${MC_PANEL_LANG:-}" ]; then
