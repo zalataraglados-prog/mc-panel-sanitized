@@ -41,10 +41,10 @@ def _normalize_name(name: str) -> str:
 def _avatar_url(name: str, uuid: str) -> str:
     safe_name = name.strip()
     safe_uuid = uuid.strip()
-    if safe_uuid and "-" in safe_uuid:
-        return f"https://crafatar.com/avatars/{safe_uuid}?size=64&overlay"
     if safe_name:
         return f"https://minotar.net/avatar/{safe_name}/64"
+    if safe_uuid and "-" in safe_uuid:
+        return f"https://crafatar.com/avatars/{safe_uuid}?size=64&overlay"
     return "https://minotar.net/avatar/steve/64"
 
 def get_players_snapshot(instance_dir: str) -> list[dict]:
