@@ -185,10 +185,10 @@ if ! command -v curl &> /dev/null; then
 fi
 
 INSTALL_DIR="/opt/mc-panel-sanitized"
-BRANCH="demon1.1"
+BRANCH="demon1.3"
 
 # ------------------------------
-# Clone / update demon1.1 branch
+# Clone / update target branch
 # ------------------------------
 if [ ! -d "$INSTALL_DIR" ]; then
   echo "[INFO] Cloning repo ($BRANCH)..."
@@ -203,6 +203,29 @@ else
   git pull
 fi
 
+install_mcic() {
+  local target="/usr/local/bin/mcic"
+  cat >"$target" <<'SH'
+#!/bin/bash
+set -e
+
+if [ -f "/opt/mc-panel-sanitized/deploy/cli.py" ]; then
+  if [ "$EUID" -ne 0 ]; then
+    exec sudo -E python3 -m deploy.cli "$@"
+  fi
+  exec python3 -m deploy.cli "$@"
+fi
+
+if command -v curl >/dev/null 2>&1; then
+  exec bash -c 'curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/demon1.3/install.sh | sudo bash'
+fi
+
+echo "mcic: curl not found, please install curl or run install.sh manually." >&2
+exit 1
+SH
+  chmod +x "$target"
+}
+
 # Ensure base instance directory exists for preconditions
 mkdir -p /opt/mc-instances
 
@@ -211,6 +234,11 @@ mkdir -p /opt/mc-instances
 # ------------------------------
 maybe_prompt_docker_mirror
 maybe_prompt_docker_proxy_pull
+
+# ------------------------------
+# Install CLI wrapper
+# ------------------------------
+install_mcic
 
 # ------------------------------
 # Language selection

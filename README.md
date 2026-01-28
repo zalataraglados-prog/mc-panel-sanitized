@@ -1,4 +1,4 @@
-﻿# MC Panel (demon1.1)
+﻿# MC Panel (demon1.3)
 
 ## Release Notice / 发布声明
 
@@ -23,7 +23,14 @@ This project is a configuration decision engine for Minecraft deployments with a
 ## Quick start (plan + dry-run) / 快速开始（仅 plan + dry-run）
 
 ```
-curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/v1.0.2/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/demon1.3/install.sh | sudo bash
+```
+
+After the first install, you can run the short command below (Linux only):
+??????????????????? Linux??
+
+```
+mcic
 ```
 
 ## Network resilience / 网络可靠性
