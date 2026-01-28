@@ -52,6 +52,11 @@ configure_docker_mirrors() {
   if [ -z "$mirrors_raw" ]; then
     return 0
   fi
+  if ! _mcpanel_validate_mirror_list "$mirrors_raw"; then
+    echo "[WARN] Invalid mirror URL(s). Skip writing /etc/docker/daemon.json"
+    echo "       Mirrors must start with http(s):// and must not include image paths."
+    return 0
+  fi
   local mirror_json
   mirror_json=$(MIRRORS_RAW="$mirrors_raw" python3 - <<'PY'
 import json
@@ -65,12 +70,62 @@ PY
     return 0
   fi
   mkdir -p /etc/docker
-  echo "$mirror_json" >/etc/docker/daemon.json
+  local daemon_path="/etc/docker/daemon.json"
+  local daemon_backup="/etc/docker/daemon.json.bak"
+  if [ -f "$daemon_path" ]; then
+    cp -f "$daemon_path" "$daemon_backup" || true
+  fi
+  echo "$mirror_json" >"$daemon_path"
+  if ! python3 -m json.tool "$daemon_path" >/dev/null 2>&1; then
+    echo "[WARN] Invalid JSON written to $daemon_path; restoring backup."
+    if [ -f "$daemon_backup" ]; then
+      cp -f "$daemon_backup" "$daemon_path" || true
+    fi
+    return 0
+  fi
   if command -v systemctl >/dev/null 2>&1; then
     systemctl restart docker || true
+    if ! systemctl is-active --quiet docker; then
+      echo "[WARN] Docker failed to restart with the provided mirrors. Restoring backup."
+      journalctl -xeu docker --no-pager | tail -n 20 || true
+      if [ -f "$daemon_backup" ]; then
+        cp -f "$daemon_backup" "$daemon_path" || true
+        systemctl restart docker || true
+      fi
+    fi
   else
     service docker restart || true
   fi
+}
+
+_mcpanel_validate_mirror() {
+  local url="$1"
+  if ! printf '%s' "$url" | grep -Eq '^https?://'; then
+    return 1
+  fi
+  if printf '%s' "$url" | grep -Eq '[[:space:]]|@'; then
+    return 1
+  fi
+  if printf '%s' "$url" | grep -Eq '/(v1|v2)/|/library/|/docker.io/|/itzg/'; then
+    return 1
+  fi
+  return 0
+}
+
+_mcpanel_validate_mirror_list() {
+  local raw="$1"
+  local item
+  IFS=',' read -r -a __mcpanel_mirrors <<<"$raw"
+  for item in "${__mcpanel_mirrors[@]}"; do
+    item="$(echo "$item" | xargs)"
+    if [ -z "$item" ]; then
+      continue
+    fi
+    if ! _mcpanel_validate_mirror "$item"; then
+      return 1
+    fi
+  done
+  return 0
 }
 
 maybe_prompt_docker_mirror() {
