@@ -209,7 +209,9 @@ install_mcic() {
 #!/bin/bash
 set -e
 
-if [ -f "/opt/mc-panel-sanitized/deploy/cli.py" ]; then
+ROOT="/opt/mc-panel-sanitized"
+if [ -f "$ROOT/deploy/cli.py" ]; then
+  cd "$ROOT"
   if [ "$EUID" -ne 0 ]; then
     exec sudo -E python3 -m deploy.cli "$@"
   fi
