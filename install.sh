@@ -13,6 +13,9 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
+# Ensure we have a valid working directory (avoid getcwd errors)
+cd / || exit 1
+
 AUTO_MODE="${MC_PANEL_AUTO:-0}"
 AUTO_YES="${MC_PANEL_ASSUME_YES:-0}"
 if [ "$AUTO_MODE" = "1" ]; then
@@ -45,6 +48,36 @@ retry_cmd() {
     current_delay=$((current_delay * 2))
     n=$((n + 1))
   done
+}
+
+start_wizard_service() {
+  if [ "${MC_PANEL_WIZARD:-1}" != "1" ]; then
+    return 0
+  fi
+  local wizard_port="${MC_PANEL_WIZARD_PORT:-15001}"
+  if command -v systemctl >/dev/null 2>&1; then
+    cat >/etc/systemd/system/mc-wizard.service <<EOF
+[Unit]
+Description=MC Panel Wizard
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/mc-panel-sanitized
+Environment=MC_PANEL_WIZARD_PORT=${wizard_port}
+ExecStart=/usr/bin/python3 -m deploy.wizard_server
+Restart=on-failure
+StandardOutput=append:/var/log/mc-wizard.log
+StandardError=append:/var/log/mc-wizard.log
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl daemon-reload
+    systemctl enable --now mc-wizard.service || true
+  else
+    nohup /usr/bin/python3 -m deploy.wizard_server >/var/log/mc-wizard.log 2>&1 &
+  fi
 }
 
 configure_docker_mirrors() {
@@ -304,7 +337,7 @@ MC_PANEL_WIZARD="${MC_PANEL_WIZARD:-1}"
 if [ "$MC_PANEL_WIZARD" = "1" ] && [ "$SKIP_PROMPTS" != "1" ]; then
   WIZARD_PORT="${MC_PANEL_WIZARD_PORT:-15001}"
   echo "[INFO] Starting web wizard on port ${WIZARD_PORT}..."
-  nohup python3 -m deploy.wizard_server > /tmp/mc_wizard.log 2>&1 &
+  start_wizard_service
   echo "[INFO] Open: http://<server-ip>:${WIZARD_PORT}/"
   echo "[INFO] To skip wizard, set MC_PANEL_WIZARD=0"
   exit 0
