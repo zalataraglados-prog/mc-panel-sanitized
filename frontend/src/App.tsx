@@ -640,6 +640,29 @@ export function App() {
     }
     return `https://fastly.jsdelivr.net/gh/InventivetalentDev/minecraft-assets@1.21.4/assets/minecraft/textures/item/${name}.png`;
   };
+  const buildAvatarUrl = (name: string, uuid: string, size: number) => {
+    if (uuid && uuid.includes("-")) {
+      return `https://crafatar.com/avatars/${uuid}?size=${size}&overlay`;
+    }
+    if (name) {
+      return `https://minotar.net/avatar/${encodeURIComponent(name)}/${size}`;
+    }
+    return `https://minotar.net/avatar/steve/${size}`;
+  };
+  const handleAvatarError = (
+    event: React.SyntheticEvent<HTMLImageElement>,
+    name: string,
+    uuid: string,
+    size: number
+  ) => {
+    const img = event.currentTarget;
+    if (img.dataset.fallback === "1") {
+      img.style.display = "none";
+      return;
+    }
+    img.dataset.fallback = "1";
+    img.src = buildAvatarUrl(name, uuid, size);
+  };
   const formatRuleKey = (key: string) => {
     if (lang !== "zh") {
       return key;
@@ -702,10 +725,12 @@ export function App() {
               <img
                 key={`marker-${player.uuid}`}
                 className="map-marker"
-                src={player.skin_url}
+                src={player.skin_url || buildAvatarUrl(player.name, player.uuid, size)}
                 title={player.name}
                 style={{ left: `${left}px`, top: `${top}px`, width: `${size}px`, height: `${size}px` }}
                 alt={player.name}
+                referrerPolicy="no-referrer"
+                onError={(event) => handleAvatarError(event, player.name, player.uuid, size)}
               />
             );
           })
@@ -1353,7 +1378,12 @@ export function App() {
 
   const renderPlayerCard = (p: Player, metaPrimary?: string, metaSecondary?: string) => (
     <div key={p.uuid} className="player-card">
-      <img src={p.skin_url} alt={p.name} />
+      <img
+        src={p.skin_url || buildAvatarUrl(p.name, p.uuid, 64)}
+        alt={p.name}
+        referrerPolicy="no-referrer"
+        onError={(event) => handleAvatarError(event, p.name, p.uuid, 64)}
+      />
       <div>
         <div className="player-name">{p.name}</div>
         {metaPrimary ? <div className="player-meta">{metaPrimary}</div> : null}
@@ -1843,7 +1873,14 @@ export function App() {
                 const related = players.find((player) => player.name === entry.name);
                 return (
                   <div key={`ban-${entry.name}`} className="player-card">
-                    {related?.skin_url ? <img src={related.skin_url} alt={entry.name} /> : null}
+                    {related ? (
+                      <img
+                        src={related.skin_url || buildAvatarUrl(related.name, related.uuid, 64)}
+                        alt={entry.name}
+                        referrerPolicy="no-referrer"
+                        onError={(event) => handleAvatarError(event, related.name, related.uuid, 64)}
+                      />
+                    ) : null}
                     <div>
                       <div className="player-name">{entry.name}</div>
                       {entry.reason ? <div className="player-meta">{entry.reason}</div> : null}

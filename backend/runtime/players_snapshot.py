@@ -38,6 +38,15 @@ def _load_owner_names(instance_dir: str) -> set[str]:
 def _normalize_name(name: str) -> str:
     return name.strip().lower()
 
+def _avatar_url(name: str, uuid: str) -> str:
+    safe_name = name.strip()
+    safe_uuid = uuid.strip()
+    if safe_uuid and "-" in safe_uuid:
+        return f"https://crafatar.com/avatars/{safe_uuid}?size=64&overlay"
+    if safe_name:
+        return f"https://minotar.net/avatar/{safe_name}/64"
+    return "https://minotar.net/avatar/steve/64"
+
 def get_players_snapshot(instance_dir: str) -> list[dict]:
     cached = _PLAYERS_CACHE.get(instance_dir)
     if cached is not None:
@@ -46,17 +55,24 @@ def get_players_snapshot(instance_dir: str) -> list[dict]:
     client = RCONClient.from_instance_dir(instance_dir)
     names = client.list_players()
     online_set = {_normalize_name(name) for name in names}
+    usercache = _load_usercache(instance_dir)
+    uuid_map = {
+        _normalize_name(entry.get("name") or ""): (entry.get("uuid") or "")
+        for entry in usercache
+        if entry.get("name")
+    }
     owner_names = _load_owner_names(instance_dir)
     log_path = resolve_latest_log(instance_dir)
     players: list[dict] = []
     for name in names:
         position = client.get_player_position(name)
         session_seconds = get_session_seconds(log_path, name)
+        mapped_uuid = uuid_map.get(_normalize_name(name)) or name
         players.append(
             {
                 "name": name,
-                "uuid": name,
-                "skin_url": f"https://mc-heads.net/avatar/{name}",
+                "uuid": mapped_uuid,
+                "skin_url": _avatar_url(name, mapped_uuid),
                 "session_seconds": session_seconds,
                 "position": position,
                 "online": True,
@@ -71,11 +87,12 @@ def get_players_snapshot(instance_dir: str) -> list[dict]:
         expires_on = entry.get("expiresOn")
         if not name or _normalize_name(name) in online_set:
             continue
+        mapped_uuid = uuid or name
         players.append(
             {
                 "name": name,
-                "uuid": uuid or name,
-                "skin_url": f"https://mc-heads.net/avatar/{name or uuid}",
+                "uuid": mapped_uuid,
+                "skin_url": _avatar_url(name, mapped_uuid),
                 "session_seconds": 0,
                 "position": {"x": 0.0, "y": 0.0, "z": 0.0},
                 "online": False,
