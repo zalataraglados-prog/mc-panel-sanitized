@@ -23,6 +23,7 @@ from backend.routers.claims import router as claims_router
 from backend.routers.rules import router as rules_router
 from backend.routers.templates import router as templates_router
 from backend.routers.users import router as users_router
+from backend.routers.resourcepacks import router as resourcepacks_router
 
 app = FastAPI(title="MC-Panel Runtime API")
 app.include_router(auth_router)
@@ -42,6 +43,7 @@ app.include_router(instances_router)
 app.include_router(rules_router)
 app.include_router(templates_router)
 app.include_router(users_router)
+app.include_router(resourcepacks_router)
 
 _TRAILING_PATH_CHARS = "”\"’‘。．，、；：!！?？）)]}"
 

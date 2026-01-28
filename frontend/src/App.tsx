@@ -36,6 +36,7 @@ type MapConfigFile = { name: string; content: string };
 type MapConfig = { plugin: string | null; files: MapConfigFile[] };
 type InventoryItem = { slot: number; id: string; count: number };
 type UserEntry = { username: string; role: string };
+type ResourcePackStatus = { sources: string[]; items: number };
 
 const translations = {
   en: {
@@ -122,6 +123,11 @@ const translations = {
     left: "Left",
     right: "Right",
     theme: "Dark / Light",
+    themeStyle: "Theme",
+    themePixel: "Pixel",
+    themeMinimal: "Minimal",
+    themeTech: "Tech",
+    themeRetro: "Retro",
     language: "\u4e2d\u6587 / EN",
     logout: "Logout",
     inventory: "Inventory",
@@ -138,6 +144,13 @@ const translations = {
     inventoryRemoveItem: "Remove",
     inventoryTapToAdd: "Click an empty slot to add an item.",
     inventoryCount: "Count",
+    resourcePack: "Resource Pack",
+    resourcePackUpload: "Upload Pack",
+    resourcePackStatus: "Pack Status",
+    resourcePackItems: "Items",
+    resourcePackSources: "Sources",
+    resourcePackEmpty: "No pack detected",
+    resourcePackUploadHint: "Upload a zip resource pack to enable mod item icons.",
     bannedPlayers: "Banned",
     banListEmpty: "No banned players",
     users: "Users",
@@ -269,6 +282,11 @@ const translations = {
     left: "\u5de6",
     right: "\u53f3",
     theme: "\u6df1\u8272 / \u6d45\u8272",
+    themeStyle: "\u4e3b\u9898",
+    themePixel: "\u50cf\u7d20",
+    themeMinimal: "\u7b80\u7ea6",
+    themeTech: "\u79d1\u6280",
+    themeRetro: "\u590d\u53e4",
     language: "\u4e2d\u6587 / EN",
     logout: "\u9000\u51fa\u767b\u5f55",
     inventory: "\u80cc\u5305",
@@ -285,6 +303,13 @@ const translations = {
     inventoryRemoveItem: "\u5220\u9664",
     inventoryTapToAdd: "\u70b9\u51fb\u7a7a\u683c\u5b50\u6dfb\u52a0\u7269\u54c1\u3002",
     inventoryCount: "\u6570\u91cf",
+    resourcePack: "\u8d44\u6e90\u5305",
+    resourcePackUpload: "\u4e0a\u4f20\u8d44\u6e90\u5305",
+    resourcePackStatus: "\u8d44\u6e90\u5305\u72b6\u6001",
+    resourcePackItems: "\u7269\u54c1\u6570",
+    resourcePackSources: "\u6765\u6e90",
+    resourcePackEmpty: "\u672a\u68c0\u6d4b\u5230\u8d44\u6e90\u5305",
+    resourcePackUploadHint: "\u4e0a\u4f20 zip \u8d44\u6e90\u5305\u4ee5\u517c\u5bb9\u6a21\u7ec4\u7269\u54c1\u56fe\u6807\u3002",
     bannedPlayers: "\u5c01\u7981\u73a9\u5bb6",
     banListEmpty: "\u6682\u65e0\u5c01\u7981\u73a9\u5bb6",
     users: "\u8d26\u53f7\u7ba1\u7406",
@@ -480,6 +505,7 @@ export function App() {
   const [authError, setAuthError] = useState("");
   const [lang, setLang] = useState<"en" | "zh">("zh");
   const [dark, setDark] = useState(true);
+  const [skin, setSkin] = useState<"pixel" | "minimal" | "tech" | "retro">("tech");
   const [rconOk, setRconOk] = useState(false);
   const [rconMessage, setRconMessage] = useState("");
   const [logLines, setLogLines] = useState<string[]>([]);
@@ -526,6 +552,10 @@ export function App() {
   const [inventoryEditing, setInventoryEditing] = useState(false);
   const [inventoryDraft, setInventoryDraft] = useState<InventoryItem[]>([]);
   const [inventorySelectedSlot, setInventorySelectedSlot] = useState<number | null>(null);
+  const [resourcePackStatus, setResourcePackStatus] = useState<ResourcePackStatus | null>(null);
+  const [resourcePackMessage, setResourcePackMessage] = useState("");
+  const [resourcePackUploading, setResourcePackUploading] = useState(false);
+  const resourcePackInputRef = useRef<HTMLInputElement | null>(null);
   const [teleportOpen, setTeleportOpen] = useState(false);
   const [teleportTarget, setTeleportTarget] = useState<Player | null>(null);
   const [teleportPos, setTeleportPos] = useState({ x: "", y: "", z: "" });
@@ -562,6 +592,7 @@ export function App() {
   const canEditOwners = role === "owner";
   const canViewOwners = role === "owner";
   const canBanPlayers = role === "owner" || role === "admin";
+  const canManageResourcePack = role === "owner" || role === "admin";
   const roleLabels: Record<string, string> = {
     owner: t.ownerRole,
     admin: t.adminRole,
@@ -633,12 +664,40 @@ export function App() {
     }
     return id.replace(/_/g, " ");
   };
-  const itemTextureUrl = (value: string) => {
+  const resourcePackItemUrl = (value: string) => {
+    const name = formatItemId(value);
+    if (!name) {
+      return "";
+    }
+    const itemId = value.includes(":") ? value : `minecraft:${name}`;
+    const params = new URLSearchParams({ item_id: itemId });
+    if (instanceDir) {
+      params.set("instance_dir", instanceDir);
+    }
+    return `/api/resourcepacks/item?${params.toString()}`;
+  };
+  const itemFallbackUrl = (value: string) => {
     const name = formatItemId(value);
     if (!name) {
       return "";
     }
     return `https://fastly.jsdelivr.net/gh/InventivetalentDev/minecraft-assets@1.21.4/assets/minecraft/textures/item/${name}.png`;
+  };
+  const itemPlaceholder = `data:image/svg+xml;utf8,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">
+      <rect width="100%" height="100%" fill="#1f2937"/>
+      <rect x="4" y="4" width="24" height="24" fill="#374151"/>
+    </svg>`
+  )}`;
+  const handleItemIconError = (event: React.SyntheticEvent<HTMLImageElement>, id: string) => {
+    const img = event.currentTarget;
+    if (img.dataset.fallback === "1") {
+      img.dataset.fallback = "2";
+      img.src = itemPlaceholder;
+      return;
+    }
+    img.dataset.fallback = "1";
+    img.src = itemFallbackUrl(id);
   };
   const avatarPlaceholder = `data:image/svg+xml;utf8,${encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
@@ -763,11 +822,19 @@ export function App() {
   }, [dark]);
 
   useEffect(() => {
+    document.body.dataset.skin = skin;
+  }, [skin]);
+
+  useEffect(() => {
     const storedToken = localStorage.getItem("mc_panel_token") || "";
     const storedRole = localStorage.getItem("mc_panel_role") || "";
+    const storedSkin = localStorage.getItem("mc_panel_skin") || "";
     if (storedToken) {
       setToken(storedToken);
       setRole(storedRole);
+    }
+    if (storedSkin === "pixel" || storedSkin === "minimal" || storedSkin === "tech" || storedSkin === "retro") {
+      setSkin(storedSkin);
     }
   }, []);
 
@@ -780,6 +847,10 @@ export function App() {
       localStorage.removeItem("mc_panel_role");
     }
   }, [token, role]);
+
+  useEffect(() => {
+    localStorage.setItem("mc_panel_skin", skin);
+  }, [skin]);
 
   const authHeader = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
@@ -948,6 +1019,40 @@ export function App() {
       .catch(() => {});
   };
 
+  const refreshResourcePacks = () => {
+    if (!token) {
+      return;
+    }
+    const query = instanceDir ? `?instance_dir=${encodeURIComponent(instanceDir)}` : "";
+    fetch(`/api/resourcepacks/status${query}`, { headers: authHeader })
+      .then((res) => res.json())
+      .then((data) => setResourcePackStatus(data))
+      .catch(() => {});
+  };
+
+  const uploadResourcePack = (file: File) => {
+    if (!token) {
+      return;
+    }
+    const form = new FormData();
+    form.append("file", file);
+    const query = instanceDir ? `?instance_dir=${encodeURIComponent(instanceDir)}` : "";
+    setResourcePackUploading(true);
+    setResourcePackMessage("");
+    fetch(`/api/resourcepacks/upload${query}`, {
+      method: "POST",
+      headers: { ...authHeader },
+      body: form,
+    })
+      .then((res) => res.json())
+      .then(() => {
+        setResourcePackMessage("");
+        refreshResourcePacks();
+      })
+      .catch(() => setResourcePackMessage(t.controlFailed))
+      .finally(() => setResourcePackUploading(false));
+  };
+
   const refreshAll = () => {
     refreshPrimaryData();
     refreshInstances();
@@ -957,6 +1062,7 @@ export function App() {
     refreshUsers();
     refreshOwners();
     refreshBans();
+    refreshResourcePacks();
   };
 
   useEffect(() => {
@@ -968,6 +1074,7 @@ export function App() {
       refreshUsers();
       refreshOwners();
       refreshBans();
+      refreshResourcePacks();
     }
   }, [token]);
 
@@ -977,6 +1084,7 @@ export function App() {
       refreshRules();
       refreshOwners();
       refreshBans();
+      refreshResourcePacks();
     }
   }, [instanceDir]);
 
@@ -1717,6 +1825,15 @@ export function App() {
       <header className="header">
         <h1>{t.title}</h1>
         <div className="actions">
+          <label className="select-inline">
+            <span>{t.themeStyle}</span>
+            <select value={skin} onChange={(event) => setSkin(event.target.value as typeof skin)}>
+              <option value="pixel">{t.themePixel}</option>
+              <option value="minimal">{t.themeMinimal}</option>
+              <option value="tech">{t.themeTech}</option>
+              <option value="retro">{t.themeRetro}</option>
+            </select>
+          </label>
           <button className="btn" onClick={() => setDark((value) => !value)}>
             {t.theme}
           </button>
@@ -1972,6 +2089,49 @@ export function App() {
                 {t.mapOpenExternal}
               </a>
             </div>
+            <div className="resourcepack-panel">
+              <div className="resourcepack-header">
+                <div className="resourcepack-title">{t.resourcePack}</div>
+                <div className="resourcepack-actions">
+                  <button
+                    className="btn"
+                    disabled={!canManageResourcePack || resourcePackUploading}
+                    onClick={() => resourcePackInputRef.current?.click()}
+                  >
+                    {t.resourcePackUpload}
+                  </button>
+                  <input
+                    ref={resourcePackInputRef}
+                    type="file"
+                    accept=".zip"
+                    style={{ display: "none" }}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) {
+                        uploadResourcePack(file);
+                      }
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="resourcepack-meta">
+                {resourcePackStatus ? (
+                  <>
+                    <span className="tag">
+                      {t.resourcePackItems}: {resourcePackStatus.items}
+                    </span>
+                    <span className="tag">
+                      {t.resourcePackSources}: {resourcePackStatus.sources.length}
+                    </span>
+                  </>
+                ) : (
+                  <span className="tag">{t.resourcePackEmpty}</span>
+                )}
+              </div>
+              {resourcePackMessage ? <div className="console-error">{resourcePackMessage}</div> : null}
+              <div className="subtle">{t.resourcePackUploadHint}</div>
+            </div>
           </div>
         </div>
         <div className="log-area">
@@ -2189,11 +2349,9 @@ export function App() {
                                 <div className="inventory-slot-content">
                                   <img
                                     className="inventory-slot-icon"
-                                    src={itemTextureUrl(item.id)}
+                                    src={resourcePackItemUrl(item.id)}
                                     alt={formatItemId(item.id)}
-                                    onError={(event) => {
-                                      event.currentTarget.style.display = "none";
-                                    }}
+                                    onError={(event) => handleItemIconError(event, item.id)}
                                   />
                                   <div className="inventory-slot-id">{formatItemName(item.id)}</div>
                                   <div className="inventory-slot-count">{item.count > 1 ? `x${item.count}` : ""}</div>
@@ -2264,11 +2422,9 @@ export function App() {
                               <div className="inventory-slot-content">
                                 <img
                                   className="inventory-slot-icon"
-                                  src={itemTextureUrl(item.id)}
+                                  src={resourcePackItemUrl(item.id)}
                                   alt={formatItemId(item.id)}
-                                  onError={(event) => {
-                                    event.currentTarget.style.display = "none";
-                                  }}
+                                  onError={(event) => handleItemIconError(event, item.id)}
                                 />
                                 <div className="inventory-slot-id">{formatItemName(item.id)}</div>
                                 <div className="inventory-slot-count">{item.count > 1 ? `x${item.count}` : ""}</div>

@@ -56,6 +56,23 @@ body {
   margin-left: 8px;
 }
 
+.actions .select-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.actions .select-inline select {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--fg);
+}
+
 .btn {
   background: var(--btn-bg);
   color: var(--btn-fg);
@@ -504,6 +521,39 @@ textarea::placeholder {
   flex-wrap: wrap;
 }
 
+.resourcepack-panel {
+  margin-top: 10px;
+  background: rgba(15, 23, 42, 0.35);
+  padding: 10px;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.resourcepack-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.resourcepack-title {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.resourcepack-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.resourcepack-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .map-config-title {
   font-weight: 600;
   color: var(--accent);
@@ -947,4 +997,78 @@ textarea::placeholder {
   .map-canvas {
     min-height: 360px;
   }
+}
+
+body[data-skin="pixel"] {
+  --bg: #0b0f14;
+  --fg: #e2f1ff;
+  --card: #141b26;
+  --accent: #7cf7ff;
+  --muted: #8aa0b8;
+  --panel: #111822;
+  --panel-border: #2a394d;
+  --panel-soft: #0b111a;
+  --text: #e2f1ff;
+  --text-muted: #8aa0b8;
+  --btn-bg: #1a2431;
+  --btn-fg: #e2f1ff;
+  --btn-border: #2a394d;
+  --input-bg: #0b111a;
+  --input-border: #2a394d;
+  font-family: "JetBrains Mono", "Consolas", monospace;
+}
+
+body[data-skin="minimal"] {
+  --bg: #0e1116;
+  --fg: #f8fafc;
+  --card: #111827;
+  --accent: #a3b8ff;
+  --muted: #9ca3af;
+  --panel: #111827;
+  --panel-border: #1f2937;
+  --panel-soft: #0b0f16;
+  --text: #f8fafc;
+  --text-muted: #9ca3af;
+  --btn-bg: #111827;
+  --btn-fg: #f8fafc;
+  --btn-border: #1f2937;
+  --input-bg: #0b0f16;
+  --input-border: #1f2937;
+}
+
+body[data-skin="tech"] {
+  --bg: #0a0f1c;
+  --fg: #dbeafe;
+  --card: #111827;
+  --accent: #38bdf8;
+  --muted: #93c5fd;
+  --panel: #0f172a;
+  --panel-border: #1e3a8a;
+  --panel-soft: #0b1220;
+  --text: #e2e8f0;
+  --text-muted: #93c5fd;
+  --btn-bg: #0f172a;
+  --btn-fg: #e2e8f0;
+  --btn-border: #1e3a8a;
+  --input-bg: #0b1220;
+  --input-border: #1e3a8a;
+}
+
+body[data-skin="retro"] {
+  --bg: #12100f;
+  --fg: #fef3c7;
+  --card: #1f1b17;
+  --accent: #f59e0b;
+  --muted: #fcd34d;
+  --panel: #1f1b17;
+  --panel-border: #3f2d1f;
+  --panel-soft: #171311;
+  --text: #fef3c7;
+  --text-muted: #fcd34d;
+  --btn-bg: #1f1b17;
+  --btn-fg: #fef3c7;
+  --btn-border: #3f2d1f;
+  --input-bg: #171311;
+  --input-border: #3f2d1f;
+  font-family: "Segoe UI", "Trebuchet MS", sans-serif;
 }
