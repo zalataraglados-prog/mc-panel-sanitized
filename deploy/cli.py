@@ -13,6 +13,8 @@ import os
 import re
 import subprocess
 import sys
+from pathlib import Path
+from typing import Optional
 
 from deploy.claims_codec import (
     Claims,
@@ -32,6 +34,143 @@ from deploy.panel_manager import install_panel, uninstall_panel
 from deploy.planner.planner import plan as plan_apply
 from deploy.web.review_adapter import review_to_dict
 from deploy.utils.cli_log import log_event
+from backend.runtime.inventory import get_inventory, set_inventory
+
+
+DEFAULT_INSTANCE_FILE = Path.home() / ".mcic_default"
+
+
+def _load_default_instance() -> Optional[str]:
+    if DEFAULT_INSTANCE_FILE.exists():
+        value = DEFAULT_INSTANCE_FILE.read_text(encoding="utf-8", errors="ignore").strip()
+        return value or None
+    return None
+
+
+def _save_default_instance(value: str) -> None:
+    DEFAULT_INSTANCE_FILE.write_text(value.strip(), encoding="utf-8")
+
+
+def _list_instance_dirs(base_dir: str) -> list[Path]:
+    base = Path(base_dir)
+    if not base.exists():
+        return []
+    result = []
+    for entry in base.iterdir():
+        if not entry.is_dir():
+            continue
+        if (entry / "config.json").exists():
+            result.append(entry)
+    return sorted(result)
+
+
+def _load_config(instance_dir: Path) -> dict:
+    path = instance_dir / "config.json"
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8", errors="ignore"))
+    except json.JSONDecodeError:
+        return {}
+
+
+def _resolve_instance_name(instance_dir: Path, cfg: dict | None = None) -> str:
+    cfg = cfg or {}
+    name = ((cfg.get("instance") or {}).get("name")) if isinstance(cfg, dict) else None
+    return name or instance_dir.name
+
+
+def _resolve_instance_dir(args) -> Path:
+    base_dir = getattr(args, "base_dir", None) or os.environ.get("MC_PANEL_BASE_DIR", "/opt/mc-instances")
+    if getattr(args, "instance_dir", None):
+        return Path(args.instance_dir)
+    if getattr(args, "instance", None):
+        return Path(base_dir) / args.instance
+    env_value = os.environ.get("MCIC_INSTANCE") or os.environ.get("MC_PANEL_INSTANCE")
+    if env_value:
+        if "/" in env_value:
+            return Path(env_value)
+        return Path(base_dir) / env_value
+    default_value = _load_default_instance()
+    if default_value:
+        if "/" in default_value:
+            return Path(default_value)
+        return Path(base_dir) / default_value
+    candidates = _list_instance_dirs(base_dir)
+    if len(candidates) == 1:
+        return candidates[0]
+    if not candidates:
+        raise SystemExit("No instances found. Use --instance or --instance-dir.")
+    names = ", ".join(p.name for p in candidates)
+    raise SystemExit(f"Multiple instances found. Use --instance. Available: {names}")
+
+
+def _container_name(instance_dir: Path) -> str:
+    cfg = _load_config(instance_dir)
+    name = _resolve_instance_name(instance_dir, cfg)
+    return f"{name}-minecraft"
+
+
+def _systemctl_action(action: str, service: str) -> bool:
+    result = subprocess.run(["systemctl", action, service], check=False)
+    return result.returncode == 0
+
+
+def _docker_compose_action(instance_dir: Path, instance_name: str, action: str) -> int:
+    compose_cmd = None
+    if subprocess.run(["docker", "compose", "version"], check=False, capture_output=True).returncode == 0:
+        compose_cmd = ["docker", "compose"]
+    elif subprocess.run(["docker-compose", "version"], check=False, capture_output=True).returncode == 0:
+        compose_cmd = ["docker-compose"]
+    if not compose_cmd:
+        return 127
+    if action == "up":
+        cmd = compose_cmd + ["-p", instance_name, "up", "-d", "minecraft"]
+    elif action == "down":
+        cmd = compose_cmd + ["-p", instance_name, "stop", "minecraft"]
+    elif action == "restart":
+        cmd = compose_cmd + ["-p", instance_name, "restart", "minecraft"]
+    else:
+        return 2
+    return subprocess.run(cmd, cwd=str(instance_dir), check=False).returncode
+
+
+def _rcon_exec(instance_dir: Path, command: str) -> str:
+    container = _container_name(instance_dir)
+    result = subprocess.run(
+        ["docker", "exec", "-i", container, "rcon-cli", command],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    return (result.stdout or result.stderr or "").strip()
+
+
+def _parse_ports(instance_dir: Path) -> dict:
+    compose_path = instance_dir / "docker-compose.yml"
+    if not compose_path.exists():
+        return {}
+    ports = {}
+    for line in compose_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        stripped = line.strip().strip('"').strip("'")
+        if stripped.startswith("-") and ":" in stripped:
+            mapping = stripped.lstrip("-").strip()
+            if ":" not in mapping:
+                continue
+            host, container = mapping.split(":", 1)
+            if host.isdigit() and container.isdigit():
+                ports[int(container)] = int(host)
+    return ports
+
+
+def _add_instance_args(parser):
+    parser.add_argument("--instance-dir", help="Instance directory (optional)")
+    parser.add_argument("--instance", help="Instance name (optional)")
+    parser.add_argument(
+        "--base-dir",
+        default=os.environ.get("MC_PANEL_BASE_DIR", "/opt/mc-instances"),
+        help="Base directory where instances are stored",
+    )
 
 
 def load_claims_from_args(args) -> Claims:
@@ -421,7 +560,161 @@ def main():
         help="Base directory where instances are stored",
     )
 
+    mcic_ls = sub.add_parser("ls")
+    mcic_ls.add_argument(
+        "--base-dir",
+        default=os.environ.get("MC_PANEL_BASE_DIR", "/opt/mc-instances"),
+        help="Base directory where instances are stored",
+    )
+
+    mcic_use = sub.add_parser("use")
+    mcic_use.add_argument("instance", help="Instance name or path")
+    mcic_use.add_argument(
+        "--base-dir",
+        default=os.environ.get("MC_PANEL_BASE_DIR", "/opt/mc-instances"),
+        help="Base directory where instances are stored",
+    )
+
+    for name in ("up", "down", "restart", "status", "logs", "ports", "players", "op", "deop", "tp", "kick", "ban", "unban", "inv", "inv-export", "inv-import", "map", "map-reload", "diag"):
+        p = sub.add_parser(name)
+        _add_instance_args(p)
+        if name in ("op", "deop", "kick", "ban", "unban", "inv", "inv-export", "inv-import", "tp"):
+            p.add_argument("player", help="Player name")
+        if name == "op":
+            p.add_argument("level", nargs="?", help="OP level (optional, ignored in modern versions)")
+        if name == "tp":
+            p.add_argument("x")
+            p.add_argument("y")
+            p.add_argument("z")
+        if name in ("kick", "ban"):
+            p.add_argument("reason", nargs=argparse.REMAINDER)
+        if name == "inv-export":
+            p.add_argument("--out", help="Output file path")
+        if name == "inv-import":
+            p.add_argument("file", help="JSON file path")
+
     args = parser.parse_args()
+
+    # mcic commands
+    if args.command == "ls":
+        instances = _list_instance_dirs(args.base_dir)
+        for entry in instances:
+            print(entry.name)
+        return 0
+
+    if args.command == "use":
+        value = args.instance
+        base_dir = args.base_dir
+        if "/" not in value:
+            value = str(Path(base_dir) / value)
+        _save_default_instance(value)
+        print(f"Default instance set to {value}")
+        return 0
+
+    if args.command in ("up", "down", "restart", "status", "logs", "ports", "players", "op", "deop", "tp", "kick", "ban", "unban", "inv", "inv-export", "inv-import", "map", "map-reload", "diag"):
+        instance_dir = _resolve_instance_dir(args)
+        cfg = _load_config(instance_dir)
+        instance_name = _resolve_instance_name(instance_dir, cfg)
+        service_name = f"instance-{instance_name}"
+
+        if args.command in ("up", "down", "restart"):
+            action = "start" if args.command == "up" else "stop" if args.command == "down" else "restart"
+            if _systemctl_action(action, f"{service_name}.service"):
+                print(f"{action} ok")
+                return 0
+            fallback = _docker_compose_action(instance_dir, instance_name, args.command if args.command != "up" else "up")
+            if fallback == 0:
+                print(f"{action} ok (docker compose)")
+                return 0
+            raise SystemExit(f"Failed to {action} instance ({instance_name})")
+
+        if args.command == "status":
+            container = _container_name(instance_dir)
+            result = subprocess.run(["docker", "ps", "--format", "{{.Names}}"], check=False, capture_output=True, text=True)
+            running = container in (result.stdout or "").splitlines()
+            print(json.dumps({"instance": instance_name, "running": running}, ensure_ascii=True))
+            return 0
+
+        if args.command == "logs":
+            subprocess.run(["docker", "logs", "--tail", "200", _container_name(instance_dir)], check=False)
+            return 0
+
+        if args.command == "ports":
+            ports = _parse_ports(instance_dir)
+            print(json.dumps(ports, ensure_ascii=True, indent=2))
+            return 0
+
+        if args.command == "players":
+            print(_rcon_exec(instance_dir, "list"))
+            return 0
+
+        if args.command in ("op", "deop", "kick", "ban", "unban", "tp"):
+            if args.command == "op":
+                cmd = f"op {args.player}"
+            elif args.command == "deop":
+                cmd = f"deop {args.player}"
+            elif args.command == "tp":
+                cmd = f"tp {args.player} {args.x} {args.y} {args.z}"
+            elif args.command == "kick":
+                reason = " ".join(args.reason) if args.reason else ""
+                cmd = f"kick {args.player} {reason}".strip()
+            elif args.command == "ban":
+                reason = " ".join(args.reason) if args.reason else ""
+                cmd = f"ban {args.player} {reason}".strip()
+            else:
+                cmd = f"pardon {args.player}"
+            print(_rcon_exec(instance_dir, cmd))
+            if args.command == "op" and getattr(args, "level", None):
+                print("Note: OP level is ignored by modern servers.")
+            return 0
+
+        if args.command == "inv":
+            payload = get_inventory(str(instance_dir), args.player)
+            print(json.dumps(payload, ensure_ascii=True, indent=2))
+            return 0
+
+        if args.command == "inv-export":
+            payload = get_inventory(str(instance_dir), args.player)
+            items = payload.get("items", [])
+            output = json.dumps(items, ensure_ascii=True, indent=2)
+            if args.out:
+                Path(args.out).write_text(output, encoding="utf-8")
+            else:
+                print(output)
+            return 0
+
+        if args.command == "inv-import":
+            raw = Path(args.file).read_text(encoding="utf-8")
+            try:
+                data = json.loads(raw)
+            except json.JSONDecodeError as exc:
+                raise SystemExit(f"Invalid JSON: {exc}")
+            items = data.get("items") if isinstance(data, dict) else data
+            if not isinstance(items, list):
+                raise SystemExit("Invalid inventory JSON: expected list of items or {items:[...]}")
+            result = set_inventory(str(instance_dir), args.player, items)
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0
+
+        if args.command == "map":
+            ports = _parse_ports(instance_dir)
+            map_port = ports.get(8100, 8100)
+            host = _guess_host_ip()
+            print(f"http://{host}:{map_port}/")
+            return 0
+
+        if args.command == "map-reload":
+            print(_rcon_exec(instance_dir, "bluemap reload"))
+            return 0
+
+        if args.command == "diag":
+            info = {
+                "base_dir": str(instance_dir.parent),
+                "instance": instance_name,
+                "container": _container_name(instance_dir),
+            }
+            print(json.dumps(info, ensure_ascii=True, indent=2))
+            return 0
 
     claims = None
     rules_bundle = None
