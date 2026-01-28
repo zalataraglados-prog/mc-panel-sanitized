@@ -1172,10 +1172,16 @@ else
     else
       prompt_default="$default_hint"
     fi
+    label="$key"
+    if [ "$key" = "keepInventory" ]; then
+      label="?????"
+    elif [ "$key" = "enable-command-block" ]; then
+      label="????????????????"
+    fi
     if [ -n "$prompt_default" ]; then
-      prompt="Set ${key} [default: ${prompt_default}]: "
+      prompt="Set ${label} [default: ${prompt_default}]: "
     else
-      prompt="Set ${key} (optional): "
+      prompt="Set ${label} (optional): "
     fi
   value=$(read_tty "$prompt")
   if [ -z "$value" ]; then
