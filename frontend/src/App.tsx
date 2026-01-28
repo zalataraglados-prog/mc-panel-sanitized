@@ -122,6 +122,8 @@ const translations = {
     left: "Left",
     right: "Right",
     theme: "Dark / Light",
+    themeDark: "Dark",
+    themeLight: "Light",
     themeStyle: "Theme",
     themePixel: "Pixel",
     themeMinimal: "Minimal",
@@ -280,6 +282,8 @@ const translations = {
     left: "\u5de6",
     right: "\u53f3",
     theme: "\u6df1\u8272 / \u6d45\u8272",
+    themeDark: "\u6df1\u8272",
+    themeLight: "\u6d45\u8272",
     themeStyle: "\u4e3b\u9898",
     themePixel: "\u50cf\u7d20",
     themeMinimal: "\u7b80\u7ea6",
@@ -827,12 +831,18 @@ export function App() {
     const storedToken = localStorage.getItem("mc_panel_token") || "";
     const storedRole = localStorage.getItem("mc_panel_role") || "";
     const storedSkin = localStorage.getItem("mc_panel_skin") || "";
+    const storedTheme = localStorage.getItem("mc_panel_theme") || "";
     if (storedToken) {
       setToken(storedToken);
       setRole(storedRole);
     }
     if (storedSkin === "pixel" || storedSkin === "minimal" || storedSkin === "tech" || storedSkin === "retro") {
       setSkin(storedSkin);
+    }
+    if (storedTheme === "light") {
+      setDark(false);
+    } else if (storedTheme === "dark") {
+      setDark(true);
     }
   }, []);
 
@@ -849,6 +859,10 @@ export function App() {
   useEffect(() => {
     localStorage.setItem("mc_panel_skin", skin);
   }, [skin]);
+
+  useEffect(() => {
+    localStorage.setItem("mc_panel_theme", dark ? "dark" : "light");
+  }, [dark]);
 
   const authHeader = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
@@ -1833,7 +1847,7 @@ export function App() {
             </select>
           </label>
           <button className="btn" onClick={() => setDark((value) => !value)}>
-            {t.theme}
+            {dark ? t.themeDark : t.themeLight}
           </button>
           <button className="btn" onClick={() => setLang((value) => (value === "en" ? "zh" : "en"))}>
             {t.language}
