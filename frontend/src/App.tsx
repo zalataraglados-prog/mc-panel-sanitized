@@ -505,7 +505,7 @@ export function App() {
   const [authError, setAuthError] = useState("");
   const [lang, setLang] = useState<"en" | "zh">("zh");
   const [dark, setDark] = useState(true);
-  const [skin, setSkin] = useState<"pixel" | "minimal" | "tech" | "retro">("tech");
+  const [skin, setSkin] = useState<"pixel" | "minimal" | "tech" | "retro">("minimal");
   const [rconOk, setRconOk] = useState(false);
   const [rconMessage, setRconMessage] = useState("");
   const [logLines, setLogLines] = useState<string[]>([]);
