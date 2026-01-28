@@ -419,6 +419,12 @@ class ExecutionPlanExecutor:
                     ok=False,
                     details=f"fallback failed: {last_error}",
                 )
+            except Exception as exc:
+                return ExecutionStep(
+                    name="action:systemd_enable_now",
+                    ok=False,
+                    details=f"fallback failed: {exc}",
+                )
         if panel_root and panel_port:
             venv_python = os.path.join(panel_root, ".venv", "bin", "python")
             if os.path.isfile(venv_python):

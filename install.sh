@@ -1151,6 +1151,17 @@ for section in ("server_properties", "gamerule"):
         print(f"{key}\t{'' if hint is None else hint}\t{dtype}\t{'' if min_val is None else min_val}\t{'' if max_val is None else max_val}")
 PY
 
+# Beginner profile: only prompt for keepInventory by default
+if [ "$PROFILE" = "beginner" ]; then
+  BEGINNER_KEYS="keepInventory enable-command-block"
+  tmp_keys="/tmp/param_keys.beginner.txt"
+  awk -F'	' 'BEGIN{split(ENVIRON["BEGINNER_KEYS"],a," "); for(i in a) keep[a[i]]=1} keep[$1]' \
+    /tmp/param_keys.txt > "$tmp_keys"
+  mv "$tmp_keys" /tmp/param_keys.txt
+fi
+
+if [ "$SKIP_PROMPTS" = "1" ]; then
+
 if [ "$SKIP_PROMPTS" = "1" ]; then
   : 
 else
