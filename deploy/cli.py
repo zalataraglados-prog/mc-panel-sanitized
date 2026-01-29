@@ -466,8 +466,8 @@ def main():
         p = sub.add_parser(name)
         p.add_argument(
             "--version",
-            default="1.21.4",
-            help="Minecraft version for rule lookup (default: 1.21.4)",
+            default="1.21.8",
+            help="Minecraft version for rule lookup (default: 1.21.8)",
         )
         p.add_argument(
             "--rules-base-url",

@@ -246,8 +246,8 @@ You can override the log directory with `MC_PANEL_LOG_DIR`.
 Catalog/Taxonomy are stored in the external rules repository.
 Catalog/Taxonomy 存放在外部规则仓库。
 
-- https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/catalog/vanilla_1.21.4.json
-- https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/taxonomy/vanilla_1.21.4.json
+- https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/catalog/vanilla_1.21.8.json
+- https://raw.githubusercontent.com/zalataraglados-prog/vanilla_catalog/main/taxonomy/vanilla_1.21.8.json
 
 ## Memory format / 内存格式
 

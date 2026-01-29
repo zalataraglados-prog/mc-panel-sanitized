@@ -100,7 +100,7 @@ def _random_sampling(params: Dict[str, Any], catalog: dict, taxonomy: dict, coun
 
 
 def main() -> None:
-    version = "1.21.4"
+    version = "1.21.8"
     bundle = load_rules_bundle(version)
     catalog = bundle.get("catalog", {})
     taxonomy = bundle.get("taxonomy", {})

@@ -625,7 +625,7 @@ import urllib.request
 url = "https://api.github.com/repos/zalataraglados-prog/vanilla_catalog/contents/catalog"
 fallback = [
     "1.21.11",
-    "1.21.4",
+    "1.21.8",
     "1.20.6",
     "1.20.5",
     "1.20.4",
@@ -766,7 +766,7 @@ PY
 
 mapfile -t VERSIONS < "$VERSIONS_FILE"
 if [ "${#VERSIONS[@]}" -eq 0 ]; then
-  VERSIONS=("1.21.4")
+  VERSIONS=("1.21.8")
 fi
 
 if [ -n "$IMPORT_VERSION" ]; then

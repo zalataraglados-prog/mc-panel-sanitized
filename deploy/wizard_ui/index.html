@@ -36,8 +36,8 @@
       <h2>?? / Output</h2>
       <div class="row">
         <div>
-          <label>?? / Output?? / Output? 1.21.4?</label>
-          <input id="version" placeholder="1.21.4" />
+          <label>?? / Output?? / Output? 1.21.8?</label>
+          <input id="version" placeholder="1.21.8" />
         </div>
         <div>
           <label>?? / Output?? / Output</label>
@@ -280,7 +280,7 @@ async function loadState() {
   const res = await fetch('/api/wizard/state');
   if (!res.ok) return;
   const data = await res.json();
-  $('version').value = data.version || '1.21.4';
+  $('version').value = data.version || '1.21.8';
   $('profile').value = data.profile || 'normal';
   $('import_mode').value = data.import_mode || 'none';
   $('import_value').value = data.import_value || '';
@@ -301,7 +301,7 @@ async function loadState() {
 function gather() {
   const params = collectParams();
   return {
-    version: $('version').value.trim() || '1.21.4',
+    version: $('version').value.trim() || '1.21.8',
     profile: $('profile').value,
     import_mode: $('import_mode').value,
     import_value: $('import_value').value.trim(),
@@ -389,7 +389,7 @@ function makeField(key, meta) {
 }
 
 async function loadCatalog() {
-  const version = $('version').value.trim() || '1.21.4';
+  const version = $('version').value.trim() || '1.21.8';
   const res = await fetch(`/api/wizard/catalog?version=${encodeURIComponent(version)}`);
   if (!res.ok) return;
   const data = await res.json();

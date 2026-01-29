@@ -111,7 +111,7 @@ def export_claims(
     instance_dir = instance_dir or resolve_instance_dir()
     config = _read_config(instance_dir)
     mc = config.get("minecraft", {}) if isinstance(config, dict) else {}
-    version = mc.get("version") or "1.21.4"
+    version = mc.get("version") or "1.21.8"
     stack_type = (mc.get("engine") or "paper").lower()
 
     bundle = load_rules_bundle(version)

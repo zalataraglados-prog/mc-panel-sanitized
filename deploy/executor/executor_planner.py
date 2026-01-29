@@ -13,7 +13,7 @@ from deploy.executor.execution_plan import Action, ExecutionPlan, Precondition
 
 
 DEFAULT_BASE_DIR = "/opt/mc-instances"
-DEFAULT_MC_VERSION = "1.21.4"
+DEFAULT_MC_VERSION = "1.21.8"
 DEFAULT_DOCKER_IMAGE = "itzg/minecraft-server"
 DEFAULT_DOCKER_TAG = "latest"
 DEFAULT_PANEL_ROOT = "/opt/mc-panel-sanitized"

@@ -683,7 +683,7 @@ export function App() {
     if (!name) {
       return "";
     }
-    return `https://fastly.jsdelivr.net/gh/InventivetalentDev/minecraft-assets@1.21.4/assets/minecraft/textures/item/${name}.png`;
+    return `https://fastly.jsdelivr.net/gh/InventivetalentDev/minecraft-assets@1.21.8/assets/minecraft/textures/item/${name}.png`;
   };
   const itemPlaceholder = `data:image/svg+xml;utf8,${encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">
