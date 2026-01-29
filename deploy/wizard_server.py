@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from deploy.claims_codec.encode import encode_claims
+from deploy.loader import load_rules_bundle
 
 ROOT = Path(__file__).resolve().parents[1]
 UI_DIR = ROOT / "deploy" / "wizard_ui"
@@ -66,6 +67,14 @@ def _run_cli(action, state):
 
 
 class Handler(BaseHTTPRequestHandler):
+    def do_HEAD(self):
+        parsed = urlparse(self.path)
+        if parsed.path == "/" or parsed.path == "/index.html":
+            self._send(200, b"", content_type="text/html; charset=utf-8")
+            return
+        self._send(404, b"")
+
+
     def _send(self, status=200, body=b"", content_type="application/json"):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
@@ -89,6 +98,24 @@ class Handler(BaseHTTPRequestHandler):
                 panel_url = os.environ.get("MC_PANEL_URL") or "http://127.0.0.1:15000/"
                 state.setdefault("panel_url", panel_url)
                 self._send(200, json.dumps(state, ensure_ascii=False).encode("utf-8"))
+                return
+            if parsed.path == "/api/wizard/catalog":
+                try:
+                    query = urlparse(self.path).query
+                    version = "1.21.4"
+                    for part in query.split("&"):
+                        if part.startswith("version="):
+                            version = part.split("=", 1)[1] or version
+                    bundle = load_rules_bundle(version)
+                    payload = {
+                        "version": version,
+                        "catalog": bundle.get("catalog", {}),
+                        "taxonomy": bundle.get("taxonomy", {}),
+                        "usability": bundle.get("usability", {}),
+                    }
+                    self._send(200, json.dumps(payload, ensure_ascii=False).encode("utf-8"))
+                except Exception as exc:
+                    self._send(500, json.dumps({"error": str(exc)}).encode("utf-8"))
                 return
             self._send(404, json.dumps({"error": "Not Found"}).encode("utf-8"))
             return

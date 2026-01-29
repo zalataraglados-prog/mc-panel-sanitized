@@ -1,76 +1,298 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MCIC 引导向导</title>
+  <title>MCIC ????</title>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
-    .wrap { max-width: 980px; margin: 0 auto; padding: 24px; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
     h1 { margin: 0 0 12px; font-size: 22px; }
+    h2 { margin: 0 0 8px; font-size: 16px; }
     .card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; margin: 12px 0; }
     label { display: block; margin: 8px 0 6px; font-size: 13px; color: #cbd5f5; }
     input, select, textarea { width: 100%; background: #0b1220; color: #e2e8f0; border: 1px solid #1f2937; border-radius: 8px; padding: 8px 10px; }
     textarea { min-height: 140px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .row-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; }
     button { background: #2563eb; color: #fff; border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; }
     button.secondary { background: #334155; }
-    .output { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #0b1220; border-radius: 8px; padding: 12px; border: 1px solid #1f2937; }
+    .output { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #0b1220; border-radius: 8px; padding: 12px; border: 1px solid #1f2937; min-height: 120px; }
     .hint { font-size: 12px; color: #94a3b8; }
     a { color: #93c5fd; }
+    details { border: 1px dashed #334155; border-radius: 10px; padding: 10px 12px; margin: 10px 0; background: #0b1220; }
+    summary { cursor: pointer; font-weight: 600; color: #e2e8f0; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .field { background: #0f172a; border: 1px solid #1f2937; border-radius: 8px; padding: 8px; }
+    .field small { color: #94a3b8; display: block; margin-top: 6px; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>MCIC 引导向导（无需面板）</h1>
+    <h1>MCIC ???????????</h1>
+
     <div class="card">
+      <h2>????</h2>
       <div class="row">
         <div>
-          <label>版本（默认 1.21.4）</label>
+          <label>????? 1.21.4?</label>
           <input id="version" placeholder="1.21.4" />
         </div>
         <div>
-          <label>配置档位</label>
+          <label>????</label>
           <select id="profile">
-            <option value="beginner">新手</option>
-            <option value="normal" selected>标准</option>
-            <option value="advanced">高级</option>
+            <option value="beginner">??</option>
+            <option value="normal" selected>??</option>
+            <option value="advanced">??</option>
           </select>
         </div>
       </div>
-      <label>导入方式</label>
+      <label>????</label>
       <select id="import_mode">
-        <option value="none">不导入</option>
-        <option value="paste">粘贴配置串</option>
-        <option value="file">从文件路径导入</option>
+        <option value="none">???</option>
+        <option value="paste">?????</option>
+        <option value="file">???????</option>
       </select>
-      <label>配置串 / 文件路径</label>
-      <textarea id="import_value" placeholder="粘贴配置串，或填写文件路径"></textarea>
-      <div class="hint">提示：若选择“从文件路径导入”，这里填写服务器上的文件路径。</div>
+      <label>??? / ????</label>
+      <textarea id="import_value" placeholder="?????????????"></textarea>
+      <div class="hint">??????????????????????????????</div>
     </div>
 
     <div class="card">
-      <label>参数（key=value，每行一条；可留空）</label>
-      <textarea id="params" placeholder="例如：\nmax-players=3\nview-distance=4\nkeepInventory=true"></textarea>
-      <div class="hint">你可以在这里设置全部参数；为空则使用默认值或导入配置串。</div>
+      <h2>??????</h2>
+      <div class="row">
+        <div>
+          <label>??????keepInventory?</label>
+          <select data-param="keepInventory">
+            <option value="">??</option>
+            <option value="true">??</option>
+            <option value="false">??</option>
+          </select>
+        </div>
+        <div>
+          <label>????????????????</label>
+          <select data-param="enable-command-block">
+            <option value="">??</option>
+            <option value="true">??</option>
+            <option value="false">??</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>???????</h2>
+      <div class="row">
+        <div>
+          <label>??????</label>
+          <input data-param="deploy.expected_players" placeholder="?? 3" />
+        </div>
+        <div>
+          <label>?????max-players?</label>
+          <input data-param="max-players" placeholder="?? 20" />
+        </div>
+        <div>
+          <label>???difficulty?</label>
+          <select data-param="difficulty">
+            <option value="">??</option>
+            <option value="peaceful">??</option>
+            <option value="easy">??</option>
+            <option value="normal">??</option>
+            <option value="hard">??</option>
+          </select>
+        </div>
+        <div>
+          <label>?????gamemode?</label>
+          <select data-param="gamemode">
+            <option value="">??</option>
+            <option value="survival">??</option>
+            <option value="creative">??</option>
+            <option value="adventure">??</option>
+            <option value="spectator">??</option>
+          </select>
+        </div>
+        <div>
+          <label>???view-distance?</label>
+          <input data-param="view-distance" placeholder="?? 6" />
+        </div>
+        <div>
+          <label>?????simulation-distance?</label>
+          <input data-param="simulation-distance" placeholder="?? 6" />
+        </div>
+        <div>
+          <label>?????level-seed?</label>
+          <input data-param="level-seed" placeholder="????" />
+        </div>
+        <div>
+          <label>?????level-type?</label>
+          <input data-param="level-type" placeholder="minecraft:normal" />
+        </div>
+        <div>
+          <label>MOTD</label>
+          <input data-param="motd" placeholder="A Minecraft Server" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>?? / ????</h2>
+      <div class="row">
+        <div>
+          <label>???docker.env.MEMORY?</label>
+          <input data-param="docker.env.MEMORY" placeholder="?? 2G" />
+        </div>
+        <div>
+          <label>??????randomTickSpeed?</label>
+          <input data-param="randomTickSpeed" placeholder="?? 3" />
+        </div>
+        <div>
+          <label>???????maxEntityCramming?</label>
+          <input data-param="maxEntityCramming" />
+        </div>
+        <div>
+          <label>???????network-compression-threshold?</label>
+          <input data-param="network-compression-threshold" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>?? / ?? / RCON</h2>
+      <div class="row">
+        <div>
+          <label>?????panel.enable?</label>
+          <select data-param="panel.enable">
+            <option value="">??</option>
+            <option value="true">??</option>
+            <option value="false">??</option>
+          </select>
+        </div>
+        <div>
+          <label>?????panel.port?</label>
+          <input data-param="panel.port" placeholder="15000" />
+        </div>
+        <div>
+          <label>?? RCON?enable-rcon?</label>
+          <select data-param="enable-rcon">
+            <option value="">??</option>
+            <option value="true">??</option>
+            <option value="false">??</option>
+          </select>
+        </div>
+        <div>
+          <label>RCON ???rcon.port?</label>
+          <input data-param="rcon.port" placeholder="25575" />
+        </div>
+        <div>
+          <label>RCON ???rcon.password?</label>
+          <input data-param="rcon.password" placeholder="change-me" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>?? / ????</h2>
+      <div class="row">
+        <div>
+          <label>?????map.plugin?</label>
+          <select data-param="map.plugin">
+            <option value="">??</option>
+            <option value="bluemap">BlueMap</option>
+            <option value="dynmap">Dynmap</option>
+            <option value="none">???</option>
+          </select>
+        </div>
+        <div>
+          <label>?????map.plugin_port?</label>
+          <input data-param="map.plugin_port" placeholder="8100" />
+        </div>
+        <div>
+          <label>???????map.render_interval?</label>
+          <input data-param="map.render_interval" placeholder="5" />
+        </div>
+        <div>
+          <label>?????????map.plugin_url?</label>
+          <input data-param="map.plugin_url" placeholder="???" />
+        </div>
+        <div>
+          <label>?????inventory.plugin?</label>
+          <select data-param="inventory.plugin">
+            <option value="">??</option>
+            <option value="invsee">InvSee++</option>
+            <option value="openinv">OpenInv</option>
+            <option value="none">???</option>
+          </select>
+        </div>
+        <div>
+          <label>?????????inventory.plugin_url?</label>
+          <input data-param="inventory.plugin_url" placeholder="???" />
+        </div>
+      </div>
+    </div>
+
+    <details open>
+      <summary>????????????????</summary>
+      <div class="hint" style="margin:8px 0;">???????????? server.properties ? gamerule ?????????</div>
+      <div id="catalog_sections"></div>
+    </details>
+
+    <div class="card">
+      <h2>?????key=value??????????</h2>
+      <textarea id="params_extra" placeholder="???
+spawn-protection=0
+white-list=false"></textarea>
     </div>
 
     <div class="card">
       <div class="actions">
-        <button id="btn_plan">运行 Plan（评审）</button>
-        <button id="btn_apply">执行 Apply</button>
-        <button id="btn_save" class="secondary">保存配置</button>
+        <button id="btn_plan">?? Plan????</button>
+        <button id="btn_apply">?? Apply</button>
+        <button id="btn_save" class="secondary">????</button>
       </div>
-      <label style="margin-top:12px;">输出</label>
+      <label style="margin-top:12px;">??</label>
       <div id="output" class="output"></div>
-      <div class="hint">若已安装主面板，可访问：<a id="panel_link" href="/" target="_blank">面板首页</a></div>
+      <div class="hint">????????????<a id="panel_link" href="/" target="_blank">????</a></div>
     </div>
   </div>
 <script>
 const $ = (id) => document.getElementById(id);
 const output = $('output');
 const panelLink = $('panel_link');
+
+function parseParamsText(text) {
+  const params = {};
+  (text || '').split(/?
+/).forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#') || !trimmed.includes('=')) return;
+    const [key, ...rest] = trimmed.split('=');
+    params[key.trim()] = rest.join('=').trim();
+  });
+  return params;
+}
+
+function collectParams() {
+  const params = {};
+  document.querySelectorAll('[data-param]').forEach(el => {
+    const key = el.getAttribute('data-param');
+    if (!key) return;
+    let value = '';
+    if (el.tagName === 'SELECT' || el.tagName === 'INPUT') {
+      value = (el.value || '').trim();
+    }
+    if (value === '') return;
+    params[key] = value;
+  });
+  const extra = parseParamsText($('params_extra').value || '');
+  Object.keys(extra).forEach(k => { params[k] = extra[k]; });
+  return params;
+}
+
+function paramsToText(params) {
+  return Object.entries(params).map(([k, v]) => `${k}=${v}`).join('
+');
+}
 
 async function loadState() {
   const res = await fetch('/api/wizard/state');
@@ -80,17 +302,28 @@ async function loadState() {
   $('profile').value = data.profile || 'normal';
   $('import_mode').value = data.import_mode || 'none';
   $('import_value').value = data.import_value || '';
-  $('params').value = data.params_text || '';
+  $('params_extra').value = data.params_text || '';
   if (data.panel_url) panelLink.href = data.panel_url;
+
+  const params = parseParamsText(data.params_text || '');
+  document.querySelectorAll('[data-param]').forEach(el => {
+    const key = el.getAttribute('data-param');
+    if (key && params[key] !== undefined) {
+      el.value = params[key];
+    }
+  });
+
+  await loadCatalog();
 }
 
 function gather() {
+  const params = collectParams();
   return {
     version: $('version').value.trim() || '1.21.4',
     profile: $('profile').value,
     import_mode: $('import_mode').value,
     import_value: $('import_value').value.trim(),
-    params_text: $('params').value
+    params_text: paramsToText(params)
   };
 }
 
@@ -98,16 +331,107 @@ async function saveState() {
   await fetch('/api/wizard/state', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(gather())});
 }
 
-async function runAction(path) {
-  output.textContent = '运行中...';
-  const res = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(gather())});
+function reviewLevel(outputText) {
+  const lower = outputText.toLowerCase();
+  if (outputText.includes('???') || lower.includes('block')) return 'block';
+  if (outputText.includes('??') || lower.includes('warn')) return 'warn';
+  return 'allow';
+}
+
+async function runPlan() {
+  output.textContent = '???...';
+  const res = await fetch('/api/wizard/plan', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(gather())});
+  const data = await res.json();
+  output.textContent = data.output || data.error || JSON.stringify(data);
+  return data.output || '';
+}
+
+async function runApply() {
+  output.textContent = '???...';
+  const res = await fetch('/api/wizard/apply', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(gather())});
   const data = await res.json();
   output.textContent = data.output || data.error || JSON.stringify(data);
 }
 
-$('btn_plan').onclick = async () => { await runAction('/api/wizard/plan'); };
-$('btn_apply').onclick = async () => { await runAction('/api/wizard/apply'); };
-$('btn_save').onclick = async () => { await saveState(); output.textContent = '已保存'; };
+async function runApplyWithReview() {
+  const planOutput = await runPlan();
+  const level = reviewLevel(planOutput);
+  if (level === 'block') {
+    alert('????????????????');
+    return;
+  }
+  if (level === 'warn') {
+    const ok = confirm('????????????? Apply?');
+    if (!ok) return;
+  }
+  await runApply();
+}
+
+function makeField(key, meta) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'field';
+  const label = document.createElement('label');
+  label.textContent = key;
+  wrapper.appendChild(label);
+
+  let input;
+  const defVal = meta && meta.default;
+  if (typeof defVal === 'boolean') {
+    input = document.createElement('select');
+    input.innerHTML = '<option value="">??</option><option value="true">true</option><option value="false">false</option>';
+  } else if (typeof defVal === 'number') {
+    input = document.createElement('input');
+    input.type = 'number';
+    input.placeholder = String(defVal);
+  } else {
+    input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = defVal !== undefined ? String(defVal) : '';
+  }
+  input.setAttribute('data-param', key);
+  wrapper.appendChild(input);
+
+  if (meta && meta.description) {
+    const small = document.createElement('small');
+    small.textContent = meta.description;
+    wrapper.appendChild(small);
+  }
+  return wrapper;
+}
+
+async function loadCatalog() {
+  const version = $('version').value.trim() || '1.21.4';
+  const res = await fetch(`/api/wizard/catalog?version=${encodeURIComponent(version)}`);
+  if (!res.ok) return;
+  const data = await res.json();
+  const container = $('catalog_sections');
+  container.innerHTML = '';
+
+  const sections = [
+    {key: 'server_properties', title: 'server.properties ??'},
+    {key: 'gamerule', title: 'gamerule ??'}
+  ];
+
+  sections.forEach(sec => {
+    const entries = (data.catalog && data.catalog[sec.key] && data.catalog[sec.key].entries) || {};
+    const detail = document.createElement('details');
+    detail.open = false;
+    const summary = document.createElement('summary');
+    summary.textContent = sec.title + `?${Object.keys(entries).length}?`;
+    detail.appendChild(summary);
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    Object.keys(entries).forEach(k => {
+      grid.appendChild(makeField(k, entries[k] || {}));
+    });
+    detail.appendChild(grid);
+    container.appendChild(detail);
+  });
+}
+
+$('btn_plan').onclick = async () => { await runPlan(); };
+$('btn_apply').onclick = async () => { await runApplyWithReview(); };
+$('btn_save').onclick = async () => { await saveState(); output.textContent = '???'; };
 
 loadState();
 </script>
