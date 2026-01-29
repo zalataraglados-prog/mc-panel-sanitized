@@ -76,7 +76,7 @@ def _log_event(ip, action, extra=None):
 
 
 def _run_cli(action, state):
-    version = state.get("version") or "1.21.8"
+    version = state.get("version") or "1.21.11"
     profile = state.get("profile") or "normal"
     claims = _build_claims(state)
     cmd = ["python3", "-m", "deploy.cli", action, "--version", version, "--profile", profile, "--import-string", claims]
@@ -138,7 +138,7 @@ class Handler(BaseHTTPRequestHandler):
             if parsed.path == "/api/wizard/catalog":
                 try:
                     query = urlparse(self.path).query
-                    version = "1.21.8"
+                    version = "1.21.11"
                     for part in query.split("&"):
                         if part.startswith("version="):
                             version = part.split("=", 1)[1] or version

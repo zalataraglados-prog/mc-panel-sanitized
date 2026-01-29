@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MCIC ?? / Output?? / Output</title>
+  <title>MCIC ???? / Wizard</title>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
     .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
@@ -30,217 +30,217 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>MCIC ?? / Output?? / Output / Wizard (No Panel)</h1>
+    <h1>MCIC ??????????/ Wizard (No Panel)</h1>
 
     <div class="card">
-      <h2>?? / Output</h2>
+      <h2>?? / Basics</h2>
       <div class="row">
         <div>
-          <label>?? / Output?? / Output? 1.21.8?</label>
-          <input id="version" placeholder="1.21.8" />
+          <label>????? 1.21.11?/ Version (default 1.21.11)</label>
+          <input id="version" placeholder="1.21.11" />
         </div>
         <div>
-          <label>?? / Output?? / Output</label>
+          <label>???? / Profile</label>
           <select id="profile">
-            <option value="beginner">?? / Output</option>
-            <option value="normal" selected>?? / Output</option>
-            <option value="advanced">?? / Output</option>
+            <option value="beginner">?? / Beginner</option>
+            <option value="normal" selected>?? / Standard</option>
+            <option value="advanced">?? / Advanced</option>
           </select>
         </div>
       </div>
       <div class="row">
         <div>
-          <label>?? / Output?? / Output?? / OutputOTP?</label>
-          <input id="otp" placeholder="? /var/log/mc-wizard.log ?? / read from log / Output" />
-          <div class="hint">?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?? / OutputPlan/Apply/?? / Output?? / Output?? / Output</div>
+          <label>??????OTP?/ One-time token</label>
+          <input id="otp" placeholder="? /var/log/mc-wizard.log ?? / read from log" />
+          <div class="hint">??????????????Plan/Apply/??????/ Regenerated on restart; required for Plan/Apply/Save.</div>
         </div>
       </div>
-      <label>?? / Output?? / Output</label>
+      <label>???? / Import</label>
       <select id="import_mode">
-        <option value="none">?? / Output?</option>
-        <option value="paste">?? / Output?? / Output?</option>
-        <option value="file">?? / Output?? / Output?? / Output?</option>
+        <option value="none">??? / None</option>
+        <option value="paste">????? / Paste claims</option>
+        <option value="file">??????? / From file path</option>
       </select>
-      <label>?? / Output? / ?? / Output?? / Output</label>
-      <textarea id="import_value" placeholder="?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output"></textarea>
-      <div class="hint">?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output</div>
+      <label>??? / ???? / Claims or file path</label>
+      <textarea id="import_value" placeholder="?????????????????? / Paste claims or server path"></textarea>
+      <div class="hint">????????????????????????????/ For file import, use server path.</div>
     </div>
 
     <div class="card">
-      <h2>?? / Output?? / Output</h2>
+      <h2>???? / Beginner</h2>
       <div class="row">
         <div>
-          <label>?? / Output?? / Output?? / OutputkeepInventory?</label>
+          <label>??????keepInventory?/ Keep inventory</label>
           <select data-param="keepInventory">
-            <option value="">?? / Output?? / Output</option>
-            <option value="true">?? / Output</option>
-            <option value="false">?? / Output</option>
+            <option value="">???? / Default</option>
+            <option value="true">?? / On</option>
+            <option value="false">?? / Off</option>
           </select>
         </div>
         <div>
-          <label>?? / Output?? / Output?? / Output?? / Output?? / Output</label>
+          <label>??????????/ Allow cheats (command blocks)</label>
           <select data-param="enable-command-block">
-            <option value="">?? / Output?? / Output</option>
-            <option value="true">?? / Output</option>
-            <option value="false">?? / Output</option>
+            <option value="">???? / Default</option>
+            <option value="true">?? / On</option>
+            <option value="false">?? / Off</option>
           </select>
         </div>
       </div>
     </div>
 
     <div class="card">
-      <h2>?? / Output?? / Output</h2>
+      <h2>???? / Core</h2>
       <div class="row">
         <div>
-          <label>?? / Output?? / Output?deploy.expected_players?</label>
-          <input data-param="deploy.expected_players" placeholder="? 3" />
+          <label>?????deploy.expected_players?/ Expected players</label>
+          <input data-param="deploy.expected_players" placeholder="? 3 / e.g. 3" />
         </div>
         <div>
-          <label>?? / Output?? / Output?max-players?</label>
-          <input data-param="max-players" placeholder="? 20" />
+          <label>?????max-players?/ Max players</label>
+          <input data-param="max-players" placeholder="? 20 / e.g. 20" />
         </div>
         <div>
-          <label>?? / Output?difficulty?</label>
+          <label>???difficulty?/ Difficulty</label>
           <select data-param="difficulty">
-            <option value="">?? / Output?? / Output</option>
-            <option value="peaceful">?? / Output</option>
-            <option value="easy">?? / Output</option>
-            <option value="normal">?? / Output</option>
-            <option value="hard">?? / Output</option>
+            <option value="">???? / Default</option>
+            <option value="peaceful">?? / Peaceful</option>
+            <option value="easy">?? / Easy</option>
+            <option value="normal">?? / Normal</option>
+            <option value="hard">?? / Hard</option>
           </select>
         </div>
         <div>
-          <label>?? / Output?? / Output?gamemode?</label>
+          <label>?????gamemode?/ Game mode</label>
           <select data-param="gamemode">
-            <option value="">?? / Output?? / Output</option>
-            <option value="survival">?? / Output</option>
-            <option value="creative">?? / Output</option>
-            <option value="adventure">?? / Output</option>
-            <option value="spectator">?? / Output</option>
+            <option value="">???? / Default</option>
+            <option value="survival">?? / Survival</option>
+            <option value="creative">?? / Creative</option>
+            <option value="adventure">?? / Adventure</option>
+            <option value="spectator">?? / Spectator</option>
           </select>
         </div>
         <div>
-          <label>?? / Output?view-distance?</label>
-          <input data-param="view-distance" placeholder="? 6" />
+          <label>???view-distance?/ View distance</label>
+          <input data-param="view-distance" placeholder="? 6 / e.g. 6" />
         </div>
         <div>
-          <label>?? / Output?? / Output?simulation-distance?</label>
-          <input data-param="simulation-distance" placeholder="? 4" />
+          <label>?????simulation-distance?/ Simulation distance</label>
+          <input data-param="simulation-distance" placeholder="? 4 / e.g. 4" />
         </div>
         <div>
-          <label>?? / Output?? / Output?level-seed?</label>
-          <input data-param="level-seed" placeholder="?? / Output?" />
+          <label>?????level-seed?/ World seed</label>
+          <input data-param="level-seed" placeholder="??? / Optional" />
         </div>
         <div>
-          <label>?? / Output?? / Output?level-type?</label>
+          <label>?????level-type?/ World type</label>
           <input data-param="level-type" placeholder="minecraft:normal" />
         </div>
         <div>
-          <label>?? / Output? MOTD?motd?</label>
+          <label>??? MOTD?motd?/ MOTD</label>
           <input data-param="motd" placeholder="A Minecraft Server" />
         </div>
       </div>
     </div>
 
     <div class="card">
-      <h2>?? / Output?? / Output?</h2>
+      <h2>????? / Performance</h2>
       <div class="row">
         <div>
-          <label>?? / Output?docker.env.MEMORY?</label>
+          <label>???docker.env.MEMORY?/ Memory</label>
           <input data-param="docker.env.MEMORY" placeholder="? 2G / 2300M" />
         </div>
         <div>
-          <label>?? / Output?? / Output?? / OutputrandomTickSpeed?</label>
+          <label>??????randomTickSpeed?/ Random tick speed</label>
           <input data-param="randomTickSpeed" placeholder="? 3" />
         </div>
         <div>
-          <label>?? / Output?? / Output?? / Output?maxEntityCramming?</label>
+          <label>???????maxEntityCramming?/ Max entity cramming</label>
           <input data-param="maxEntityCramming" placeholder="? 24" />
         </div>
         <div>
-          <label>?? / Output?? / Output?network-compression-threshold?</label>
+          <label>?????network-compression-threshold?/ Compression threshold</label>
           <input data-param="network-compression-threshold" placeholder="? 256" />
         </div>
       </div>
     </div>
 
     <div class="card">
-      <h2>?? / Output / ?? / Output / RCON</h2>
+      <h2>?? / ?? / RCON / Panel & Network</h2>
       <div class="row">
         <div>
-          <label>?? / Output?? / Output?panel.enable?</label>
+          <label>?????panel.enable?/ Panel enable</label>
           <select data-param="panel.enable">
-            <option value="">?? / Output?? / Output</option>
-            <option value="true">?? / Output</option>
-            <option value="false">?? / Output</option>
+            <option value="">???? / Default</option>
+            <option value="true">?? / On</option>
+            <option value="false">?? / Off</option>
           </select>
         </div>
         <div>
-          <label>?? / Output?? / Output?panel.port?</label>
+          <label>?????panel.port?/ Panel port</label>
           <input data-param="panel.port" placeholder="15000" />
         </div>
         <div>
-          <label>?? / Output RCON?enable-rcon?</label>
+          <label>?? RCON?enable-rcon?/ RCON enable</label>
           <select data-param="enable-rcon">
-            <option value="">?? / Output?? / Output</option>
-            <option value="true">?? / Output</option>
-            <option value="false">?? / Output</option>
+            <option value="">???? / Default</option>
+            <option value="true">?? / On</option>
+            <option value="false">?? / Off</option>
           </select>
         </div>
         <div>
-          <label>RCON ?? / Output?rcon.port?</label>
+          <label>RCON ???rcon.port?/ RCON port</label>
           <input data-param="rcon.port" placeholder="25575" />
         </div>
         <div>
-          <label>RCON ?? / Output?rcon.password?</label>
-          <input data-param="rcon.password" placeholder="?? / Output?? / Output?" />
+          <label>RCON ???rcon.password?/ RCON password</label>
+          <input data-param="rcon.password" placeholder="????? / Strong password" />
         </div>
       </div>
     </div>
 
     <div class="card">
-      <h2>?? / Output / ?? / Output</h2>
+      <h2>?? / ?? / Map & Plugins</h2>
       <div class="row">
         <div>
-          <label>?? / Output?? / Output?map.plugin?</label>
+          <label>?????map.plugin?/ Map plugin</label>
           <input data-param="map.plugin" placeholder="bluemap" />
         </div>
         <div>
-          <label>?? / Output?? / Output?map.plugin_port?</label>
+          <label>?????map.plugin_port?/ Map port</label>
           <input data-param="map.plugin_port" placeholder="8100" />
         </div>
         <div>
-          <label>?? / Output?? / Output?? / Output?map.render_interval?</label>
+          <label>???????map.render_interval?/ Render interval</label>
           <input data-param="map.render_interval" placeholder="5" />
         </div>
         <div>
-          <label>?? / Output?? / Output?inventory.plugin?</label>
+          <label>?????inventory.plugin?/ Inventory plugin</label>
           <input data-param="inventory.plugin" placeholder="invsee" />
         </div>
       </div>
     </div>
 
     <details open>
-      <summary>?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?</summary>
-      <div class="hint">?? / Output?? / Output?? / Output?? / Output?? / Output server.properties ? gamerule ?? / gamerule / Output?? / Output?? / Output</div>
+      <summary>?????????????/ Advanced (full list)</summary>
+      <div class="hint">?????????? server.properties ? gamerule ??????/ Loaded from catalog.</div>
       <div id="catalog_sections"></div>
     </details>
 
     <div class="card">
-      <h2>?? / Output?? / Output?? / Outputkey=value ?? / Output?? / Output?</h2>
-      <textarea id="params_extra" placeholder="?? / Output?\nmax-players=3\nview-distance=4\nkeepInventory=true"></textarea>
-      <div class="hint">?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?</div>
+      <h2>??????key=value ?????/ Custom params</h2>
+      <textarea id="params_extra" placeholder="???\nmax-players=3\nview-distance=4\nkeepInventory=true\n// Example"></textarea>
+      <div class="hint">?????????????????????/ Merged; upper fields win.</div>
     </div>
 
     <div class="card">
       <div class="actions">
-        <button id="btn_plan">?? / Output Plan?? / Output?? / Output</button>
-        <button id="btn_apply">?? / Output Apply</button>
-        <button id="btn_save" class="secondary">?? / Output?? / Output</button>
+        <button id="btn_plan">?? Plan????/ Run Plan</button>
+        <button id="btn_apply">?? Apply / Apply</button>
+        <button id="btn_save" class="secondary">???? / Save</button>
       </div>
       <label style="margin-top:12px;">?? / Output</label>
       <div id="output" class="output"></div>
-      <div class="hint">?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output<a id="panel_link" href="/" target="_blank">?? / Output?? / Output</a></div>
+      <div class="hint">????????????/ If panel exists: <a id="panel_link" href="/" target="_blank">???? / Panel</a></div>
     </div>
   </div>
 <script>
@@ -280,7 +280,7 @@ async function loadState() {
   const res = await fetch('/api/wizard/state');
   if (!res.ok) return;
   const data = await res.json();
-  $('version').value = data.version || '1.21.8';
+  $('version').value = data.version || '1.21.11';
   $('profile').value = data.profile || 'normal';
   $('import_mode').value = data.import_mode || 'none';
   $('import_value').value = data.import_value || '';
@@ -301,7 +301,7 @@ async function loadState() {
 function gather() {
   const params = collectParams();
   return {
-    version: $('version').value.trim() || '1.21.8',
+    version: $('version').value.trim() || '1.21.11',
     profile: $('profile').value,
     import_mode: $('import_mode').value,
     import_value: $('import_value').value.trim(),
@@ -317,13 +317,13 @@ async function saveState() {
 
 function reviewLevel(outputText) {
   const lower = (outputText || '').toLowerCase();
-  if ((outputText || '').includes('?? / Output') || lower.includes('block')) return 'block';
-  if ((outputText || '').includes('?? / Output') || lower.includes('warn')) return 'warn';
+  if ((outputText || '').includes('??') || lower.includes('block')) return 'block';
+  if ((outputText || '').includes('??') || lower.includes('warn')) return 'warn';
   return 'allow';
 }
 
 async function runPlan() {
-  output.textContent = '?? / Output?...';
+  output.textContent = '???... / Running...';
   const payload = gather();
   const res = await fetch('/api/wizard/plan', {method:'POST', headers:{'Content-Type':'application/json','X-MCIC-OTP': (payload.otp || '')}, body: JSON.stringify(payload)});
   const data = await res.json();
@@ -332,7 +332,7 @@ async function runPlan() {
 }
 
 async function runApply() {
-  output.textContent = '?? / Output?...';
+  output.textContent = '???... / Running...';
   const payload = gather();
   const res = await fetch('/api/wizard/apply', {method:'POST', headers:{'Content-Type':'application/json','X-MCIC-OTP': (payload.otp || '')}, body: JSON.stringify(payload)});
   const data = await res.json();
@@ -343,15 +343,15 @@ async function runApplyWithReview() {
   const planOutput = await runPlan();
   const level = reviewLevel(planOutput);
   if (level === 'block') {
-    alert('?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?? / Output?');
+    alert('???????????????/ Blocked by review. Adjust and retry.');
     return;
   }
   if (level === 'warn') {
-    const ok = confirm('?? / Output?? / Output?? / Output?? / Output?? / Output? Apply?');
+    const ok = confirm('??????????? Apply?/ Warnings found, continue?');
     if (!ok) return;
   }
   const snippet = (planOutput || '').slice(0, 1500);
-  const ok2 = confirm('?? / Output?? / Output?? / Output?? / Output? Apply?\n\n' + snippet);
+  const ok2 = confirm('????????? Apply?/ Apply with review output:\n\n' + snippet);
   if (!ok2) return;
   await runApply();
 }
@@ -367,7 +367,7 @@ function makeField(key, meta) {
   const defVal = meta && meta.default;
   if (typeof defVal === 'boolean') {
     input = document.createElement('select');
-    input.innerHTML = '<option value="">?? / Output?? / Output</option><option value="true">true</option><option value="false">false</option>';
+    input.innerHTML = '<option value="">???? / Default</option><option value="true">true</option><option value="false">false</option>';
   } else if (typeof defVal === 'number') {
     input = document.createElement('input');
     input.type = 'number';
@@ -389,7 +389,7 @@ function makeField(key, meta) {
 }
 
 async function loadCatalog() {
-  const version = $('version').value.trim() || '1.21.8';
+  const version = $('version').value.trim() || '1.21.11';
   const res = await fetch(`/api/wizard/catalog?version=${encodeURIComponent(version)}`);
   if (!res.ok) return;
   const data = await res.json();
@@ -397,8 +397,8 @@ async function loadCatalog() {
   container.innerHTML = '';
 
   const sections = [
-    {key: 'server_properties', title: 'server.properties ?? / server.properties / Output'},
-    {key: 'gamerule', title: 'gamerule ?? / gamerule / Output'}
+    {key: 'server_properties', title: 'server.properties ?? / server.properties'},
+    {key: 'gamerule', title: 'gamerule ?? / gamerule'}
   ];
 
   sections.forEach(sec => {
@@ -406,7 +406,7 @@ async function loadCatalog() {
     const detail = document.createElement('details');
     detail.open = false;
     const summary = document.createElement('summary');
-    summary.textContent = `${sec.title}?${Object.keys(entries).length} ?? / Output`;
+    summary.textContent = `${sec.title}?${Object.keys(entries).length} ??`;
     detail.appendChild(summary);
     const grid = document.createElement('div');
     grid.className = 'grid';
@@ -420,7 +420,7 @@ async function loadCatalog() {
 
 $('btn_plan').onclick = async () => { await runPlan(); };
 $('btn_apply').onclick = async () => { await runApplyWithReview(); };
-$('btn_save').onclick = async () => { await saveState(); output.textContent = '?? / Output?'; };
+$('btn_save').onclick = async () => { await saveState(); output.textContent = '??? / Saved'; };
 
 loadState();
 </script>
