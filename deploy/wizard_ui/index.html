@@ -30,10 +30,10 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>MCIC ???????????</h1>
+    <h1>MCIC ??????????</h1>
 
     <div class="card">
-      <h2>????</h2>
+      <h2>??</h2>
       <div class="row">
         <div>
           <label>????? 1.21.4?</label>
@@ -47,13 +47,13 @@
             <option value="advanced">??</option>
           </select>
         </div>
+      </div>
       <div class="row">
         <div>
-          <label>???OTP?</label>
-          <input id="otp" placeholder="????? /var/log/mc-wizard.log?" />
-          <div class="hint">???????????????????????</div>
+          <label>??????OTP?</label>
+          <input id="otp" placeholder="? /var/log/mc-wizard.log ??" />
+          <div class="hint">??????????????Plan/Apply/??????</div>
         </div>
-      </div>
       </div>
       <label>????</label>
       <select id="import_mode">
@@ -62,25 +62,25 @@
         <option value="file">???????</option>
       </select>
       <label>??? / ????</label>
-      <textarea id="import_value" placeholder="?????????????"></textarea>
-      <div class="hint">??????????????????????????????</div>
+      <textarea id="import_value" placeholder="??????????????????"></textarea>
+      <div class="hint">????????????????????????????</div>
     </div>
 
     <div class="card">
-      <h2>??????</h2>
+      <h2>????</h2>
       <div class="row">
         <div>
           <label>??????keepInventory?</label>
           <select data-param="keepInventory">
-            <option value="">??</option>
+            <option value="">????</option>
             <option value="true">??</option>
             <option value="false">??</option>
           </select>
         </div>
         <div>
-          <label>????????????????</label>
+          <label>??????????</label>
           <select data-param="enable-command-block">
-            <option value="">??</option>
+            <option value="">????</option>
             <option value="true">??</option>
             <option value="false">??</option>
           </select>
@@ -89,20 +89,20 @@
     </div>
 
     <div class="card">
-      <h2>???????</h2>
+      <h2>????</h2>
       <div class="row">
         <div>
-          <label>??????</label>
-          <input data-param="deploy.expected_players" placeholder="?? 3" />
+          <label>?????deploy.expected_players?</label>
+          <input data-param="deploy.expected_players" placeholder="? 3" />
         </div>
         <div>
           <label>?????max-players?</label>
-          <input data-param="max-players" placeholder="?? 20" />
+          <input data-param="max-players" placeholder="? 20" />
         </div>
         <div>
           <label>???difficulty?</label>
           <select data-param="difficulty">
-            <option value="">??</option>
+            <option value="">????</option>
             <option value="peaceful">??</option>
             <option value="easy">??</option>
             <option value="normal">??</option>
@@ -112,7 +112,7 @@
         <div>
           <label>?????gamemode?</label>
           <select data-param="gamemode">
-            <option value="">??</option>
+            <option value="">????</option>
             <option value="survival">??</option>
             <option value="creative">??</option>
             <option value="adventure">??</option>
@@ -121,45 +121,45 @@
         </div>
         <div>
           <label>???view-distance?</label>
-          <input data-param="view-distance" placeholder="?? 6" />
+          <input data-param="view-distance" placeholder="? 6" />
         </div>
         <div>
           <label>?????simulation-distance?</label>
-          <input data-param="simulation-distance" placeholder="?? 6" />
+          <input data-param="simulation-distance" placeholder="? 4" />
         </div>
         <div>
           <label>?????level-seed?</label>
-          <input data-param="level-seed" placeholder="????" />
+          <input data-param="level-seed" placeholder="???" />
         </div>
         <div>
           <label>?????level-type?</label>
           <input data-param="level-type" placeholder="minecraft:normal" />
         </div>
         <div>
-          <label>MOTD</label>
+          <label>??? MOTD?motd?</label>
           <input data-param="motd" placeholder="A Minecraft Server" />
         </div>
       </div>
     </div>
 
     <div class="card">
-      <h2>?? / ????</h2>
+      <h2>?????</h2>
       <div class="row">
         <div>
           <label>???docker.env.MEMORY?</label>
-          <input data-param="docker.env.MEMORY" placeholder="?? 2G" />
+          <input data-param="docker.env.MEMORY" placeholder="? 2G / 2300M" />
         </div>
         <div>
           <label>??????randomTickSpeed?</label>
-          <input data-param="randomTickSpeed" placeholder="?? 3" />
+          <input data-param="randomTickSpeed" placeholder="? 3" />
         </div>
         <div>
           <label>???????maxEntityCramming?</label>
-          <input data-param="maxEntityCramming" />
+          <input data-param="maxEntityCramming" placeholder="? 24" />
         </div>
         <div>
-          <label>???????network-compression-threshold?</label>
-          <input data-param="network-compression-threshold" />
+          <label>?????network-compression-threshold?</label>
+          <input data-param="network-compression-threshold" placeholder="? 256" />
         </div>
       </div>
     </div>
@@ -170,7 +170,7 @@
         <div>
           <label>?????panel.enable?</label>
           <select data-param="panel.enable">
-            <option value="">??</option>
+            <option value="">????</option>
             <option value="true">??</option>
             <option value="false">??</option>
           </select>
@@ -182,7 +182,7 @@
         <div>
           <label>?? RCON?enable-rcon?</label>
           <select data-param="enable-rcon">
-            <option value="">??</option>
+            <option value="">????</option>
             <option value="true">??</option>
             <option value="false">??</option>
           </select>
@@ -193,22 +193,17 @@
         </div>
         <div>
           <label>RCON ???rcon.password?</label>
-          <input data-param="rcon.password" placeholder="change-me" />
+          <input data-param="rcon.password" placeholder="?????" />
         </div>
       </div>
     </div>
 
     <div class="card">
-      <h2>?? / ????</h2>
+      <h2>?? / ??</h2>
       <div class="row">
         <div>
           <label>?????map.plugin?</label>
-          <select data-param="map.plugin">
-            <option value="">??</option>
-            <option value="bluemap">BlueMap</option>
-            <option value="dynmap">Dynmap</option>
-            <option value="none">???</option>
-          </select>
+          <input data-param="map.plugin" placeholder="bluemap" />
         </div>
         <div>
           <label>?????map.plugin_port?</label>
@@ -219,36 +214,22 @@
           <input data-param="map.render_interval" placeholder="5" />
         </div>
         <div>
-          <label>?????????map.plugin_url?</label>
-          <input data-param="map.plugin_url" placeholder="???" />
-        </div>
-        <div>
           <label>?????inventory.plugin?</label>
-          <select data-param="inventory.plugin">
-            <option value="">??</option>
-            <option value="invsee">InvSee++</option>
-            <option value="openinv">OpenInv</option>
-            <option value="none">???</option>
-          </select>
-        </div>
-        <div>
-          <label>?????????inventory.plugin_url?</label>
-          <input data-param="inventory.plugin_url" placeholder="???" />
+          <input data-param="inventory.plugin" placeholder="invsee" />
         </div>
       </div>
     </div>
 
     <details open>
-      <summary>????????????????</summary>
-      <div class="hint" style="margin:8px 0;">???????????? server.properties ? gamerule ?????????</div>
+      <summary>?????????????</summary>
+      <div class="hint">?????????? server.properties ? gamerule ??????</div>
       <div id="catalog_sections"></div>
     </details>
 
     <div class="card">
-      <h2>?????key=value??????????</h2>
-      <textarea id="params_extra" placeholder="???
-spawn-protection=0
-white-list=false"></textarea>
+      <h2>??????key=value ?????</h2>
+      <textarea id="params_extra" placeholder="???\nmax-players=3\nview-distance=4\nkeepInventory=true"></textarea>
+      <div class="hint">?????????????????????</div>
     </div>
 
     <div class="card">
@@ -269,37 +250,30 @@ const panelLink = $('panel_link');
 
 function parseParamsText(text) {
   const params = {};
-  (text || '').split(/
-?
-/).forEach(line => {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#') || !trimmed.includes('=')) return;
-    const [key, ...rest] = trimmed.split('=');
-    params[key.trim()] = rest.join('=').trim();
+  (text || '').split(/\n+/).forEach(line => {
+    const l = (line || '').trim();
+    if (!l || l.startsWith('#')) return;
+    const idx = l.indexOf('=');
+    if (idx === -1) return;
+    const key = l.slice(0, idx).trim();
+    const value = l.slice(idx + 1).trim();
+    if (key) params[key] = value;
   });
-  return params;
-}
-
-function collectParams() {
-  const params = {};
-  document.querySelectorAll('[data-param]').forEach(el => {
-    const key = el.getAttribute('data-param');
-    if (!key) return;
-    let value = '';
-    if (el.tagName === 'SELECT' || el.tagName === 'INPUT') {
-      value = (el.value || '').trim();
-    }
-    if (value === '') return;
-    params[key] = value;
-  });
-  const extra = parseParamsText($('params_extra').value || '');
-  Object.keys(extra).forEach(k => { params[k] = extra[k]; });
   return params;
 }
 
 function paramsToText(params) {
-  return Object.entries(params).map(([k, v]) => `${k}=${v}`).join('
-');
+  return Object.entries(params).map(([k,v]) => `${k}=${v}`).join('\n');
+}
+
+function collectParams() {
+  const params = parseParamsText($('params_extra').value || '');
+  document.querySelectorAll('[data-param]').forEach(el => {
+    const key = el.getAttribute('data-param');
+    const val = (el.value || '').trim();
+    if (key && val) params[key] = val;
+  });
+  return params;
 }
 
 async function loadState() {
@@ -337,19 +311,21 @@ function gather() {
 }
 
 async function saveState() {
-  await fetch('/api/wizard/state', {method:'POST', headers:{'Content-Type':'application/json','X-MCIC-OTP': (gather().otp || '')}, body: JSON.stringify(gather())});
+  const payload = gather();
+  await fetch('/api/wizard/state', {method:'POST', headers:{'Content-Type':'application/json','X-MCIC-OTP': (payload.otp || '')}, body: JSON.stringify(payload)});
 }
 
 function reviewLevel(outputText) {
-  const lower = outputText.toLowerCase();
-  if (outputText.includes('???') || lower.includes('block')) return 'block';
-  if (outputText.includes('??') || lower.includes('warn')) return 'warn';
+  const lower = (outputText || '').toLowerCase();
+  if ((outputText || '').includes('??') || lower.includes('block')) return 'block';
+  if ((outputText || '').includes('??') || lower.includes('warn')) return 'warn';
   return 'allow';
 }
 
 async function runPlan() {
   output.textContent = '???...';
-  const res = await fetch('/api/wizard/plan', {method:'POST', headers:{'Content-Type':'application/json','X-MCIC-OTP': (gather().otp || '')}, body: JSON.stringify(gather())});
+  const payload = gather();
+  const res = await fetch('/api/wizard/plan', {method:'POST', headers:{'Content-Type':'application/json','X-MCIC-OTP': (payload.otp || '')}, body: JSON.stringify(payload)});
   const data = await res.json();
   output.textContent = data.output || data.error || JSON.stringify(data);
   return data.output || '';
@@ -357,7 +333,8 @@ async function runPlan() {
 
 async function runApply() {
   output.textContent = '???...';
-  const res = await fetch('/api/wizard/apply', {method:'POST', headers:{'Content-Type':'application/json','X-MCIC-OTP': (gather().otp || '')}, body: JSON.stringify(gather())});
+  const payload = gather();
+  const res = await fetch('/api/wizard/apply', {method:'POST', headers:{'Content-Type':'application/json','X-MCIC-OTP': (payload.otp || '')}, body: JSON.stringify(payload)});
   const data = await res.json();
   output.textContent = data.output || data.error || JSON.stringify(data);
 }
@@ -366,15 +343,15 @@ async function runApplyWithReview() {
   const planOutput = await runPlan();
   const level = reviewLevel(planOutput);
   if (level === 'block') {
-    alert('????????????????');
+    alert('???????????????');
     return;
   }
   if (level === 'warn') {
-    const ok = confirm('????????????? Apply?');
+    const ok = confirm('??????????? Apply?');
     if (!ok) return;
   }
   const snippet = (planOutput || '').slice(0, 1500);
-  const ok2 = confirm('?????????????\n\n' + snippet);
+  const ok2 = confirm('????????? Apply?\n\n' + snippet);
   if (!ok2) return;
   await runApply();
 }
@@ -390,7 +367,7 @@ function makeField(key, meta) {
   const defVal = meta && meta.default;
   if (typeof defVal === 'boolean') {
     input = document.createElement('select');
-    input.innerHTML = '<option value="">??</option><option value="true">true</option><option value="false">false</option>';
+    input.innerHTML = '<option value="">????</option><option value="true">true</option><option value="false">false</option>';
   } else if (typeof defVal === 'number') {
     input = document.createElement('input');
     input.type = 'number';
@@ -429,7 +406,7 @@ async function loadCatalog() {
     const detail = document.createElement('details');
     detail.open = false;
     const summary = document.createElement('summary');
-    summary.textContent = sec.title + `?${Object.keys(entries).length}?`;
+    summary.textContent = `${sec.title}?${Object.keys(entries).length} ??`;
     detail.appendChild(summary);
     const grid = document.createElement('div');
     grid.className = 'grid';
