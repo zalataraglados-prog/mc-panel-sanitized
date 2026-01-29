@@ -47,6 +47,13 @@
             <option value="advanced">??</option>
           </select>
         </div>
+      <div class="row">
+        <div>
+          <label>???OTP?</label>
+          <input id="otp" placeholder="????? /var/log/mc-wizard.log?" />
+          <div class="hint">???????????????????????</div>
+        </div>
+      </div>
       </div>
       <label>????</label>
       <select id="import_mode">
@@ -262,7 +269,8 @@ const panelLink = $('panel_link');
 
 function parseParamsText(text) {
   const params = {};
-  (text || '').split(/?
+  (text || '').split(/
+?
 /).forEach(line => {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#') || !trimmed.includes('=')) return;
@@ -323,12 +331,13 @@ function gather() {
     profile: $('profile').value,
     import_mode: $('import_mode').value,
     import_value: $('import_value').value.trim(),
-    params_text: paramsToText(params)
+    params_text: paramsToText(params),
+    otp: ($('otp') ? $('otp').value.trim() : '')
   };
 }
 
 async function saveState() {
-  await fetch('/api/wizard/state', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(gather())});
+  await fetch('/api/wizard/state', {method:'POST', headers:{'Content-Type':'application/json','X-MCIC-OTP': (gather().otp || '')}, body: JSON.stringify(gather())});
 }
 
 function reviewLevel(outputText) {
@@ -340,7 +349,7 @@ function reviewLevel(outputText) {
 
 async function runPlan() {
   output.textContent = '???...';
-  const res = await fetch('/api/wizard/plan', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(gather())});
+  const res = await fetch('/api/wizard/plan', {method:'POST', headers:{'Content-Type':'application/json','X-MCIC-OTP': (gather().otp || '')}, body: JSON.stringify(gather())});
   const data = await res.json();
   output.textContent = data.output || data.error || JSON.stringify(data);
   return data.output || '';
@@ -348,7 +357,7 @@ async function runPlan() {
 
 async function runApply() {
   output.textContent = '???...';
-  const res = await fetch('/api/wizard/apply', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(gather())});
+  const res = await fetch('/api/wizard/apply', {method:'POST', headers:{'Content-Type':'application/json','X-MCIC-OTP': (gather().otp || '')}, body: JSON.stringify(gather())});
   const data = await res.json();
   output.textContent = data.output || data.error || JSON.stringify(data);
 }
@@ -364,6 +373,9 @@ async function runApplyWithReview() {
     const ok = confirm('????????????? Apply?');
     if (!ok) return;
   }
+  const snippet = (planOutput || '').slice(0, 1500);
+  const ok2 = confirm('?????????????\n\n' + snippet);
+  if (!ok2) return;
   await runApply();
 }
 

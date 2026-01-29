@@ -2,6 +2,8 @@
 import json
 import os
 import subprocess
+import secrets
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
@@ -12,6 +14,9 @@ from deploy.loader import load_rules_bundle
 ROOT = Path(__file__).resolve().parents[1]
 UI_DIR = ROOT / "deploy" / "wizard_ui"
 STATE_FILE = Path("/tmp/mc_wizard_state.json")
+LOG_PATH = Path("/var/log/mc-wizard.log")
+TOKEN_PATH = ROOT / "deploy" / "wizard_token.txt"
+WIZARD_TOKEN = None
 
 
 def _load_state():
@@ -54,6 +59,22 @@ def _build_claims(state):
     return encode_claims(params)
 
 
+def _log_event(ip, action, extra=None):
+    try:
+        LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "ts": datetime.utcnow().isoformat() + "Z",
+            "ip": ip,
+            "action": action,
+        }
+        if extra:
+            payload.update(extra)
+        with LOG_PATH.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
 def _run_cli(action, state):
     version = state.get("version") or "1.21.4"
     profile = state.get("profile") or "normal"
@@ -82,12 +103,27 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         if body:
             self.wfile.write(body)
+    def _get_token(self):
+        header_token = self.headers.get("X-MCIC-OTP")
+        if header_token:
+            return header_token.strip()
+        return None
+
+    def _require_token(self, payload=None):
+        token = self._get_token()
+        if not token and payload:
+            token = (payload.get("otp") or "").strip()
+        if not WIZARD_TOKEN or not token or token != WIZARD_TOKEN:
+            self._send(401, json.dumps({"error": "Invalid or missing OTP"}).encode("utf-8"))
+            return False
+        return True
+
 
     def do_OPTIONS(self):
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type,X-MCIC-OTP")
         self.end_headers()
 
     def do_GET(self):
@@ -137,20 +173,27 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             payload = {}
 
+        if parsed.path in ("/api/wizard/state", "/api/wizard/plan", "/api/wizard/apply"):
+            if not self._require_token(payload):
+                return
+
         if parsed.path == "/api/wizard/state":
             state = _load_state()
             state.update(payload)
             _save_state(state)
+            _log_event(self.client_address[0], "state", {"profile": state.get("profile")})
             self._send(200, json.dumps({"ok": True}).encode("utf-8"))
             return
 
         if parsed.path == "/api/wizard/plan":
             code, output = _run_cli("plan", payload)
+            _log_event(self.client_address[0], "plan", {"version": payload.get("version")})
             self._send(200, json.dumps({"ok": code == 0, "output": output}).encode("utf-8"))
             return
 
         if parsed.path == "/api/wizard/apply":
             code, output = _run_cli("apply", payload)
+            _log_event(self.client_address[0], "apply", {"version": payload.get("version")})
             self._send(200, json.dumps({"ok": code == 0, "output": output}).encode("utf-8"))
             return
 
@@ -158,9 +201,22 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    global WIZARD_TOKEN
     port = int(os.environ.get("MC_PANEL_WIZARD_PORT", "15001"))
-    server = HTTPServer(("0.0.0.0", port), Handler)
+    WIZARD_TOKEN = secrets.token_urlsafe(12)
+    try:
+        TOKEN_PATH.write_text(WIZARD_TOKEN, encoding="utf-8")
+    except Exception:
+        pass
     print(f"Wizard running on http://0.0.0.0:{port}")
+    print(f"Wizard OTP: {WIZARD_TOKEN}")
+    try:
+        LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with LOG_PATH.open("a", encoding="utf-8") as f:
+            f.write(json.dumps({"ts": datetime.utcnow().isoformat() + "Z", "action": "otp", "otp": WIZARD_TOKEN}, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+    server = HTTPServer(("0.0.0.0", port), Handler)
     server.serve_forever()
 
 
