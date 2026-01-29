@@ -1,13 +1,14 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MCIC ???? / Wizard</title>
+  <title>MCIC Wizard</title>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
     .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
-    h1 { margin: 0 0 12px; font-size: 22px; }
+    .header { display:flex; align-items:center; justify-content: space-between; gap:12px; margin-bottom: 12px; }
+    h1 { margin: 0; font-size: 22px; }
     h2 { margin: 0 0 8px; font-size: 16px; }
     .card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; margin: 12px 0; }
     label { display: block; margin: 8px 0 6px; font-size: 13px; color: #cbd5f5; }
@@ -26,221 +27,253 @@
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     .field { background: #0f172a; border: 1px solid #1f2937; border-radius: 8px; padding: 8px; }
     .field small { color: #94a3b8; display: block; margin-top: 6px; }
+    .lang-switch { display:flex; align-items:center; gap:8px; font-size:12px; color:#cbd5f5; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>MCIC ??????????/ Wizard (No Panel)</h1>
+    <div class="header">
+      <h1 data-i18n="title">MCIC Wizard</h1>
+      <div class="lang-switch">
+        <span data-i18n="language">Language</span>
+        <select id="lang">
+          <option value="zh">中文</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+    </div>
 
     <div class="card">
-      <h2>?? / Basics</h2>
+      <h2 data-i18n="basic">Basics</h2>
       <div class="row">
         <div>
-          <label>????? 1.21.11?/ Version (default 1.21.11)</label>
-          <input id="version" placeholder="1.21.11" />
+          <label data-i18n="versionLabel">Version (default 1.21.11)</label>
+          <input id="version" data-i18n-placeholder="versionPlaceholder" placeholder="1.21.11" />
         </div>
         <div>
-          <label>???? / Profile</label>
+          <label data-i18n="profile">Profile</label>
           <select id="profile">
-            <option value="beginner">?? / Beginner</option>
-            <option value="normal" selected>?? / Standard</option>
-            <option value="advanced">?? / Advanced</option>
+            <option value="beginner" data-i18n="profileBeginner">Beginner</option>
+            <option value="normal" selected data-i18n="profileNormal">Standard</option>
+            <option value="advanced" data-i18n="profileAdvanced">Advanced</option>
           </select>
         </div>
       </div>
       <div class="row">
         <div>
-          <label>??????OTP?/ One-time token</label>
-          <input id="otp" placeholder="? /var/log/mc-wizard.log ?? / read from log" />
-          <div class="hint">??????????????Plan/Apply/??????/ Regenerated on restart; required for Plan/Apply/Save.</div>
+          <label data-i18n="otpLabel">One-time token (OTP)</label>
+          <input id="otp" data-i18n-placeholder="otpPlaceholder" placeholder="See /var/log/mc-wizard.log" />
+          <div class="hint" data-i18n="otpHint">Required for Plan / Apply / Save. Read from wizard log.</div>
         </div>
       </div>
-      <label>???? / Import</label>
+      <label data-i18n="importMode">Import</label>
       <select id="import_mode">
-        <option value="none">??? / None</option>
-        <option value="paste">????? / Paste claims</option>
-        <option value="file">??????? / From file path</option>
+        <option value="none" data-i18n="importNone">None</option>
+        <option value="paste" data-i18n="importPaste">Paste claims string</option>
+        <option value="file" data-i18n="importFile">From file path</option>
       </select>
-      <label>??? / ???? / Claims or file path</label>
-      <textarea id="import_value" placeholder="?????????????????? / Paste claims or server path"></textarea>
-      <div class="hint">????????????????????????????/ For file import, use server path.</div>
+      <label data-i18n="importValue">Claims / Path</label>
+      <textarea id="import_value" data-i18n-placeholder="importPlaceholder" placeholder="Paste claims or input file path"></textarea>
+      <div class="hint" data-i18n="importHint">If you choose file import, fill a server-side file path.</div>
     </div>
 
     <div class="card">
-      <h2>???? / Beginner</h2>
+      <h2 data-i18n="beginner">Beginner</h2>
       <div class="row">
         <div>
-          <label>??????keepInventory?/ Keep inventory</label>
+          <label data-i18n="keepInventory">Keep inventory on death</label>
           <select data-param="keepInventory">
-            <option value="">???? / Default</option>
-            <option value="true">?? / On</option>
-            <option value="false">?? / Off</option>
+            <option value="" data-i18n="default">Default</option>
+            <option value="true" data-i18n="on">On</option>
+            <option value="false" data-i18n="off">Off</option>
           </select>
         </div>
         <div>
-          <label>??????????/ Allow cheats (command blocks)</label>
+          <label data-i18n="allowCheats">Allow cheats (command blocks)</label>
           <select data-param="enable-command-block">
-            <option value="">???? / Default</option>
-            <option value="true">?? / On</option>
-            <option value="false">?? / Off</option>
+            <option value="" data-i18n="default">Default</option>
+            <option value="true" data-i18n="on">On</option>
+            <option value="false" data-i18n="off">Off</option>
           </select>
         </div>
       </div>
     </div>
 
     <div class="card">
-      <h2>???? / Core</h2>
+      <h2 data-i18n="core">Core</h2>
       <div class="row">
         <div>
-          <label>?????deploy.expected_players?/ Expected players</label>
-          <input data-param="deploy.expected_players" placeholder="? 3 / e.g. 3" />
+          <label data-i18n="expectedPlayers">Expected players</label>
+          <input data-param="deploy.expected_players" data-i18n-placeholder="expectedPlayersPh" placeholder="e.g. 3" />
         </div>
         <div>
-          <label>?????max-players?/ Max players</label>
-          <input data-param="max-players" placeholder="? 20 / e.g. 20" />
+          <label data-i18n="maxPlayers">Max players</label>
+          <input data-param="max-players" data-i18n-placeholder="maxPlayersPh" placeholder="e.g. 20" />
         </div>
         <div>
-          <label>???difficulty?/ Difficulty</label>
+          <label data-i18n="difficulty">Difficulty</label>
           <select data-param="difficulty">
-            <option value="">???? / Default</option>
-            <option value="peaceful">?? / Peaceful</option>
-            <option value="easy">?? / Easy</option>
-            <option value="normal">?? / Normal</option>
-            <option value="hard">?? / Hard</option>
+            <option value="" data-i18n="default">Default</option>
+            <option value="peaceful" data-i18n="difficultyPeaceful">Peaceful</option>
+            <option value="easy" data-i18n="difficultyEasy">Easy</option>
+            <option value="normal" data-i18n="difficultyNormal">Normal</option>
+            <option value="hard" data-i18n="difficultyHard">Hard</option>
           </select>
         </div>
         <div>
-          <label>?????gamemode?/ Game mode</label>
+          <label data-i18n="gamemode">Game mode</label>
           <select data-param="gamemode">
-            <option value="">???? / Default</option>
-            <option value="survival">?? / Survival</option>
-            <option value="creative">?? / Creative</option>
-            <option value="adventure">?? / Adventure</option>
-            <option value="spectator">?? / Spectator</option>
+            <option value="" data-i18n="default">Default</option>
+            <option value="survival" data-i18n="gmSurvival">Survival</option>
+            <option value="creative" data-i18n="gmCreative">Creative</option>
+            <option value="adventure" data-i18n="gmAdventure">Adventure</option>
+            <option value="spectator" data-i18n="gmSpectator">Spectator</option>
           </select>
         </div>
         <div>
-          <label>???view-distance?/ View distance</label>
-          <input data-param="view-distance" placeholder="? 6 / e.g. 6" />
+          <label data-i18n="onlineMode">Online mode</label>
+          <select data-param="online-mode">
+            <option value="" data-i18n="default">Default</option>
+            <option value="true" data-i18n="on">On</option>
+            <option value="false" data-i18n="off">Off</option>
+          </select>
         </div>
         <div>
-          <label>?????simulation-distance?/ Simulation distance</label>
-          <input data-param="simulation-distance" placeholder="? 4 / e.g. 4" />
+          <label data-i18n="pvp">PVP</label>
+          <select data-param="pvp">
+            <option value="" data-i18n="default">Default</option>
+            <option value="true" data-i18n="on">On</option>
+            <option value="false" data-i18n="off">Off</option>
+          </select>
         </div>
         <div>
-          <label>?????level-seed?/ World seed</label>
-          <input data-param="level-seed" placeholder="??? / Optional" />
+          <label data-i18n="whitelist">Whitelist</label>
+          <select data-param="white-list">
+            <option value="" data-i18n="default">Default</option>
+            <option value="true" data-i18n="on">On</option>
+            <option value="false" data-i18n="off">Off</option>
+          </select>
         </div>
         <div>
-          <label>?????level-type?/ World type</label>
-          <input data-param="level-type" placeholder="minecraft:normal" />
-        </div>
-        <div>
-          <label>??? MOTD?motd?/ MOTD</label>
-          <input data-param="motd" placeholder="A Minecraft Server" />
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>????? / Performance</h2>
-      <div class="row">
-        <div>
-          <label>???docker.env.MEMORY?/ Memory</label>
-          <input data-param="docker.env.MEMORY" placeholder="? 2G / 2300M" />
-        </div>
-        <div>
-          <label>??????randomTickSpeed?/ Random tick speed</label>
-          <input data-param="randomTickSpeed" placeholder="? 3" />
-        </div>
-        <div>
-          <label>???????maxEntityCramming?/ Max entity cramming</label>
-          <input data-param="maxEntityCramming" placeholder="? 24" />
-        </div>
-        <div>
-          <label>?????network-compression-threshold?/ Compression threshold</label>
-          <input data-param="network-compression-threshold" placeholder="? 256" />
+          <label data-i18n="spawnProtection">Spawn protection</label>
+          <input data-param="spawn-protection" data-i18n-placeholder="spawnProtectionPh" placeholder="e.g. 16" />
         </div>
       </div>
     </div>
 
     <div class="card">
-      <h2>?? / ?? / RCON / Panel & Network</h2>
+      <h2 data-i18n="performance">Performance</h2>
       <div class="row">
         <div>
-          <label>?????panel.enable?/ Panel enable</label>
+          <label data-i18n="memory">Memory (docker.env.MEMORY)</label>
+          <input data-param="docker.env.MEMORY" data-i18n-placeholder="memoryPh" placeholder="e.g. 2G / 2048M" />
+        </div>
+        <div>
+          <label data-i18n="viewDistance">View distance</label>
+          <input data-param="view-distance" data-i18n-placeholder="viewDistancePh" placeholder="e.g. 6" />
+        </div>
+        <div>
+          <label data-i18n="simulationDistance">Simulation distance</label>
+          <input data-param="simulation-distance" data-i18n-placeholder="simulationDistancePh" placeholder="e.g. 4" />
+        </div>
+        <div>
+          <label data-i18n="randomTick">Random tick speed</label>
+          <input data-param="randomTickSpeed" data-i18n-placeholder="randomTickPh" placeholder="e.g. 3" />
+        </div>
+        <div>
+          <label data-i18n="maxEntityCramming">Max entity cramming</label>
+          <input data-param="maxEntityCramming" data-i18n-placeholder="maxEntityCrammingPh" placeholder="e.g. 24" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="panel">Panel / Network / RCON</h2>
+      <div class="row">
+        <div>
+          <label data-i18n="panelEnable">Enable panel</label>
           <select data-param="panel.enable">
-            <option value="">???? / Default</option>
-            <option value="true">?? / On</option>
-            <option value="false">?? / Off</option>
+            <option value="" data-i18n="default">Default</option>
+            <option value="true" data-i18n="on">On</option>
+            <option value="false" data-i18n="off">Off</option>
           </select>
         </div>
         <div>
-          <label>?????panel.port?/ Panel port</label>
-          <input data-param="panel.port" placeholder="15000" />
+          <label data-i18n="panelPort">Panel port</label>
+          <input data-param="panel.port" data-i18n-placeholder="panelPortPh" placeholder="15000" />
         </div>
         <div>
-          <label>?? RCON?enable-rcon?/ RCON enable</label>
+          <label data-i18n="serverPort">MC port</label>
+          <input data-param="server-port" data-i18n-placeholder="serverPortPh" placeholder="25565" />
+        </div>
+        <div>
+          <label data-i18n="rconEnable">Enable RCON</label>
           <select data-param="enable-rcon">
-            <option value="">???? / Default</option>
-            <option value="true">?? / On</option>
-            <option value="false">?? / Off</option>
+            <option value="" data-i18n="default">Default</option>
+            <option value="true" data-i18n="on">On</option>
+            <option value="false" data-i18n="off">Off</option>
           </select>
         </div>
         <div>
-          <label>RCON ???rcon.port?/ RCON port</label>
-          <input data-param="rcon.port" placeholder="25575" />
-        </div>
-        <div>
-          <label>RCON ???rcon.password?/ RCON password</label>
-          <input data-param="rcon.password" placeholder="????? / Strong password" />
+          <label data-i18n="rconPort">RCON port</label>
+          <input data-param="rcon.port" data-i18n-placeholder="rconPortPh" placeholder="25575" />
         </div>
       </div>
     </div>
 
     <div class="card">
-      <h2>?? / ?? / Map & Plugins</h2>
+      <h2 data-i18n="map">Map / Plugins</h2>
       <div class="row">
         <div>
-          <label>?????map.plugin?/ Map plugin</label>
-          <input data-param="map.plugin" placeholder="bluemap" />
+          <label data-i18n="mapPlugin">Map plugin</label>
+          <select data-param="map.plugin">
+            <option value="" data-i18n="default">Default</option>
+            <option value="bluemap">BlueMap</option>
+            <option value="dynmap">Dynmap</option>
+            <option value="none" data-i18n="off">Off</option>
+          </select>
         </div>
         <div>
-          <label>?????map.plugin_port?/ Map port</label>
-          <input data-param="map.plugin_port" placeholder="8100" />
+          <label data-i18n="mapPort">Map port</label>
+          <input data-param="map.plugin_port" data-i18n-placeholder="mapPortPh" placeholder="8100" />
         </div>
         <div>
-          <label>???????map.render_interval?/ Render interval</label>
-          <input data-param="map.render_interval" placeholder="5" />
+          <label data-i18n="mapInterval">Render interval</label>
+          <input data-param="map.render_interval" data-i18n-placeholder="mapIntervalPh" placeholder="5" />
         </div>
         <div>
-          <label>?????inventory.plugin?/ Inventory plugin</label>
-          <input data-param="inventory.plugin" placeholder="invsee" />
+          <label data-i18n="inventoryPlugin">Inventory plugin</label>
+          <select data-param="inventory.plugin">
+            <option value="" data-i18n="default">Default</option>
+            <option value="invsee">InvSee++</option>
+            <option value="openinv">OpenInv</option>
+            <option value="none" data-i18n="off">Off</option>
+          </select>
         </div>
       </div>
     </div>
 
-    <details open>
-      <summary>?????????????/ Advanced (full list)</summary>
-      <div class="hint">?????????? server.properties ? gamerule ??????/ Loaded from catalog.</div>
+    <div class="card">
+      <h2 data-i18n="advanced">Advanced (catalog)</h2>
       <div id="catalog_sections"></div>
-    </details>
+    </div>
 
     <div class="card">
-      <h2>??????key=value ?????/ Custom params</h2>
-      <textarea id="params_extra" placeholder="???\nmax-players=3\nview-distance=4\nkeepInventory=true\n// Example"></textarea>
-      <div class="hint">?????????????????????/ Merged; upper fields win.</div>
+      <h2 data-i18n="custom">Custom params</h2>
+      <label data-i18n="customHint">Extra key=value lines (one per line)</label>
+      <textarea id="params_extra" data-i18n-placeholder="customPlaceholder" placeholder="max-players=3\nview-distance=4\nkeepInventory=true"></textarea>
+      <div class="hint" data-i18n="customHint2">These override values above and imported claims.</div>
     </div>
 
     <div class="card">
       <div class="actions">
-        <button id="btn_plan">?? Plan????/ Run Plan</button>
-        <button id="btn_apply">?? Apply / Apply</button>
-        <button id="btn_save" class="secondary">???? / Save</button>
+        <button id="btn_plan" data-i18n="btnPlan">Run Plan (review)</button>
+        <button id="btn_apply" data-i18n="btnApply">Run Apply</button>
+        <button id="btn_save" class="secondary" data-i18n="btnSave">Save state</button>
       </div>
-      <label style="margin-top:12px;">?? / Output</label>
+      <label style="margin-top:12px;" data-i18n="output">Output</label>
       <div id="output" class="output"></div>
-      <div class="hint">????????????/ If panel exists: <a id="panel_link" href="/" target="_blank">???? / Panel</a></div>
+      <div class="hint"><span data-i18n="panelHint">If panel is installed:</span> <a id="panel_link" href="/" target="_blank" data-i18n="panelLink">Open panel</a></div>
     </div>
   </div>
 <script>
@@ -248,32 +281,190 @@ const $ = (id) => document.getElementById(id);
 const output = $('output');
 const panelLink = $('panel_link');
 
-function parseParamsText(text) {
-  const params = {};
-  (text || '').split(/\n+/).forEach(line => {
-    const l = (line || '').trim();
-    if (!l || l.startsWith('#')) return;
-    const idx = l.indexOf('=');
-    if (idx === -1) return;
-    const key = l.slice(0, idx).trim();
-    const value = l.slice(idx + 1).trim();
-    if (key) params[key] = value;
-  });
-  return params;
-}
+const translations = {
+  zh: {
+    title: 'MCIC 引导向导',
+    language: '语言',
+    basic: '基础设置',
+    versionLabel: '版本（默认 1.21.11）',
+    versionPlaceholder: '1.21.11',
+    profile: '配置档位',
+    profileBeginner: '新手',
+    profileNormal: '标准',
+    profileAdvanced: '高级',
+    otpLabel: '一次性口令（OTP）',
+    otpPlaceholder: '见 /var/log/mc-wizard.log',
+    otpHint: 'Plan / Apply / 保存均需 OTP。',
+    importMode: '导入方式',
+    importNone: '不导入',
+    importPaste: '粘贴配置串',
+    importFile: '从文件路径导入',
+    importValue: '配置串 / 文件路径',
+    importPlaceholder: '粘贴配置串，或填写文件路径',
+    importHint: '若选择“从文件路径导入”，请填写服务器上的文件路径。',
+    beginner: '新手选项',
+    keepInventory: '死亡不掉落',
+    allowCheats: '允许作弊（命令方块）',
+    core: '核心参数',
+    expectedPlayers: '预期人数',
+    expectedPlayersPh: '例如 3',
+    maxPlayers: '最大人数',
+    maxPlayersPh: '例如 20',
+    difficulty: '难度',
+    difficultyPeaceful: '和平',
+    difficultyEasy: '简单',
+    difficultyNormal: '普通',
+    difficultyHard: '困难',
+    gamemode: '游戏模式',
+    gmSurvival: '生存',
+    gmCreative: '创造',
+    gmAdventure: '冒险',
+    gmSpectator: '旁观',
+    onlineMode: '在线模式',
+    pvp: 'PVP',
+    whitelist: '白名单',
+    spawnProtection: '出生保护',
+    spawnProtectionPh: '例如 16',
+    performance: '性能参数',
+    memory: '内存（docker.env.MEMORY）',
+    memoryPh: '例如 2G / 2048M',
+    viewDistance: '视距',
+    viewDistancePh: '例如 6',
+    simulationDistance: '模拟距离',
+    simulationDistancePh: '例如 4',
+    randomTick: '随机刻速度',
+    randomTickPh: '例如 3',
+    maxEntityCramming: '最大实体挤压',
+    maxEntityCrammingPh: '例如 24',
+    panel: '面板 / 网络 / RCON',
+    panelEnable: '启用面板',
+    panelPort: '面板端口',
+    panelPortPh: '15000',
+    serverPort: 'MC 端口',
+    serverPortPh: '25565',
+    rconEnable: '启用 RCON',
+    rconPort: 'RCON 端口',
+    rconPortPh: '25575',
+    map: '地图 / 插件',
+    mapPlugin: '地图插件',
+    mapPort: '地图端口',
+    mapPortPh: '8100',
+    mapInterval: '渲染间隔',
+    mapIntervalPh: '5',
+    inventoryPlugin: '背包插件',
+    advanced: '高级参数（目录）',
+    custom: '自定义参数',
+    customHint: '额外 key=value（每行一条）',
+    customPlaceholder: 'max-players=3\nview-distance=4\nkeepInventory=true',
+    customHint2: '将覆盖上方与导入配置中的值。',
+    btnPlan: '运行 Plan（评审）',
+    btnApply: '执行 Apply',
+    btnSave: '保存配置',
+    output: '输出',
+    panelHint: '如已安装主面板：',
+    panelLink: '打开面板',
+    default: '默认',
+    on: '开启',
+    off: '关闭'
+  },
+  en: {
+    title: 'MCIC Wizard',
+    language: 'Language',
+    basic: 'Basics',
+    versionLabel: 'Version (default 1.21.11)',
+    versionPlaceholder: '1.21.11',
+    profile: 'Profile',
+    profileBeginner: 'Beginner',
+    profileNormal: 'Standard',
+    profileAdvanced: 'Advanced',
+    otpLabel: 'One-time token (OTP)',
+    otpPlaceholder: 'See /var/log/mc-wizard.log',
+    otpHint: 'OTP is required for Plan / Apply / Save.',
+    importMode: 'Import',
+    importNone: 'None',
+    importPaste: 'Paste claims string',
+    importFile: 'From file path',
+    importValue: 'Claims / Path',
+    importPlaceholder: 'Paste claims or input file path',
+    importHint: 'For file import, use a server-side file path.',
+    beginner: 'Beginner',
+    keepInventory: 'Keep inventory on death',
+    allowCheats: 'Allow cheats (command blocks)',
+    core: 'Core',
+    expectedPlayers: 'Expected players',
+    expectedPlayersPh: 'e.g. 3',
+    maxPlayers: 'Max players',
+    maxPlayersPh: 'e.g. 20',
+    difficulty: 'Difficulty',
+    difficultyPeaceful: 'Peaceful',
+    difficultyEasy: 'Easy',
+    difficultyNormal: 'Normal',
+    difficultyHard: 'Hard',
+    gamemode: 'Game mode',
+    gmSurvival: 'Survival',
+    gmCreative: 'Creative',
+    gmAdventure: 'Adventure',
+    gmSpectator: 'Spectator',
+    onlineMode: 'Online mode',
+    pvp: 'PVP',
+    whitelist: 'Whitelist',
+    spawnProtection: 'Spawn protection',
+    spawnProtectionPh: 'e.g. 16',
+    performance: 'Performance',
+    memory: 'Memory (docker.env.MEMORY)',
+    memoryPh: 'e.g. 2G / 2048M',
+    viewDistance: 'View distance',
+    viewDistancePh: 'e.g. 6',
+    simulationDistance: 'Simulation distance',
+    simulationDistancePh: 'e.g. 4',
+    randomTick: 'Random tick speed',
+    randomTickPh: 'e.g. 3',
+    maxEntityCramming: 'Max entity cramming',
+    maxEntityCrammingPh: 'e.g. 24',
+    panel: 'Panel / Network / RCON',
+    panelEnable: 'Enable panel',
+    panelPort: 'Panel port',
+    panelPortPh: '15000',
+    serverPort: 'MC port',
+    serverPortPh: '25565',
+    rconEnable: 'Enable RCON',
+    rconPort: 'RCON port',
+    rconPortPh: '25575',
+    map: 'Map / Plugins',
+    mapPlugin: 'Map plugin',
+    mapPort: 'Map port',
+    mapPortPh: '8100',
+    mapInterval: 'Render interval',
+    mapIntervalPh: '5',
+    inventoryPlugin: 'Inventory plugin',
+    advanced: 'Advanced (catalog)',
+    custom: 'Custom params',
+    customHint: 'Extra key=value lines (one per line)',
+    customPlaceholder: 'max-players=3\nview-distance=4\nkeepInventory=true',
+    customHint2: 'These override values above and imported claims.',
+    btnPlan: 'Run Plan (review)',
+    btnApply: 'Run Apply',
+    btnSave: 'Save state',
+    output: 'Output',
+    panelHint: 'If panel is installed:',
+    panelLink: 'Open panel',
+    default: 'Default',
+    on: 'On',
+    off: 'Off'
+  }
+};
 
-function paramsToText(params) {
-  return Object.entries(params).map(([k,v]) => `${k}=${v}`).join('\n');
-}
-
-function collectParams() {
-  const params = parseParamsText($('params_extra').value || '');
-  document.querySelectorAll('[data-param]').forEach(el => {
-    const key = el.getAttribute('data-param');
-    const val = (el.value || '').trim();
-    if (key && val) params[key] = val;
+function applyLang(lang) {
+  const dict = translations[lang] || translations.zh;
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const key = el.getAttribute('data-i18n');
+    if (dict[key]) el.textContent = dict[key];
   });
-  return params;
+  document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (dict[key]) el.setAttribute('placeholder', dict[key]);
+  });
 }
 
 async function loadState() {
@@ -286,27 +477,28 @@ async function loadState() {
   $('import_value').value = data.import_value || '';
   $('params_extra').value = data.params_text || '';
   if (data.panel_url) panelLink.href = data.panel_url;
-
-  const params = parseParamsText(data.params_text || '');
-  document.querySelectorAll('[data-param]').forEach(el => {
-    const key = el.getAttribute('data-param');
-    if (key && params[key] !== undefined) {
-      el.value = params[key];
-    }
-  });
-
-  await loadCatalog();
+  if (data.lang) {
+    $('lang').value = data.lang;
+    applyLang(data.lang);
+  }
 }
 
 function gather() {
-  const params = collectParams();
+  const params = {};
+  document.querySelectorAll('[data-param]').forEach((el) => {
+    const key = el.getAttribute('data-param');
+    const val = (el.value || '').trim();
+    if (val !== '') params[key] = val;
+  });
   return {
     version: $('version').value.trim() || '1.21.11',
     profile: $('profile').value,
+    otp: $('otp').value.trim(),
     import_mode: $('import_mode').value,
     import_value: $('import_value').value.trim(),
-    params_text: paramsToText(params),
-    otp: ($('otp') ? $('otp').value.trim() : '')
+    params: params,
+    params_text: $('params_extra').value,
+    lang: $('lang').value
   };
 }
 
@@ -315,113 +507,20 @@ async function saveState() {
   await fetch('/api/wizard/state', {method:'POST', headers:{'Content-Type':'application/json','X-MCIC-OTP': (payload.otp || '')}, body: JSON.stringify(payload)});
 }
 
-function reviewLevel(outputText) {
-  const lower = (outputText || '').toLowerCase();
-  if ((outputText || '').includes('??') || lower.includes('block')) return 'block';
-  if ((outputText || '').includes('??') || lower.includes('warn')) return 'warn';
-  return 'allow';
-}
-
-async function runPlan() {
-  output.textContent = '???... / Running...';
+async function runAction(path) {
+  output.textContent = '...';
   const payload = gather();
-  const res = await fetch('/api/wizard/plan', {method:'POST', headers:{'Content-Type':'application/json','X-MCIC-OTP': (payload.otp || '')}, body: JSON.stringify(payload)});
-  const data = await res.json();
-  output.textContent = data.output || data.error || JSON.stringify(data);
-  return data.output || '';
-}
-
-async function runApply() {
-  output.textContent = '???... / Running...';
-  const payload = gather();
-  const res = await fetch('/api/wizard/apply', {method:'POST', headers:{'Content-Type':'application/json','X-MCIC-OTP': (payload.otp || '')}, body: JSON.stringify(payload)});
+  const res = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json','X-MCIC-OTP': (payload.otp || '')}, body: JSON.stringify(payload)});
   const data = await res.json();
   output.textContent = data.output || data.error || JSON.stringify(data);
 }
 
-async function runApplyWithReview() {
-  const planOutput = await runPlan();
-  const level = reviewLevel(planOutput);
-  if (level === 'block') {
-    alert('???????????????/ Blocked by review. Adjust and retry.');
-    return;
-  }
-  if (level === 'warn') {
-    const ok = confirm('??????????? Apply?/ Warnings found, continue?');
-    if (!ok) return;
-  }
-  const snippet = (planOutput || '').slice(0, 1500);
-  const ok2 = confirm('????????? Apply?/ Apply with review output:\n\n' + snippet);
-  if (!ok2) return;
-  await runApply();
-}
+$('btn_plan').onclick = async () => { await runAction('/api/wizard/plan'); };
+$('btn_apply').onclick = async () => { await runAction('/api/wizard/apply'); };
+$('btn_save').onclick = async () => { await saveState(); output.textContent = 'OK'; };
+$('lang').onchange = () => { applyLang($('lang').value); };
 
-function makeField(key, meta) {
-  const wrapper = document.createElement('div');
-  wrapper.className = 'field';
-  const label = document.createElement('label');
-  label.textContent = key;
-  wrapper.appendChild(label);
-
-  let input;
-  const defVal = meta && meta.default;
-  if (typeof defVal === 'boolean') {
-    input = document.createElement('select');
-    input.innerHTML = '<option value="">???? / Default</option><option value="true">true</option><option value="false">false</option>';
-  } else if (typeof defVal === 'number') {
-    input = document.createElement('input');
-    input.type = 'number';
-    input.placeholder = String(defVal);
-  } else {
-    input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = defVal !== undefined ? String(defVal) : '';
-  }
-  input.setAttribute('data-param', key);
-  wrapper.appendChild(input);
-
-  if (meta && meta.description) {
-    const small = document.createElement('small');
-    small.textContent = meta.description;
-    wrapper.appendChild(small);
-  }
-  return wrapper;
-}
-
-async function loadCatalog() {
-  const version = $('version').value.trim() || '1.21.11';
-  const res = await fetch(`/api/wizard/catalog?version=${encodeURIComponent(version)}`);
-  if (!res.ok) return;
-  const data = await res.json();
-  const container = $('catalog_sections');
-  container.innerHTML = '';
-
-  const sections = [
-    {key: 'server_properties', title: 'server.properties ?? / server.properties'},
-    {key: 'gamerule', title: 'gamerule ?? / gamerule'}
-  ];
-
-  sections.forEach(sec => {
-    const entries = (data.catalog && data.catalog[sec.key] && data.catalog[sec.key].entries) || {};
-    const detail = document.createElement('details');
-    detail.open = false;
-    const summary = document.createElement('summary');
-    summary.textContent = `${sec.title}?${Object.keys(entries).length} ??`;
-    detail.appendChild(summary);
-    const grid = document.createElement('div');
-    grid.className = 'grid';
-    Object.keys(entries).forEach(k => {
-      grid.appendChild(makeField(k, entries[k] || {}));
-    });
-    detail.appendChild(grid);
-    container.appendChild(detail);
-  });
-}
-
-$('btn_plan').onclick = async () => { await runPlan(); };
-$('btn_apply').onclick = async () => { await runApplyWithReview(); };
-$('btn_save').onclick = async () => { await saveState(); output.textContent = '??? / Saved'; };
-
+applyLang('zh');
 loadState();
 </script>
 </body>
