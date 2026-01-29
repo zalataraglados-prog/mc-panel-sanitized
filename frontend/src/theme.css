@@ -218,6 +218,11 @@ body::after {
   border-radius: 6px;
 }
 
+.btn.secondary {
+  background: var(--panel);
+  color: var(--fg);
+}
+
 .btn:disabled {
   opacity: 1;
   color: var(--muted);

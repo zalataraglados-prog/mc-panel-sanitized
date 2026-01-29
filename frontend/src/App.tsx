@@ -43,6 +43,7 @@ const translations = {
     title: "MC Panel",
     dashboard: "Dashboard",
     instances: "Instances",
+    deployNewInstance: "Deploy New Instance",
     logs: "Logs",
     players: "Players",
     onlinePlayers: "Online",
@@ -2234,6 +2235,14 @@ export function App() {
           </select>
           <button className="btn" onClick={refreshAll}>
             {t.refreshButton}
+          </button>
+          <button className="btn secondary" onClick={() => {
+            const host = window.location.hostname;
+            const protocol = window.location.protocol || 'http:';
+            const wizardUrl = `${protocol}//${host}:15001/`;
+            window.open(wizardUrl, '_blank', 'noopener,noreferrer');
+          }}>
+            {t.deployNewInstance}
           </button>
         </div>
         <ul>

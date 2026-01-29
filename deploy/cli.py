@@ -575,6 +575,23 @@ def main():
         help="Base directory where instances are stored",
     )
 
+mcic_tui = sub.add_parser(
+        "tui",
+        help="Run CLI deploy flow (backup when panel is unavailable)",
+    )
+    mcic_tui.add_argument(
+        "mode",
+        nargs="?",
+        choices=("plan", "apply"),
+        default="apply",
+        help="Run plan or apply (default: apply)",
+    )
+    mcic_tui.add_argument(
+        "tui_args",
+        nargs=argparse.REMAINDER,
+        help="Arguments passed to deploy CLI (e.g. --version/--profile/--import-*)",
+    )
+
     for name in ("up", "down", "restart", "status", "logs", "ports", "players", "op", "deop", "tp", "kick", "ban", "unban", "inv", "inv-export", "inv-import", "map", "map-reload", "diag"):
         p = sub.add_parser(name)
         _add_instance_args(p)
@@ -610,6 +627,15 @@ def main():
         _save_default_instance(value)
         print(f"Default instance set to {value}")
         return 0
+
+    if args.command == "tui":
+        mode = args.mode or "apply"
+        cmd = [sys.executable, "-m", "deploy.cli", mode]
+        if mode == "apply":
+            cmd.append("--apply")
+        if getattr(args, "tui_args", None):
+            cmd += args.tui_args
+        return subprocess.run(cmd, check=False).returncode
 
     if args.command in ("up", "down", "restart", "status", "logs", "ports", "players", "op", "deop", "tp", "kick", "ban", "unban", "inv", "inv-export", "inv-import", "map", "map-reload", "diag"):
         instance_dir = _resolve_instance_dir(args)
