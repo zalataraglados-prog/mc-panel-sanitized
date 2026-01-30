@@ -227,10 +227,8 @@
         <div>
           <label data-i18n="mapPlugin">Map plugin</label>
           <select data-param="map.plugin">
-            <option value="" data-i18n="default">Default</option>
-            <option value="bluemap">BlueMap</option>
-            <option value="dynmap">Dynmap</option>
-            <option value="none" data-i18n="off">Off</option>
+            <option value="bluemap" data-i18n="installBluemap">Install BlueMap</option>
+            <option value="none" data-i18n="skipInstall">Do not install</option>
           </select>
         </div>
         <div>
@@ -244,10 +242,8 @@
         <div>
           <label data-i18n="inventoryPlugin">Inventory plugin</label>
           <select data-param="inventory.plugin">
-            <option value="" data-i18n="default">Default</option>
-            <option value="invsee">InvSee++</option>
-            <option value="openinv">OpenInv</option>
-            <option value="none" data-i18n="off">Off</option>
+            <option value="invsee" data-i18n="installInvsee">Install InvSee++</option>
+            <option value="none" data-i18n="skipInstall">Do not install</option>
           </select>
         </div>
       </div>
@@ -347,6 +343,9 @@ const translations = {
     rconPortPh: '25575',
     map: '地图 / 插件',
     mapPlugin: '地图插件',
+    installBluemap: '\u5b89\u88c5 BlueMap',
+    installInvsee: '\u5b89\u88c5 InvSee++',
+    skipInstall: '\u4e0d\u5b89\u88c5',
     mapPort: '地图端口',
     mapPortPh: '8100',
     mapInterval: '渲染间隔',
@@ -432,6 +431,9 @@ const translations = {
     rconPortPh: '25575',
     map: 'Map / Plugins',
     mapPlugin: 'Map plugin',
+    installBluemap: 'Install BlueMap',
+    installInvsee: 'Install InvSee++',
+    skipInstall: 'Do not install',
     mapPort: 'Map port',
     mapPortPh: '8100',
     mapInterval: 'Render interval',
