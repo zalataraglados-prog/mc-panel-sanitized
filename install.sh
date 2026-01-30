@@ -232,6 +232,40 @@ ensure_docker_compose() {
   return 0
 }
 
+ensure_node_npm() {
+  if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+    return 0
+  fi
+
+  # If node exists but npm is missing, try corepack first
+  if command -v node >/dev/null 2>&1 && ! command -v npm >/dev/null 2>&1; then
+    if command -v corepack >/dev/null 2>&1; then
+      corepack enable || true
+      corepack prepare npm@latest --activate || true
+      if command -v npm >/dev/null 2>&1; then
+        return 0
+      fi
+    fi
+  fi
+
+  if command -v apt-get >/dev/null 2>&1; then
+    # Try normal install
+    if apt-get install -y nodejs npm; then
+      return 0
+    fi
+
+    # NodeSource nodejs conflicts with Debian npm; remove npm and use corepack
+    if command -v node >/dev/null 2>&1; then
+      apt-get remove -y npm || true
+      if command -v corepack >/dev/null 2>&1; then
+        corepack enable || true
+        corepack prepare npm@latest --activate || true
+      fi
+    fi
+  fi
+  return 0
+}
+
 # ------------------------------
 # Ensure dependencies
 # ------------------------------
@@ -245,9 +279,7 @@ if command -v apt-get >/dev/null 2>&1; then
     unzip \
     python3 \
     python3-venv \
-    python3-pip \
-    nodejs \
-    npm
+    python3-pip
   if ! command -v docker >/dev/null 2>&1; then
     echo "[INFO] Installing docker..."
     apt-get install -y docker.io
@@ -258,6 +290,7 @@ if command -v apt-get >/dev/null 2>&1; then
   if command -v systemctl >/dev/null 2>&1; then
     systemctl enable --now docker || true
   fi
+  ensure_node_npm
 fi
 
 # ------------------------------
@@ -1031,9 +1064,7 @@ if [ "$PANEL_ENABLED" = "true" ]; then
     echo "$(msg frontend_missing)"
     if ! command -v npm >/dev/null 2>&1; then
       echo "$(msg npm_missing)"
-      if command -v apt >/dev/null 2>&1; then
-        apt update && apt install -y nodejs npm
-      fi
+      ensure_node_npm
     fi
     if command -v npm >/dev/null 2>&1; then
       echo "$(msg frontend_building)"
