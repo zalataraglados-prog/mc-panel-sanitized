@@ -3,6 +3,8 @@ import json
 import os
 import subprocess
 import secrets
+import threading
+import time
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -17,6 +19,8 @@ STATE_FILE = Path("/tmp/mc_wizard_state.json")
 LOG_PATH = Path("/var/log/mc-wizard.log")
 TOKEN_PATH = ROOT / "deploy" / "wizard_token.txt"
 WIZARD_TOKEN = None
+TOKEN_TTL_SECONDS = 2 * 60 * 60
+TOKEN_LOCK = threading.Lock()
 
 
 def _load_state():
@@ -87,6 +91,31 @@ def _run_cli(action, state):
     return proc.returncode, output.strip()
 
 
+def _generate_token():
+    global WIZARD_TOKEN
+    token = secrets.token_urlsafe(12)
+    with TOKEN_LOCK:
+        WIZARD_TOKEN = token
+    try:
+        TOKEN_PATH.write_text(token, encoding="utf-8")
+    except Exception:
+        pass
+    try:
+        LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with LOG_PATH.open("a", encoding="utf-8") as f:
+            f.write(json.dumps({"ts": datetime.utcnow().isoformat() + "Z", "action": "otp", "otp": token, "ttl_seconds": TOKEN_TTL_SECONDS}, ensure_ascii=False) + \"\n\")
+    except Exception:
+        pass
+    print(f"Wizard OTP (valid {TOKEN_TTL_SECONDS//3600}h): {token}")
+    return token
+
+
+def _rotate_token_loop():
+    while True:
+        time.sleep(TOKEN_TTL_SECONDS)
+        _generate_token()
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_HEAD(self):
         parsed = urlparse(self.path)
@@ -113,7 +142,9 @@ class Handler(BaseHTTPRequestHandler):
         token = self._get_token()
         if not token and payload:
             token = (payload.get("otp") or "").strip()
-        if not WIZARD_TOKEN or not token or token != WIZARD_TOKEN:
+        with TOKEN_LOCK:
+            current = WIZARD_TOKEN
+        if not current or not token or token != current:
             self._send(401, json.dumps({"error": "Invalid or missing OTP"}).encode("utf-8"))
             return False
         return True
@@ -203,19 +234,10 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     global WIZARD_TOKEN
     port = int(os.environ.get("MC_PANEL_WIZARD_PORT", "15001"))
-    WIZARD_TOKEN = secrets.token_urlsafe(12)
-    try:
-        TOKEN_PATH.write_text(WIZARD_TOKEN, encoding="utf-8")
-    except Exception:
-        pass
+    _generate_token()
     print(f"Wizard running on http://0.0.0.0:{port}")
-    print(f"Wizard OTP: {WIZARD_TOKEN}")
-    try:
-        LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with LOG_PATH.open("a", encoding="utf-8") as f:
-            f.write(json.dumps({"ts": datetime.utcnow().isoformat() + "Z", "action": "otp", "otp": WIZARD_TOKEN}, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
+    rotator = threading.Thread(target=_rotate_token_loop, daemon=True)
+    rotator.start()
     server = HTTPServer(("0.0.0.0", port), Handler)
     server.serve_forever()
 
