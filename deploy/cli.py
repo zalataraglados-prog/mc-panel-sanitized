@@ -99,7 +99,7 @@ def _read_wizard_otp(
         except OSError:
             lines = []
         for line in reversed(lines):
-            if ""otp"" not in line:
+            if "\"otp\"" not in line:
                 continue
             try:
                 payload = json.loads(line)
