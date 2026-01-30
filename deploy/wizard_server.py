@@ -135,7 +135,7 @@ def _generate_token():
     try:
         LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
         with LOG_PATH.open("a", encoding="utf-8") as f:
-            f.write(json.dumps({"ts": datetime.utcnow().isoformat() + "Z", "action": "otp", "otp": token, "ttl_seconds": TOKEN_TTL_SECONDS}, ensure_ascii=False) + \"\n\")
+            f.write(json.dumps({"ts": datetime.utcnow().isoformat() + "Z", "action": "otp", "ttl_seconds": TOKEN_TTL_SECONDS}, ensure_ascii=False) + "\n")
     except Exception:
         pass
     return token
