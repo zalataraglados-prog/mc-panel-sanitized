@@ -10,7 +10,7 @@ import hashlib
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 from deploy.claims_codec.encode import encode_claims
 from deploy.loader import load_rules_bundle
@@ -79,6 +79,35 @@ def _parse_params(text):
         params[key.strip()] = value.strip()
     return params
 
+
+
+
+def _check_ports(ports):
+    results = {}
+    for p in ports:
+        try:
+            port = int(p)
+        except Exception:
+            continue
+        if port <= 0 or port > 65535:
+            results[str(port)] = {"free": False, "reason": "invalid"}
+            continue
+        s = None
+        try:
+            import socket
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind(("0.0.0.0", port))
+            results[str(port)] = {"free": True}
+        except Exception as exc:
+            results[str(port)] = {"free": False, "reason": str(exc)}
+        finally:
+            if s:
+                try:
+                    s.close()
+                except Exception:
+                    pass
+    return results
 
 def _build_claims(state):
     params = _parse_params(state.get("params_text", ""))
@@ -260,7 +289,19 @@ class Handler(BaseHTTPRequestHandler):
                 payload = {"nonce": nonce, "ttl_seconds": NONCE_TTL_SECONDS, "host": host}
                 self._send(200, json.dumps(payload, ensure_ascii=False).encode("utf-8"))
                 return
-            if parsed.path == "/api/wizard/catalog":
+    
+        if parsed.path == "/api/wizard/ports":
+            qs = parse_qs(parsed.query or "")
+            ports = []
+            raw = qs.get("ports", [])
+            if raw:
+                for item in raw:
+                    ports.extend([p for p in item.split(",") if p])
+            results = _check_ports(ports)
+            self._send(200, json.dumps({"ports": results}, ensure_ascii=False).encode("utf-8"))
+            return
+
+        if parsed.path == "/api/wizard/catalog":
                 try:
                     query = urlparse(self.path).query
                     version = "1.21.11"
