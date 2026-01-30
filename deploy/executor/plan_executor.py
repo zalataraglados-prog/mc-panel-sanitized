@@ -553,17 +553,99 @@ class ExecutionPlanExecutor:
             rendered = rendered.replace(f"{{{{{key}}}}}", str(value))
         return rendered
 
+
+    def _plan_instance_dir(self, plan: ExecutionPlan) -> str | None:
+        for action in plan.actions:
+            if action.type == "mkdir":
+                return action.params.get("path")
+        return None
+
+    def _safe_cleanup_instance_dir(self, instance_dir: str) -> None:
+        try:
+            if not instance_dir or not os.path.isdir(instance_dir):
+                return
+            data_dir = os.path.join(instance_dir, "data")
+            world_dir = os.path.join(data_dir, "world")
+            if os.path.isdir(world_dir):
+                # do not remove if any world data exists
+                for _, _, files in os.walk(world_dir):
+                    if files:
+                        return
+            allowed = {"config.json", "docker-compose.yml", "execution_result.json", ".mcic_failed"}
+            for entry in os.listdir(instance_dir):
+                if entry in ("data", "logs", "backups", "panel"):
+                    continue
+                if entry in allowed:
+                    continue
+                return
+            # only remove if data/logs are empty
+            for sub in ("data", "logs", "backups", "panel"):
+                sub_path = os.path.join(instance_dir, sub)
+                if os.path.isdir(sub_path):
+                    for root, dirs, files in os.walk(sub_path):
+                        if files:
+                            return
+            shutil.rmtree(instance_dir, ignore_errors=True)
+        except Exception:
+            return
+
+    def _mark_failure(self, instance_dir: str, reason: str = "") -> None:
+        try:
+            if not instance_dir:
+                return
+            marker = os.path.join(instance_dir, ".mcic_failed")
+            with open(marker, "w", encoding="utf-8") as handle:
+                handle.write(reason or "failed")
+        except Exception:
+            return
+
     def execute(self, plan: ExecutionPlan) -> ExecutionResult:
         steps: List[ExecutionStep] = []
         executed_actions: List[ExecutionStep] = []
+        instance_dir = self._plan_instance_dir(plan)
+        existed_before = bool(instance_dir and os.path.isdir(instance_dir))
 
-        for pre in plan.preconditions:
-            step = self._check_precondition(pre)
-            steps.append(step)
-            if pre.required and not step.ok:
-                result = ExecutionResult(ok=False, steps=steps, rollback_pending=False)
-                result.log_path = self._write_log(plan, result)
-                return result
+        try:
+            for pre in plan.preconditions:
+                step = self._check_precondition(pre)
+                steps.append(step)
+                if pre.required and not step.ok:
+                    result = ExecutionResult(ok=False, steps=steps, rollback_pending=False)
+                    result.log_path = self._write_log(plan, result)
+                    if instance_dir and not existed_before:
+                        self._mark_failure(instance_dir, "precondition")
+                    return result
+
+            for action in plan.actions:
+                step = self._execute_action(action)
+                steps.append(step)
+                executed_actions.append(step)
+                if not step.ok:
+                    result = ExecutionResult(ok=False, steps=steps, rollback_pending=bool(executed_actions))
+                    result.log_path = self._write_log(plan, result)
+                    if instance_dir and not existed_before:
+                        self._mark_failure(instance_dir, "action_failed")
+                        self._safe_cleanup_instance_dir(instance_dir)
+                    return result
+
+            result = ExecutionResult(ok=True, steps=steps)
+            result.log_path = self._write_log(plan, result)
+            if instance_dir:
+                try:
+                    failed_marker = os.path.join(instance_dir, ".mcic_failed")
+                    if os.path.exists(failed_marker):
+                        os.remove(failed_marker)
+                except Exception:
+                    pass
+            return result
+        except KeyboardInterrupt:
+            result = ExecutionResult(ok=False, steps=steps, rollback_pending=bool(executed_actions))
+            result.log_path = self._write_log(plan, result)
+            if instance_dir and not existed_before:
+                self._mark_failure(instance_dir, "interrupted")
+                self._safe_cleanup_instance_dir(instance_dir)
+            return result
+
 
         for action in plan.actions:
             step = self._execute_action(action)

@@ -256,3 +256,15 @@ Decimals are normalized to MB before starting the server to avoid JVM errors.
 
 `docker.env.MEMORY` 支持整数或小数（如 `2G`, `2.5G`）。
 小数会自动转换为 MB 再启动服务器，避免 JVM 参数报错。
+
+
+## Localization / ????
+
+- Web panel UI (frontend)
+- Wizard UI (port 15001)
+- CLI prompts & docs (mcic)
+
+- Web ????????
+- ???????15001 ???
+- CLI ??????mcic?
+

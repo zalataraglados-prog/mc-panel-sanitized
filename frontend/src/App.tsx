@@ -204,6 +204,7 @@ const translations = {
     title: "MC \u9762\u677f",
     dashboard: "\u4eea\u8868\u76d8",
     instances: "\u5b9e\u4f8b\u5217\u8868",
+    deployNewInstance: "?????",
     logs: "\u5b9e\u65f6\u65e5\u5fd7",
     players: "\u73a9\u5bb6\u5217\u8868",
     onlinePlayers: "\u5728\u7ebf",

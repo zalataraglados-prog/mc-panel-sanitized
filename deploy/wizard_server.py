@@ -20,6 +20,7 @@ UI_DIR = ROOT / "deploy" / "wizard_ui"
 STATE_FILE = Path("/tmp/mc_wizard_state.json")
 LOG_PATH = Path("/var/log/mc-wizard.log")
 TOKEN_PATH = ROOT / "deploy" / "wizard_token.txt"
+PID_FILE = Path("/tmp/mc-wizard.pid")
 WIZARD_TOKEN = None
 TOKEN_TTL_SECONDS = 2 * 60 * 60
 TOKEN_LOCK = threading.Lock()
@@ -114,6 +115,21 @@ def _generate_token():
         pass
     return token
 
+
+
+
+def _write_pid():
+    try:
+        PID_FILE.write_text(str(os.getpid()), encoding="utf-8")
+    except Exception:
+        pass
+
+def _cleanup_pid():
+    try:
+        if PID_FILE.exists():
+            PID_FILE.unlink()
+    except Exception:
+        pass
 
 def _rotate_token_loop():
     while True:
@@ -287,12 +303,39 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     global WIZARD_TOKEN
     port = int(os.environ.get("MC_PANEL_WIZARD_PORT", "15001"))
+    # clean stale pid file
+    try:
+        if PID_FILE.exists():
+            try:
+                pid = int(PID_FILE.read_text(encoding="utf-8", errors="ignore").strip() or 0)
+            except Exception:
+                pid = 0
+            if pid:
+                try:
+                    os.kill(pid, 0)
+                    # another instance is alive
+                    raise SystemExit("mc-wizard already running")
+                except OSError:
+                    pass
+            _cleanup_pid()
+    except Exception:
+        pass
+
     _generate_token()
-    print(f"Wizard running on http://0.0.0.0:{port}")
+    _write_pid()
     rotator = threading.Thread(target=_rotate_token_loop, daemon=True)
     rotator.start()
     server = HTTPServer(("0.0.0.0", port), Handler)
-    server.serve_forever()
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        try:
+            server.server_close()
+        except Exception:
+            pass
+        _cleanup_pid()
 
 
 if __name__ == "__main__":

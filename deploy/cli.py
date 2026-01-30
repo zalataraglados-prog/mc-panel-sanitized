@@ -13,6 +13,8 @@ import os
 import re
 import subprocess
 import sys
+import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
@@ -38,6 +40,7 @@ from backend.runtime.inventory import get_inventory, set_inventory
 
 
 DEFAULT_INSTANCE_FILE = Path.home() / ".mcic_default"
+GLOBAL_LOCK = Path("/tmp/mcic.lock")
 
 
 def _load_default_instance() -> Optional[str]:
@@ -51,6 +54,54 @@ def _save_default_instance(value: str) -> None:
     DEFAULT_INSTANCE_FILE.write_text(value.strip(), encoding="utf-8")
 
 
+
+def _pid_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+        return True
+    except Exception:
+        return False
+
+
+@contextmanager
+def _execution_lock(lock_path: Path, *, ttl_seconds: int = 6 * 60 * 60):
+    lock_path = Path(lock_path)
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    now = time.time()
+    if lock_path.exists():
+        try:
+            payload = json.loads(lock_path.read_text(encoding="utf-8", errors="ignore") or "{}")
+        except Exception:
+            payload = {}
+        pid = int(payload.get("pid") or 0)
+        ts = float(payload.get("ts") or 0.0)
+        stale = (now - ts) > ttl_seconds
+        if pid and _pid_alive(pid) and not stale:
+            raise SystemExit(f"Another mcic process is running (pid={pid}).")
+        try:
+            lock_path.unlink()
+        except Exception:
+            pass
+    lock_path.write_text(json.dumps({"pid": os.getpid(), "ts": now}, ensure_ascii=False), encoding="utf-8")
+    try:
+        yield
+    finally:
+        try:
+            lock_path.unlink()
+        except Exception:
+            pass
+
+
+@contextmanager
+def _workdir_guard():
+    cwd = os.getcwd()
+    try:
+        yield
+    finally:
+        try:
+            os.chdir(cwd)
+        except Exception:
+            pass
 def _list_instance_dirs(base_dir: str) -> list[Path]:
     base = Path(base_dir)
     if not base.exists():
@@ -624,6 +675,7 @@ def main():
     # mcic TUI helper
     mcic_tui = sub.add_parser(
         "tui",
+        aliases=["legacy"],
         help="Run CLI deploy flow (backup when panel is unavailable)",
     )
     mcic_tui.add_argument(
@@ -950,8 +1002,24 @@ def main():
     if not args.apply:
         return 0
 
+    lock_path = GLOBAL_LOCK
+    try:
+        if getattr(args, "instance_dir", None) or getattr(args, "instance", None):
+            instance_dir = _resolve_instance_dir(args)
+            lock_path = instance_dir / ".mcic.lock"
+    except Exception:
+        lock_path = GLOBAL_LOCK
+
     executor = ExecutionPlanExecutor(inspector=inspector)
-    result = executor.execute(plan)
+    try:
+        with _workdir_guard(), _execution_lock(lock_path):
+            result = executor.execute(plan)
+    except KeyboardInterrupt:
+        if lang == "zh":
+            print("????????????...")
+        else:
+            print("Interrupted. Cleaning up...")
+        return 130
     if not result.ok:
         if lang == "zh":
             print("执行失败。")
