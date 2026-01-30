@@ -128,9 +128,11 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Content-Length", str(len(body or b"")))
         self.end_headers()
         if body:
             self.wfile.write(body)
+        self.close_connection = True
     def _get_token(self):
         header_token = self.headers.get("X-MCIC-OTP")
         if header_token:
