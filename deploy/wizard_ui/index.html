@@ -28,7 +28,15 @@
     .field { background: #0f172a; border: 1px solid #1f2937; border-radius: 8px; padding: 8px; }
     .field small { color: #94a3b8; display: block; margin-top: 6px; }
     .lang-switch { display:flex; align-items:center; gap:8px; font-size:12px; color:#cbd5f5; }
-  </style>
+  
+    .modal { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.7); display: flex; align-items: center; justify-content: center; z-index: 50; }
+    .modal.hidden { display: none; }
+    .modal-card { width: min(520px, 92vw); background: #0b1220; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+    .modal-card h3 { margin: 0 0 8px; font-size: 16px; }
+    .modal-card p { margin: 0 0 12px; color: #cbd5f5; line-height: 1.5; }
+    .modal-card .actions { justify-content: flex-end; }
+    .btn-disabled { opacity: 0.6; cursor: not-allowed; }
+</style>
 </head>
 <body>
   <div class="wrap">
@@ -270,6 +278,16 @@
       <label style="margin-top:12px;" data-i18n="output">Output</label>
       <div id="output" class="output"></div>
       <div class="hint"><span data-i18n="panelHint">If panel is installed:</span> <a id="panel_link" href="/" target="_blank" data-i18n="panelLink">Open panel</a></div>
+    </div>
+  </div>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-card">
+      <h3 id="modal_title">完成</h3>
+      <p id="modal_body">已执行。</p>
+      <div class="actions">
+        <button id="modal_close" class="secondary">知道了</button>
+      </div>
     </div>
   </div>
 <script>
@@ -529,22 +547,69 @@ function gather() {
   };
 }
 
+
+async function buildHeaders(otp) {
+  const headers = {'Content-Type':'application/json'};
+  const cleanOtp = (otp || '').trim();
+  if (cleanOtp && window.crypto && crypto.subtle) {
+    const meta = await getNonce();
+    const sig = await signOtp(cleanOtp, meta.nonce, meta.host || location.host);
+    headers['X-MCIC-NONCE'] = meta.nonce;
+    headers['X-MCIC-OTP-SIG'] = sig;
+  } else if (cleanOtp) {
+    headers['X-MCIC-OTP'] = cleanOtp;
+  }
+  return headers;
+}
+
+function showModal(title, body) {
+  const modal = $('modal');
+  $('modal_title').textContent = title;
+  $('modal_body').textContent = body;
+  $('modal_close').textContent = $('lang').value === 'zh' ? '知道了' : 'OK';
+  modal.classList.remove('hidden');
+}
+
+$('modal_close').onclick = () => { $('modal').classList.add('hidden'); };
+
 async function saveState() {
   const payload = gather();
-  await fetch('/api/wizard/state', {method:'POST', headers:{'Content-Type':'application/json','X-MCIC-OTP': (payload.otp || '')}, body: JSON.stringify(payload)});
+  const otp = payload.otp;
+  delete payload.otp;
+  const headers = await buildHeaders(otp);
+  await fetch('/api/wizard/state', {method:'POST', headers, body: JSON.stringify(payload)});
 }
 
 async function runAction(path) {
   output.textContent = '...';
   const payload = gather();
-  const res = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json','X-MCIC-OTP': (payload.otp || '')}, body: JSON.stringify(payload)});
+  const otp = payload.otp;
+  delete payload.otp;
+  const headers = await buildHeaders(otp);
+  const res = await fetch(path, {method:'POST', headers, body: JSON.stringify(payload)});
   const data = await res.json();
   output.textContent = data.output || data.error || JSON.stringify(data);
+  return {res, data};
 }
 
 $('btn_plan').onclick = async () => { await runAction('/api/wizard/plan'); };
-$('btn_apply').onclick = async () => { await runAction('/api/wizard/apply'); };
+$('btn_apply').onclick = async () => {
+  const btn = $('btn_apply');
+  btn.disabled = true;
+  btn.classList.add('btn-disabled');
+  const original = btn.textContent;
+  btn.textContent = $('lang').value === 'zh' ? '执行中...' : 'Applying...';
+  const {data} = await runAction('/api/wizard/apply');
+  const ok = data && (data.ok === true || data.ok === 'true');
+  if (ok) {
+    showModal($('lang').value === 'zh' ? '\u6267\u884c\u5b8c\u6210' : 'Apply completed', $('lang').value === 'zh' ? '\u6267\u884c\u5df2\u5b8c\u6210\uff0c\u8bf7\u628a\u9f20\u6807\u79fb\u5f00\u6309\u94ae\u533a\u57df\u3002' : 'Apply finished. Please move your mouse away from the Apply button.');
+  } else {
+    showModal($('lang').value === 'zh' ? '\u6267\u884c\u5931\u8d25' : 'Apply failed', $('lang').value === 'zh' ? '\u6267\u884c\u672a\u6210\u529f\uff0c\u8bf7\u67e5\u770b\u8f93\u51fa\u4fe1\u606f\u3002' : 'Apply failed. Check the output for details.');
+  }
+  btn.textContent = original;
+};
 $('btn_save').onclick = async () => { await saveState(); output.textContent = 'OK'; };
+
 $('lang').onchange = () => { applyLang($('lang').value); };
 
 applyLang('zh');
