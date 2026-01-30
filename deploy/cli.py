@@ -80,6 +80,37 @@ def _resolve_instance_name(instance_dir: Path, cfg: dict | None = None) -> str:
     return name or instance_dir.name
 
 
+def _read_wizard_otp(
+    log_path: Path | None = None,
+    token_path: Path | None = None,
+) -> tuple[Optional[str], str]:
+    root = Path(__file__).resolve().parents[1]
+    token_path = token_path or (root / "deploy" / "wizard_token.txt")
+    log_path = log_path or Path("/var/log/mc-wizard.log")
+
+    if token_path.exists():
+        token = token_path.read_text(encoding="utf-8", errors="ignore").strip()
+        if token:
+            return token, str(token_path)
+
+    if log_path.exists():
+        try:
+            lines = log_path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        except OSError:
+            lines = []
+        for line in reversed(lines):
+            if ""otp"" not in line:
+                continue
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if payload.get("action") == "otp" and payload.get("otp"):
+                return str(payload.get("otp")), str(log_path)
+
+    return None, str(log_path)
+
+
 def _resolve_instance_dir(args) -> Path:
     base_dir = getattr(args, "base_dir", None) or os.environ.get("MC_PANEL_BASE_DIR", "/opt/mc-instances")
     if getattr(args, "instance_dir", None):
@@ -575,7 +606,22 @@ def main():
         help="Base directory where instances are stored",
     )
 
-mcic_tui = sub.add_parser(
+    mcic_otp = sub.add_parser(
+        "otp",
+        help="Show wizard OTP (for web wizard login)",
+    )
+    mcic_otp.add_argument(
+        "--log",
+        default="/var/log/mc-wizard.log",
+        help="Wizard log file (default: /var/log/mc-wizard.log)",
+    )
+    mcic_otp.add_argument(
+        "--token",
+        default=None,
+        help="Wizard token file (default: deploy/wizard_token.txt)",
+    )
+
+    mcic_tui = sub.add_parser(
         "tui",
         help="Run CLI deploy flow (backup when panel is unavailable)",
     )
@@ -627,6 +673,20 @@ mcic_tui = sub.add_parser(
         _save_default_instance(value)
         print(f"Default instance set to {value}")
         return 0
+
+    if args.command == "otp":
+        log_path = Path(args.log)
+        token_path = Path(args.token) if args.token else None
+        token, source = _read_wizard_otp(log_path=log_path, token_path=token_path)
+        if token:
+            print(f"OTP: {token}")
+            print(f"Source: {source}")
+            print("Use this OTP in the wizard page (OTP field).")
+            return 0
+        print("OTP not found. Is mc-wizard running?")
+        print(f"Checked: {source}")
+        print("Tip: check journalctl -u mc-wizard -n 50")
+        return 1
 
     if args.command == "tui":
         mode = args.mode or "apply"

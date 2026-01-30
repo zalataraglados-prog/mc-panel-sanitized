@@ -380,6 +380,7 @@ if [ "$MC_PANEL_WIZARD" = "1" ] && [ "$SKIP_PROMPTS" != "1" ]; then
   echo "[INFO] Starting web wizard on port ${WIZARD_PORT}..."
   start_wizard_service
   echo "[INFO] Open: http://<server-ip>:${WIZARD_PORT}/"
+  echo "[INFO] OTP: run 'mcic otp' to view one-time token"
   echo "[INFO] To skip wizard, set MC_PANEL_WIZARD=0"
   exit 0
 fi
