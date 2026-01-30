@@ -281,6 +281,8 @@
         <button id="btn_apply" data-i18n="btnApply">Run Apply</button>
         <button id="btn_save" class="secondary" data-i18n="btnSave">Save state</button>
       </div>
+
+      <div class="hint" id="apply_notice" data-i18n="applyNotice">可能需要数分钟到数十分钟，请耐心等待。</div>
       <label style="margin-top:12px;" data-i18n="output">Output</label>
       <div id="apply_progress" class="progress-wrap hidden">
         <div class="progress-bar"><div id="apply_progress_fill" class="progress-fill"></div></div>
@@ -411,8 +413,9 @@ const translations = {
     customHint2: '将覆盖上方与导入配置中的值。',
     btnPlan: '运行 Plan（评审）',
     btnApply: '执行 Apply',
-    btnSave: '保存配置',
-    output: '输出',
+    btnSave: '\u4fdd\u5b58\u914d\u7f6e',
+    applyNotice: '\u53ef\u80fd\u9700\u8981\u6570\u5206\u949f\u5230\u6570\u5341\u5206\u949f\uff0c\u8bf7\u8010\u5fc3\u7b49\u5f85\u3002',
+    output: '\u8f93\u51fa',
     panelHint: '如已安装主面板：',
     panelLink: '打开面板',
     default: '默认',
@@ -501,6 +504,7 @@ const translations = {
     btnApply: 'Run Apply',
     btnSave: 'Save state',
     output: 'Output',
+    applyNotice: 'Apply may take minutes to tens of minutes. Please wait.',
     panelHint: 'If panel is installed:',
     panelLink: 'Open panel',
     default: 'Default',
@@ -572,13 +576,21 @@ async function buildHeaders(otp) {
   return headers;
 }
 
+let applyHangTimer = null;
+function showHangAlert() {
+  const msg = $('lang').value === 'zh'
+    ? '执行时间较长，可能卡住。请查看输出/日志，必要时 SSH 登录检查。'
+    : 'Apply is taking longer than expected. Check output/logs via SSH and retry if needed.';
+  showModal($('lang').value === 'zh' ? '\u6267\u884c\u544a\u8b66' : 'Apply warning', msg);
+}
+
 function startProgress() {
   const wrap = $('apply_progress');
   const fill = $('apply_progress_fill');
   const pct = $('apply_progress_pct');
   const label = $('apply_progress_label');
   wrap.classList.remove('hidden');
-  label.textContent = $('lang').value === 'zh' ? '?????' : 'Running?';
+  label.textContent = $('lang').value === 'zh' ? '\u6267\u884c\u4e2d' : 'Running?';
   let value = 1;
   fill.style.width = value + '%';
   pct.textContent = value + '%';
@@ -592,7 +604,7 @@ function startProgress() {
     const final = ok ? 100 : Math.max(95, value);
     fill.style.width = final + '%';
     pct.textContent = final + '%';
-    label.textContent = ok ? ($('lang').value === 'zh' ? '????' : 'Completed') : ($('lang').value === 'zh' ? '????' : 'Failed');
+    label.textContent = ok ? ($('lang').value === 'zh' ? '\u5b8c\u6210' : 'Completed') : ($('lang').value === 'zh' ? '\u5931\u8d25' : 'Failed');
   }};
 }
 
@@ -634,12 +646,16 @@ $('btn_apply').onclick = async () => {
   const original = btn.textContent;
   btn.textContent = $('lang').value === 'zh' ? '执行中...' : 'Applying...';
   const progress = startProgress();
+  if (applyHangTimer) clearTimeout(applyHangTimer);
+  applyHangTimer = setTimeout(showHangAlert, 180000);
   const {data} = await runAction('/api/wizard/apply');
   const ok = data && (data.ok === true || data.ok === 'true');
   if (ok) {
+    if (applyHangTimer) { clearTimeout(applyHangTimer); applyHangTimer = null; }
     progress.stop(true);
     showModal($('lang').value === 'zh' ? '\u6267\u884c\u5b8c\u6210' : 'Apply completed', $('lang').value === 'zh' ? '\u6267\u884c\u5df2\u5b8c\u6210\uff0c\u8bf7\u628a\u9f20\u6807\u79fb\u5f00\u6309\u94ae\u533a\u57df\u3002' : 'Apply finished. Please move your mouse away from the Apply button.');
   } else {
+    if (applyHangTimer) { clearTimeout(applyHangTimer); applyHangTimer = null; }
     progress.stop(false);
     showModal($('lang').value === 'zh' ? '\u6267\u884c\u5931\u8d25' : 'Apply failed', $('lang').value === 'zh' ? '\u6267\u884c\u672a\u6210\u529f\uff0c\u8bf7\u67e5\u770b\u8f93\u51fa\u4fe1\u606f\u3002' : 'Apply failed. Check the output for details.');
   }
