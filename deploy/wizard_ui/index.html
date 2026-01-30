@@ -277,6 +277,31 @@ const $ = (id) => document.getElementById(id);
 const output = $('output');
 const panelLink = $('panel_link');
 
+
+async function getNonce() {
+  const res = await fetch('/api/wizard/nonce');
+  if (!res.ok) throw new Error('nonce failed');
+  return await res.json();
+}
+
+function toHex(buffer) {
+  return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function signOtp(otp, nonce, host) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(otp),
+    {name: 'HMAC', hash: 'SHA-256'},
+    false,
+    ['sign']
+  );
+  const data = enc.encode(`${nonce}:${host}`);
+  const sig = await crypto.subtle.sign('HMAC', key, data);
+  return toHex(sig);
+}
+
 const translations = {
   zh: {
     title: 'MCIC 引导向导',

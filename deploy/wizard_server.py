@@ -5,6 +5,8 @@ import subprocess
 import secrets
 import threading
 import time
+import hmac
+import hashlib
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -21,6 +23,9 @@ TOKEN_PATH = ROOT / "deploy" / "wizard_token.txt"
 WIZARD_TOKEN = None
 TOKEN_TTL_SECONDS = 2 * 60 * 60
 TOKEN_LOCK = threading.Lock()
+NONCE_TTL_SECONDS = 120
+NONCE_LOCK = threading.Lock()
+NONCE_STORE = {}
 
 
 def _load_state():
@@ -116,6 +121,28 @@ def _rotate_token_loop():
         _generate_token()
 
 
+def _issue_nonce(ip):
+    nonce = secrets.token_urlsafe(16)
+    with NONCE_LOCK:
+        NONCE_STORE[ip] = {"nonce": nonce, "ts": time.time()}
+    return nonce
+
+
+def _consume_nonce(ip, nonce):
+    now = time.time()
+    with NONCE_LOCK:
+        entry = NONCE_STORE.get(ip)
+        if not entry:
+            return False
+        if entry.get("nonce") != nonce:
+            return False
+        if now - entry.get("ts", 0) > NONCE_TTL_SECONDS:
+            NONCE_STORE.pop(ip, None)
+            return False
+        NONCE_STORE.pop(ip, None)
+        return True
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_HEAD(self):
         parsed = urlparse(self.path)
@@ -146,7 +173,25 @@ class Handler(BaseHTTPRequestHandler):
             token = (payload.get("otp") or "").strip()
         with TOKEN_LOCK:
             current = WIZARD_TOKEN
-        if not current or not token or token != current:
+        # legacy OTP header/body
+        if token:
+            if not current or token != current:
+                self._send(401, json.dumps({"error": "Invalid or missing OTP"}).encode("utf-8"))
+                return False
+            return True
+        # signature flow
+        nonce = self.headers.get("X-MCIC-NONCE", "").strip()
+        sig = self.headers.get("X-MCIC-OTP-SIG", "").strip()
+        if not current or not nonce or not sig:
+            self._send(401, json.dumps({"error": "Invalid or missing OTP"}).encode("utf-8"))
+            return False
+        if not _consume_nonce(self.client_address[0], nonce):
+            self._send(401, json.dumps({"error": "Invalid or missing OTP"}).encode("utf-8"))
+            return False
+        host = (self.headers.get("Host") or "").strip()
+        msg = f"{nonce}:{host}".encode("utf-8")
+        expected = hmac.new(current.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected, sig):
             self._send(401, json.dumps({"error": "Invalid or missing OTP"}).encode("utf-8"))
             return False
         return True
@@ -167,6 +212,12 @@ class Handler(BaseHTTPRequestHandler):
                 panel_url = os.environ.get("MC_PANEL_URL") or "http://127.0.0.1:15000/"
                 state.setdefault("panel_url", panel_url)
                 self._send(200, json.dumps(state, ensure_ascii=False).encode("utf-8"))
+                return
+            if parsed.path == "/api/wizard/nonce":
+                nonce = _issue_nonce(self.client_address[0])
+                host = (self.headers.get("Host") or "").strip()
+                payload = {"nonce": nonce, "ttl_seconds": NONCE_TTL_SECONDS, "host": host}
+                self._send(200, json.dumps(payload, ensure_ascii=False).encode("utf-8"))
                 return
             if parsed.path == "/api/wizard/catalog":
                 try:
