@@ -29,6 +29,31 @@ NONCE_LOCK = threading.Lock()
 NONCE_STORE = {}
 
 
+def _pid_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+        return True
+    except Exception:
+        return False
+
+
+def _terminate_existing(pid: int, timeout: float = 5.0) -> None:
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except Exception:
+        return
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if not _pid_alive(pid):
+            return
+        time.sleep(0.2)
+    try:
+        os.kill(pid, signal.SIGKILL)
+    except Exception:
+        return
+
+
+
 def _load_state():
     if STATE_FILE.exists():
         try:
@@ -303,20 +328,15 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     global WIZARD_TOKEN
     port = int(os.environ.get("MC_PANEL_WIZARD_PORT", "15001"))
-    # clean stale pid file
+    # clean stale pid file / terminate previous instance if needed
     try:
         if PID_FILE.exists():
             try:
                 pid = int(PID_FILE.read_text(encoding="utf-8", errors="ignore").strip() or 0)
             except Exception:
                 pid = 0
-            if pid:
-                try:
-                    os.kill(pid, 0)
-                    # another instance is alive
-                    raise SystemExit("mc-wizard already running")
-                except OSError:
-                    pass
+            if pid and _pid_alive(pid):
+                _terminate_existing(pid)
             _cleanup_pid()
     except Exception:
         pass

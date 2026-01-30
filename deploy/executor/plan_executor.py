@@ -616,18 +616,6 @@ class ExecutionPlanExecutor:
                         self._mark_failure(instance_dir, "precondition")
                     return result
 
-            for action in plan.actions:
-                step = self._execute_action(action)
-                steps.append(step)
-                executed_actions.append(step)
-                if not step.ok:
-                    result = ExecutionResult(ok=False, steps=steps, rollback_pending=bool(executed_actions))
-                    result.log_path = self._write_log(plan, result)
-                    if instance_dir and not existed_before:
-                        self._mark_failure(instance_dir, "action_failed")
-                        self._safe_cleanup_instance_dir(instance_dir)
-                    return result
-
             result = ExecutionResult(ok=True, steps=steps)
             result.log_path = self._write_log(plan, result)
             if instance_dir:
@@ -646,19 +634,6 @@ class ExecutionPlanExecutor:
                 self._safe_cleanup_instance_dir(instance_dir)
             return result
 
-
-        for action in plan.actions:
-            step = self._execute_action(action)
-            steps.append(step)
-            executed_actions.append(step)
-            if not step.ok:
-                result = ExecutionResult(ok=False, steps=steps, rollback_pending=bool(executed_actions))
-                result.log_path = self._write_log(plan, result)
-                return result
-
-        result = ExecutionResult(ok=True, steps=steps)
-        result.log_path = self._write_log(plan, result)
-        return result
 
     def _write_log(self, plan: ExecutionPlan, result: ExecutionResult) -> str | None:
         instance_dir = None
