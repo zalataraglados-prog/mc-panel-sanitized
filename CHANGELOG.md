@@ -2,6 +2,32 @@
 
 ## [Unreleased] / 未发布
 
+## [2026-01-30]
+### Added / 新增
+- Web wizard (port 15001) with plan/apply UI, OTP protection, apply progress bar, and modal feedback.
+  - 新增 15001 端口部署向导：OTP 保护、Apply 进度条与弹窗反馈。
+- Wizard OTP signing with nonce (optional), plus `mcic otp` helper and legacy `mcic tui` alias.
+  - 向导 OTP 支持带随机数签名；新增 `mcic otp`；`mcic legacy` 作为 `tui` 入口。
+
+### Changed / 调整
+- Wizard i18n toggle and full Chinese text coverage in the wizard UI.
+  - 向导页支持中英文切换并补齐中文文案。
+- Wizard apply now uses `--apply` and provides explicit completion/failure feedback.
+  - Apply 操作传递 `--apply` 并返回明确完成/失败提示。
+- Limit optional map/inventory plugins to supported choices only.
+  - 地图/背包插件限制为可用项。
+- Default Minecraft version bumped to 1.21.11.
+  - 默认版本更新为 1.21.11。
+
+### Fixed / 修复
+- Wizard/CLI stability: lock + workdir guard + interrupt cleanup; stale wizard PID cleanup before restart.
+  - CLI/向导：运行锁、工作目录恢复、Ctrl+C 清理；服务重启前清理旧 PID。
+- Wizard responses now include `Content-Length` and close connections reliably.
+  - 向导响应增加 `Content-Length` 并主动关闭连接，避免挂起。
+- Node/npm install conflicts handled via Corepack in install flow.
+  - 安装流程对 Node/npm 冲突进行 Corepack 兼容处理。
+
+
 ## [2026-01-24]
 ### Added / 新增
 - Full Chinese item name map in inventory UI using the official `zh_cn.json`.
