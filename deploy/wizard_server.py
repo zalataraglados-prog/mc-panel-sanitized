@@ -106,7 +106,6 @@ def _generate_token():
             f.write(json.dumps({"ts": datetime.utcnow().isoformat() + "Z", "action": "otp", "otp": token, "ttl_seconds": TOKEN_TTL_SECONDS}, ensure_ascii=False) + \"\n\")
     except Exception:
         pass
-    print(f"Wizard OTP (valid {TOKEN_TTL_SECONDS//3600}h): {token}")
     return token
 
 

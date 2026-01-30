@@ -681,12 +681,9 @@ def main():
         token, source = _read_wizard_otp(log_path=log_path, token_path=token_path)
         if token:
             print(f"OTP: {token}")
-            print(f"Source: {source}")
             print("Use this OTP in the wizard page (OTP field).")
             return 0
         print("OTP not found. Is mc-wizard running?")
-        print(f"Checked: {source}")
-        print("Tip: check journalctl -u mc-wizard -n 50")
         return 1
 
     if args.command == "tui":
