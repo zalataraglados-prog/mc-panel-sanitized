@@ -85,6 +85,7 @@ def _run_cli(action, state):
     claims = _build_claims(state)
     cmd = ["python3", "-m", "deploy.cli", action, "--version", version, "--profile", profile, "--import-string", claims]
     if action == "apply":
+        cmd.append("--apply")
         cmd.append("--confirm-warn")
     proc = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
     output = (proc.stdout or "") + ("\n" + proc.stderr if proc.stderr else "")
