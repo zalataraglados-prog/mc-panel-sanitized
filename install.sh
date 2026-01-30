@@ -249,13 +249,21 @@ ensure_node_npm() {
   fi
 
   if command -v apt-get >/dev/null 2>&1; then
-    # Try normal install
-    if apt-get install -y nodejs npm; then
-      return 0
+    # Try installing nodejs only first (npm may conflict with NodeSource)
+    apt-get install -y nodejs || true
+    if command -v node >/dev/null 2>&1 && command -v corepack >/dev/null 2>&1; then
+      corepack enable || true
+      corepack prepare npm@latest --activate || true
+      if command -v npm >/dev/null 2>&1; then
+        return 0
+      fi
     fi
 
-    # NodeSource nodejs conflicts with Debian npm; remove npm and use corepack
-    if command -v node >/dev/null 2>&1; then
+    # Fallback: try installing npm (may fail on NodeSource)
+    apt-get install -y npm || true
+
+    # If npm is still missing but node exists, remove npm and use corepack
+    if command -v node >/dev/null 2>&1 && ! command -v npm >/dev/null 2>&1; then
       apt-get remove -y npm || true
       if command -v corepack >/dev/null 2>&1; then
         corepack enable || true
