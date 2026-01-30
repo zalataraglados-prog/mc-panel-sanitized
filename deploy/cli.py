@@ -621,6 +621,7 @@ def main():
         help="Wizard token file (default: deploy/wizard_token.txt)",
     )
 
+    # mcic TUI helper
     mcic_tui = sub.add_parser(
         "tui",
         help="Run CLI deploy flow (backup when panel is unavailable)",
