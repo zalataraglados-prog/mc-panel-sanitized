@@ -36,6 +36,12 @@
     .modal-card p { margin: 0 0 12px; color: #cbd5f5; line-height: 1.5; }
     .modal-card .actions { justify-content: flex-end; }
     .btn-disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .progress-wrap { margin-top: 12px; }
+    .progress-bar { width: 100%; height: 10px; background: #0b1220; border: 1px solid #1f2937; border-radius: 999px; overflow: hidden; }
+    .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #2563eb, #22d3ee); transition: width 0.3s ease; }
+    .progress-meta { display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; margin-top: 6px; }
+    .hidden { display: none !important; }
 </style>
 </head>
 <body>
@@ -276,6 +282,10 @@
         <button id="btn_save" class="secondary" data-i18n="btnSave">Save state</button>
       </div>
       <label style="margin-top:12px;" data-i18n="output">Output</label>
+      <div id="apply_progress" class="progress-wrap hidden">
+        <div class="progress-bar"><div id="apply_progress_fill" class="progress-fill"></div></div>
+        <div class="progress-meta"><span id="apply_progress_label"></span><span id="apply_progress_pct">0%</span></div>
+      </div>
       <div id="output" class="output"></div>
       <div class="hint"><span data-i18n="panelHint">If panel is installed:</span> <a id="panel_link" href="/" target="_blank" data-i18n="panelLink">Open panel</a></div>
     </div>
@@ -562,6 +572,30 @@ async function buildHeaders(otp) {
   return headers;
 }
 
+function startProgress() {
+  const wrap = $('apply_progress');
+  const fill = $('apply_progress_fill');
+  const pct = $('apply_progress_pct');
+  const label = $('apply_progress_label');
+  wrap.classList.remove('hidden');
+  label.textContent = $('lang').value === 'zh' ? '?????' : 'Running?';
+  let value = 1;
+  fill.style.width = value + '%';
+  pct.textContent = value + '%';
+  const timer = setInterval(() => {
+    value = Math.min(90, value + Math.random() * 6 + 2);
+    fill.style.width = value.toFixed(0) + '%';
+    pct.textContent = value.toFixed(0) + '%';
+  }, 800);
+  return { stop: (ok) => {
+    clearInterval(timer);
+    const final = ok ? 100 : Math.max(95, value);
+    fill.style.width = final + '%';
+    pct.textContent = final + '%';
+    label.textContent = ok ? ($('lang').value === 'zh' ? '????' : 'Completed') : ($('lang').value === 'zh' ? '????' : 'Failed');
+  }};
+}
+
 function showModal(title, body) {
   const modal = $('modal');
   $('modal_title').textContent = title;
@@ -599,11 +633,14 @@ $('btn_apply').onclick = async () => {
   btn.classList.add('btn-disabled');
   const original = btn.textContent;
   btn.textContent = $('lang').value === 'zh' ? '执行中...' : 'Applying...';
+  const progress = startProgress();
   const {data} = await runAction('/api/wizard/apply');
   const ok = data && (data.ok === true || data.ok === 'true');
   if (ok) {
+    progress.stop(true);
     showModal($('lang').value === 'zh' ? '\u6267\u884c\u5b8c\u6210' : 'Apply completed', $('lang').value === 'zh' ? '\u6267\u884c\u5df2\u5b8c\u6210\uff0c\u8bf7\u628a\u9f20\u6807\u79fb\u5f00\u6309\u94ae\u533a\u57df\u3002' : 'Apply finished. Please move your mouse away from the Apply button.');
   } else {
+    progress.stop(false);
     showModal($('lang').value === 'zh' ? '\u6267\u884c\u5931\u8d25' : 'Apply failed', $('lang').value === 'zh' ? '\u6267\u884c\u672a\u6210\u529f\uff0c\u8bf7\u67e5\u770b\u8f93\u51fa\u4fe1\u606f\u3002' : 'Apply failed. Check the output for details.');
   }
   btn.textContent = original;
