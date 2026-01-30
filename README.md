@@ -1,4 +1,4 @@
-﻿# MC Panel (demon1.1)
+﻿# MC Panel 
 
 ## Release Notice / 发布声明
 
