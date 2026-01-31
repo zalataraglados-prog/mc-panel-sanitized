@@ -1,4 +1,4 @@
-﻿# MC Panel (demon1.3)
+# MC Panel (demon1.3)
 
 ## Release Notice / 发布声明
 
@@ -27,31 +27,32 @@ curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-saniti
 ```
 
 After the first install, you can use the short CLI (Linux only):
-?????????????? Linux??
+安装完成后可使用简写 CLI（仅 Linux）：
 
 ```
 mcic
 ```
 
 MCIC quick commands (short + no panel required):
-MCIC ???????????????
+MCIC 命令速查（无需面板）：
 
-- `mcic plan` / `mcic apply` ???? / ????
-- `mcic ls` ????
-- `mcic use <ins>` ???????????? `<ins>`?
-- `mcic up|down|restart` ?? / ??
-- `mcic status|logs|ports|players` ?? / ?? / ?? / ??
-- `mcic op|deop|tp|kick|ban|unban <player>` ????
-- `mcic inv|inv-export|inv-import <player>` ??? / ?? / ??
-- `mcic map|map-reload` ?? / ??
-- `mcic diag` ??
+- `mcic plan` / `mcic apply` 生成评审 / 执行部署
+- `mcic ls` 列出实例
+- `mcic use <ins>` 设置默认实例（`<ins>` 为实例名）
+- `mcic up|down|restart` 启动 / 停止 / 重启实例
+- `mcic status|logs|ports|players` 状态 / 日志 / 端口 / 在线玩家
+- `mcic op|deop|tp|kick|ban|unban <player>` 常用管理命令
+- `mcic inv|inv-export|inv-import <player>` 背包查看 / 导出 / 导入
+- `mcic map|map-reload` 地图状态 / 重载
+- `mcic diag` 诊断
+- `mcic otp` 显示向导一次性口令（仅向导启用时）
+- `mcic tui` 进入传统 TUI（用于面板不可用的应急）
 
-Instance resolution order / ?????????
+Instance resolution order / 实例解析优先级
 1) `--instance-dir` / `--instance`
-2) ???? `MCIC_INSTANCE` / `MC_PANEL_INSTANCE`
-3) `~/.mcic_default`?? `mcic use` ???
-4) ????????????
-
+2) 环境变量 `MCIC_INSTANCE` / `MC_PANEL_INSTANCE`
+3) `~/.mcic_default`（`mcic use` 写入）
+4) 自动推断唯一实例（仅在只有一个实例时）
 ## Network resilience / 网络可靠性
 
 The installer retries external HTTP fetches with backoff to survive flaky networks.
