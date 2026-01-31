@@ -514,6 +514,19 @@ async function fetchProgress() {
   }
 }
 
+async function waitForProgressDone(timeoutMs = 60000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const data = await fetchProgress();
+    if (data && (data.status === 'done' || data.status === 'failed')) {
+      return data.status;
+    }
+    await new Promise((r) => setTimeout(r, 800));
+  }
+  return null;
+}
+
+
 function startProgress() {
   const wrap = $('apply_progress');
   const fill = $('apply_progress_fill');
@@ -572,6 +585,7 @@ btnApply.onclick = async () => {
   const progress = startProgress();
   if (applyHangTimer) clearTimeout(applyHangTimer);
   applyHangTimer = setTimeout(showHangAlert, 180000);
+  let allowReenable = false;
   try {
     const result = await runAction('/api/wizard/apply');
     const data = result ? result.data : null;
@@ -583,8 +597,13 @@ btnApply.onclick = async () => {
     progress.stop(ok);
     if (ok) {
       showModal(t('applySuccessTitle'), t('applySuccessBody'));
+      const status = await waitForProgressDone(60000);
+      if (status === 'done') {
+        allowReenable = true;
+      }
     } else {
       showModal(t('applyFailTitle'), t('applyFailBody'));
+      allowReenable = true;
     }
   } catch (_) {
     if (applyHangTimer) {
@@ -593,10 +612,13 @@ btnApply.onclick = async () => {
     }
     progress.stop(false);
     showModal(t('applyFailTitle'), t('applyFailBody'));
+    allowReenable = true;
   } finally {
-    btnApply.disabled = false;
-    btnApply.classList.remove('btn-disabled');
-    btnApply.textContent = original;
+    if (allowReenable) {
+      btnApply.disabled = false;
+      btnApply.classList.remove('btn-disabled');
+      btnApply.textContent = original;
+    }
   }
 };
 btnSave.onclick = async () => { await saveState(); output.textContent = 'OK'; };
