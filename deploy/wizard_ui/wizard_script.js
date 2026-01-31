@@ -568,24 +568,36 @@ btnApply.onclick = async () => {
   btnApply.disabled = true;
   btnApply.classList.add('btn-disabled');
   const original = btnApply.textContent;
-  btnApply.textContent = langSelect.value === 'zh' ? '执行中...' : 'Applying...';
+  btnApply.textContent = langSelect.value === 'zh' ? '???...' : 'Applying...';
   const progress = startProgress();
   if (applyHangTimer) clearTimeout(applyHangTimer);
   applyHangTimer = setTimeout(showHangAlert, 180000);
-  const result = await runAction('/api/wizard/apply');
-  const data = result ? result.data : null;
-  const ok = data && (data.ok === true || data.ok === 'true');
-  if (applyHangTimer) {
-    clearTimeout(applyHangTimer);
-    applyHangTimer = null;
-  }
-  progress.stop(ok);
-  if (ok) {
-    showModal(t('applySuccessTitle'), t('applySuccessBody'));
-  } else {
+  try {
+    const result = await runAction('/api/wizard/apply');
+    const data = result ? result.data : null;
+    const ok = data && (data.ok === true || data.ok === 'true');
+    if (applyHangTimer) {
+      clearTimeout(applyHangTimer);
+      applyHangTimer = null;
+    }
+    progress.stop(ok);
+    if (ok) {
+      showModal(t('applySuccessTitle'), t('applySuccessBody'));
+    } else {
+      showModal(t('applyFailTitle'), t('applyFailBody'));
+    }
+  } catch (_) {
+    if (applyHangTimer) {
+      clearTimeout(applyHangTimer);
+      applyHangTimer = null;
+    }
+    progress.stop(false);
     showModal(t('applyFailTitle'), t('applyFailBody'));
+  } finally {
+    btnApply.disabled = false;
+    btnApply.classList.remove('btn-disabled');
+    btnApply.textContent = original;
   }
-  btnApply.textContent = original;
 };
 btnSave.onclick = async () => { await saveState(); output.textContent = 'OK'; };
 
@@ -595,3 +607,4 @@ versionInput.onchange = async () => { await loadCatalog(true); };
 
 applyLang('zh');
 loadState();
+
