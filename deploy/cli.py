@@ -519,6 +519,7 @@ def print_execution_summary(plan, claims) -> None:
         print(f"- {_label(lang, 'Map')}: http://{display_ip}:{map_port}/")
     if rcon_port:
         print(f"- {_label(lang, 'RCON')}: {display_ip}:{rcon_port}")
+    print(f\"RCON running at {display_ip}:{rcon_port}\")
     print()
 
 
@@ -1016,7 +1017,7 @@ def main():
             result = executor.execute(plan)
     except KeyboardInterrupt:
         if lang == "zh":
-            print("????????????...")
+            print("????????...")
         else:
             print("Interrupted. Cleaning up...")
         return 130

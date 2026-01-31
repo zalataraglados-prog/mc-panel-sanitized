@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import re
 import os
 import subprocess
 import secrets
@@ -7,6 +8,7 @@ import threading
 import time
 import hmac
 import hashlib
+import signal
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -21,6 +23,7 @@ STATE_FILE = Path("/tmp/mc_wizard_state.json")
 LOG_PATH = Path("/var/log/mc-wizard.log")
 TOKEN_PATH = ROOT / "deploy" / "wizard_token.txt"
 PID_FILE = Path("/tmp/mc-wizard.pid")
+PROGRESS_FILE = Path("/tmp/mc-wizard-progress.json")
 WIZARD_TOKEN = None
 TOKEN_TTL_SECONDS = 2 * 60 * 60
 TOKEN_LOCK = threading.Lock()
@@ -111,6 +114,15 @@ def _check_ports(ports):
 
 def _build_claims(state):
     params = _parse_params(state.get("params_text", ""))
+    extra = state.get("params") if isinstance(state, dict) else None
+    if isinstance(extra, dict):
+        for key, value in extra.items():
+            if value is None:
+                continue
+            value = str(value).strip()
+            if value == "":
+                continue
+            params[str(key).strip()] = value
     mode = state.get("import_mode")
     import_value = state.get("import_value")
     if mode == "paste" and import_value:
@@ -138,6 +150,105 @@ def _log_event(ip, action, extra=None):
     except Exception:
         pass
 
+def _write_progress(payload):
+    try:
+        PROGRESS_FILE.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def _read_progress():
+    if PROGRESS_FILE.exists():
+        try:
+            return json.loads(PROGRESS_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
+def _reset_progress():
+    try:
+        if PROGRESS_FILE.exists():
+            PROGRESS_FILE.unlink()
+    except Exception:
+        pass
+
+
+def _extract_instance_dir(output: str | None) -> str | None:
+    if not output:
+        return None
+    for line in output.splitlines():
+        if "/opt/mc-instances/" not in line:
+            continue
+        m = re.search(r"(/opt/mc-instances/[^\s'\"]+)", line)
+        if m:
+            return m.group(1).rstrip(",")
+    return None
+
+
+def _read_instance_name(instance_dir: str) -> str:
+    try:
+        cfg_path = Path(instance_dir) / "config.json"
+        if cfg_path.exists():
+            cfg = json.loads(cfg_path.read_text(encoding="utf-8", errors="ignore") or "{}")
+            name = ((cfg.get("instance") or {}).get("name"))
+            if name:
+                return str(name)
+    except Exception:
+        pass
+    return Path(instance_dir).name
+
+
+def _collect_service_logs(service: str) -> str:
+    chunks = []
+    try:
+        result = subprocess.run(["systemctl", "status", service, "--no-pager"], capture_output=True, text=True)
+        chunks.append(result.stdout or result.stderr or "")
+    except Exception:
+        pass
+    try:
+        result = subprocess.run(["journalctl", "-u", service, "-n", "120", "--no-pager"], capture_output=True, text=True)
+        chunks.append(result.stdout or result.stderr or "")
+    except Exception:
+        pass
+    return "\n".join([c for c in chunks if c]).strip()
+
+
+def _cleanup_failed(instance_dir: str | None = None) -> None:
+    try:
+        if Path("/tmp/mcic.lock").exists():
+            Path("/tmp/mcic.lock").unlink()
+    except Exception:
+        pass
+    if instance_dir:
+        try:
+            lock_path = Path(instance_dir) / ".mcic.lock"
+            if lock_path.exists():
+                lock_path.unlink()
+        except Exception:
+            pass
+    _reset_progress()
+
+
+def _check_service_health(instance_dir: str) -> tuple[bool, str]:
+    instance_name = _read_instance_name(instance_dir)
+    service = f"instance-{instance_name}.service"
+    try:
+        state = subprocess.run(["systemctl", "is-active", service], capture_output=True, text=True).stdout.strip()
+    except Exception:
+        state = "unknown"
+    restarts = 0
+    try:
+        raw = subprocess.run(["systemctl", "show", service, "-p", "NRestarts"], capture_output=True, text=True).stdout
+        if raw and "=" in raw:
+            restarts = int(raw.strip().split("=", 1)[1] or 0)
+    except Exception:
+        restarts = 0
+    if state != "active" or restarts >= 3:
+        logs = _collect_service_logs(service)
+        return False, f"Service health check failed ({service}, state={state}, restarts={restarts}).\n{logs}"
+    return True, ""
+
 
 def _run_cli(action, state):
     version = state.get("version") or "1.21.11"
@@ -150,6 +261,63 @@ def _run_cli(action, state):
     proc = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
     output = (proc.stdout or "") + ("\n" + proc.stderr if proc.stderr else "")
     return proc.returncode, output.strip()
+
+
+def _run_cli_stream(action, state):
+    version = state.get("version") or "1.21.11"
+    profile = state.get("profile") or "normal"
+    claims = _build_claims(state)
+    cmd = ["python3", "-m", "deploy.cli", action, "--version", version, "--profile", profile, "--import-string", claims]
+    if action == "apply":
+        cmd.append("--apply")
+        cmd.append("--confirm-warn")
+    proc = subprocess.Popen(cmd, cwd=str(ROOT), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+    output_lines = []
+    in_pre = False
+    in_actions = False
+    total_pre = 0
+    total_actions = 0
+    done = 0
+    _write_progress({"status": "running", "percent": 1, "message": "starting"})
+    if proc.stdout:
+        for line in proc.stdout:
+            output_lines.append(line)
+            stripped = line.strip()
+            if stripped.startswith("Preconditions") or stripped.startswith("前置检查"):
+                in_pre = True
+                in_actions = False
+                continue
+            if stripped.startswith("Actions") or stripped.startswith("执行动作"):
+                in_actions = True
+                in_pre = False
+                continue
+            if in_pre and stripped.startswith("-"):
+                total_pre += 1
+            if in_actions and stripped.startswith("-"):
+                total_actions += 1
+            if stripped.startswith("- precondition:") or stripped.startswith("- action:"):
+                done += 1
+                total = max(total_pre + total_actions, done)
+                percent = int(min(95, max(1, (done * 100) // total)))
+                _write_progress({"status": "running", "percent": percent, "message": f"{done}/{total}", "detail": stripped})
+    proc.wait()
+    output = "".join(output_lines)
+    ok = proc.returncode == 0
+    instance_dir = _extract_instance_dir(output)
+    if ok and "RCON running at" not in output:
+        ok = False
+        output = output + "\n[mcic] Missing RCON running signal."
+    if ok and instance_dir:
+        healthy, log_text = _check_service_health(instance_dir)
+        if not healthy:
+            ok = False
+            output = output + "\n" + log_text
+    if not ok:
+        _cleanup_failed(instance_dir)
+        _write_progress({"status": "failed", "percent": 95, "message": "failed"})
+    else:
+        _write_progress({"status": "done", "percent": 100, "message": "done"})
+    return 0 if ok else 1, output.strip()
 
 
 def _generate_token():
@@ -271,7 +439,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type,X-MCIC-OTP")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type,X-MCIC-OTP,X-MCIC-NONCE,X-MCIC-OTP-SIG")
         self.end_headers()
 
     def do_GET(self):
@@ -289,6 +457,22 @@ class Handler(BaseHTTPRequestHandler):
                 payload = {"nonce": nonce, "ttl_seconds": NONCE_TTL_SECONDS, "host": host}
                 self._send(200, json.dumps(payload, ensure_ascii=False).encode("utf-8"))
                 return
+            if parsed.path == "/api/wizard/progress":
+                data = _read_progress()
+                self._send(200, json.dumps(data, ensure_ascii=False).encode("utf-8"))
+                return
+            if parsed.path == "/api/wizard/logs":
+                qs = parse_qs(parsed.query or "")
+                tail = int(qs.get("tail", ["120"])[0] or 120)
+                lines = []
+                if LOG_PATH.exists():
+                    try:
+                        lines = LOG_PATH.read_text(encoding="utf-8", errors="ignore").splitlines()
+                    except Exception:
+                        lines = []
+                payload = {"lines": lines[-tail:], "count": len(lines)}
+                self._send(200, json.dumps(payload, ensure_ascii=False).encode("utf-8"))
+                return
     
         if parsed.path == "/api/wizard/ports":
             qs = parse_qs(parsed.query or "")
@@ -300,27 +484,25 @@ class Handler(BaseHTTPRequestHandler):
             results = _check_ports(ports)
             self._send(200, json.dumps({"ports": results}, ensure_ascii=False).encode("utf-8"))
             return
-
         if parsed.path == "/api/wizard/catalog":
-                try:
-                    query = urlparse(self.path).query
-                    version = "1.21.11"
-                    for part in query.split("&"):
-                        if part.startswith("version="):
-                            version = part.split("=", 1)[1] or version
-                    bundle = load_rules_bundle(version)
-                    payload = {
-                        "version": version,
-                        "catalog": bundle.get("catalog", {}),
-                        "taxonomy": bundle.get("taxonomy", {}),
-                        "usability": bundle.get("usability", {}),
-                    }
-                    self._send(200, json.dumps(payload, ensure_ascii=False).encode("utf-8"))
-                except Exception as exc:
-                    self._send(500, json.dumps({"error": str(exc)}).encode("utf-8"))
-                return
-            self._send(404, json.dumps({"error": "Not Found"}).encode("utf-8"))
+            try:
+                query = urlparse(self.path).query
+                version = "1.21.11"
+                for part in query.split("&"):
+                    if part.startswith("version="):
+                        version = part.split("=", 1)[1] or version
+                bundle = load_rules_bundle(version)
+                payload = {
+                    "version": version,
+                    "catalog": bundle.get("catalog", {}),
+                    "taxonomy": bundle.get("taxonomy", {}),
+                    "usability": bundle.get("usability", {}),
+                }
+                self._send(200, json.dumps(payload, ensure_ascii=False).encode("utf-8"))
+            except Exception as exc:
+                self._send(500, json.dumps({"error": str(exc)}).encode("utf-8"))
             return
+
 
         if parsed.path == "/" or parsed.path == "/index.html":
             index_path = UI_DIR / "index.html"
@@ -358,7 +540,7 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if parsed.path == "/api/wizard/apply":
-            code, output = _run_cli("apply", payload)
+            code, output = _run_cli_stream("apply", payload)
             _log_event(self.client_address[0], "apply", {"version": payload.get("version")})
             self._send(200, json.dumps({"ok": code == 0, "output": output}).encode("utf-8"))
             return
