@@ -1,9 +1,12 @@
 #!/bin/bash
 set -e
+echo "+======================================+"
+echo "|   MCIC - Minecraft Compiler &        |"
+echo "|   Instance Coordinator               |"
+echo "+======================================+"
+echo "[INFO] Service restarts are blocked by default to avoid SSH disconnects."
+echo "[INFO] To allow restarts: export MCIC_ALLOW_SERVICE_RESTARTS=1"
 
-echo "======================================"
-echo "  Minecraft Multi-Instance Deployer"
-echo "======================================"
 
 # ------------------------------
 # Must run as root
@@ -48,6 +51,23 @@ retry_cmd() {
     current_delay=$((current_delay * 2))
     n=$((n + 1))
   done
+}
+setup_policy_rcd() {
+  if [ "${MCIC_ALLOW_SERVICE_RESTARTS:-}" != "1" ]; then
+    cat >/usr/sbin/policy-rc.d <<'EOF'
+#!/bin/sh
+# Block service restarts during install to avoid SSH disconnects
+exit 101
+EOF
+    chmod +x /usr/sbin/policy-rc.d
+    export MCIC_POLICY_RCD=1
+  fi
+}
+
+cleanup_policy_rcd() {
+  if [ "${MCIC_POLICY_RCD:-}" = "1" ]; then
+    rm -f /usr/sbin/policy-rc.d
+  fi
 }
 
 start_wizard_service() {
@@ -279,6 +299,7 @@ ensure_node_npm() {
 # ------------------------------
 if command -v apt-get >/dev/null 2>&1; then
   echo "[INFO] Checking system dependencies..."
+  setup_policy_rcd
   apt-get update
   apt-get install -y \
     ca-certificates \
@@ -299,6 +320,7 @@ if command -v apt-get >/dev/null 2>&1; then
     systemctl enable --now docker || true
   fi
   ensure_node_npm
+  cleanup_policy_rcd
 fi
 
 # ------------------------------
@@ -391,7 +413,7 @@ fi
 if [ "$AUTO_MODE" = "1" ] && [ -n "${MC_PANEL_LANG:-}" ]; then
   LANGUAGE="${MC_PANEL_LANG}"
 else
-  LANGUAGE=$(read_tty "Select language [1=EN, 2=中文(简体)]: ")
+  LANGUAGE=$(read_tty "Select language [1=EN, 2=婵炴垶鎼╅崢浠嬪几?缂備胶濮崑鎾趁?]: ")
 fi
 case "$LANGUAGE" in
   2) LANGUAGE="zh" ;;
@@ -403,60 +425,60 @@ msg() {
   case "$LANGUAGE" in
     zh)
       case "$key" in
-        panel_maintenance) echo "面板维护（已有实例）：" ;;
-        panel_install) echo "1) 为已有实例安装面板" ;;
-        panel_uninstall) echo "2) 卸载已有实例面板" ;;
-        panel_continue) echo "回车继续正常部署。" ;;
-        panel_prompt) echo "输入 [1-2] 或留空：" ;;
-        instances) echo "可用实例：" ;;
-        instance_dir) echo "实例目录（可选，用于查端口）：" ;;
-        import_string) echo "粘贴配置串（回车跳过）：" ;;
-        import_mode) echo "导入方式：1) 粘贴配置串 2) 从文件导入（回车跳过）" ;;
-        import_file) echo "配置串文件路径：" ;;
-        import_file_missing) echo "[WARN] 文件不存在或不可读，可重新输入路径或回车改为粘贴输入。" ;;
-        import_list_header) echo "已导入配置（编号）：" ;;
-        import_edit_prompt) echo "是否修改导入配置？输入行号（逗号分隔），回车跳过：" ;;
-        import_confirm_prompt) echo "输入 sure 确认修改，回车跳过：" ;;
-        import_value_prompt) echo "设置新值" ;;
-        panel_install_prompt) echo "安装 Web 面板？[y/N] " ;;
-        panel_port_prompt) echo "面板端口 [默认: 15000]: " ;;
-        inventory_menu) echo "背包插件（可选）：" ;;
-        inventory_url_prompt) echo "背包插件下载地址 [默认]：" ;;
-        inventory_url_required) echo "背包插件下载地址（必填）：" ;;
-        map_port_prompt) echo "地图插件端口 [默认: " ;;
-        map_render_prompt) echo "地图渲染间隔（分钟）[默认: 5]: " ;;
-        java_override) echo "是否覆盖 Java 运行时？[y/N] " ;;
-        java_select) echo "选择 Java 版本：" ;;
-        memory_prompt) echo "内存（例如 2G / 4G）：" ;;
-        expected_players_prompt) echo "预期在线人数（可选）：" ;;
-        version_menu) echo "选择 Minecraft 版本：" ;;
-        version_custom) echo "自定义版本号：" ;;
-        edition_menu) echo "选择 Minecraft 版本类型：" ;;
-        edition_java) echo "1) Java 版" ;;
-        edition_bedrock) echo "2) Bedrock 版" ;;
-        bedrock_notice) echo "当前仅支持 Java 版，Bedrock 暂未实现。" ;;
-        bedrock_detail) echo "Bedrock 执行层尚未实现。" ;;
-        profile_menu) echo "选择配置档位：" ;;
-        profile_beginner) echo "1) 新手" ;;
-        profile_normal) echo "2) 标准（默认）" ;;
-        profile_advanced) echo "3) 高级" ;;
-        map_menu) echo "地图插件（可选）：" ;;
-        map_none) echo "1) 不安装" ;;
+        panel_maintenance) echo "闂傚倸鐗勯崹鍝勵熆濡偐纾奸悗娑櫭闂佹寧绋戦悧鍡涘礄閿熺姴瀚夊璺猴功閺夎棄銆掑顒夊劀缂佽鲸宀搁弫? ;;
+        panel_install) echo "1) 婵炴垶鎸搁幖顐﹀礄閿熺姴瀚夊璺猴功閺夎棄銆掑顒夊剰闁伙絻鍔庨幉妤呭川鐎涙ɑ銆冮梺? ;;
+        panel_uninstall) echo "2) 闂佸憡顨嗛悺鏇灻归崶褜鍟呴柛娆忣槹缁犳帡鎮楅崷顓炰粧缂佽翰鍎靛Λ鍐閳╁啰鍑? ;;
+        panel_continue) echo "闂佹悶鍎抽崑鐘测攦閸涱垳纾肩憸蹇涙偨鐠囧樊娼伴柨婵嗘噽閸╂姊洪鍝勫閻犱焦鐓℃俊? ;;
+        panel_prompt) echo "闁哄鐗婇幐鎼佸矗?[1-2] 闂佺懓鐡ㄩ悧婊堝汲閳ь剛绱掑畝鈧亸銊ф? ;;
+        instances) echo "闂佸憡鐟崹鎶藉极閵堝洠鍋撻崷顓炰粧缂佽翰鍎甸弫? ;;
+        instance_dir) echo "闁诲骸婀遍崑妯兼閵夆晜鍎庢い鏃囧亹缁夊潡鏌ㄥ☉妯煎鐟滅増鐓￠弻鍛緞濞戞氨顦梺娲绘娇閸斿鑺遍鍕摕闁靛／灞肩磽闂佸憡鐟辩紞鍥╂濮樿埖鏅? ;;
+        import_string) echo "缂備緡鍠楅…鍫ュ礆濞戙垺鐓€鐎广儱娲ㄩ弸鍌氣槈閹捐鍤嬬紒杈ㄧ懇瀹曞爼鎮欓懜鐢电泝闁荤姴鎼悿鍥╂崲閸愵喗鏅鑸电〒缁? ;;
+        import_mode) echo "闁诲海鏁搁崢褔宕ｉ崱娑樻闁荤喐澹嗙涵鈧梺?) 缂備緡鍠楅…鍫ュ礆濞戙垺鐓€鐎广儱娲ㄩ弸鍌氣槈?2) 婵炲濮寸€涒晠寮搁崘鈺冾浄閻犺桨璀﹂崵銈夋煕韫囧鍔电紒杈ㄧ懇瀹曞爼鎮欓懜鐢电泝闁荤姴鎼悿鍥╂崲閸愵喗鏅? ;;
+        import_file) echo "闂備焦婢樼粔鍫曟偪閸℃鈻旈柛娆忣槹閻庮喖霉閻樺啿鍔堕柣顓熷劤椤曘儵宕熼崜浣虹崶" ;;
+        import_file_missing) echo "[WARN] 闂佸搫鍊稿ú锝呪枎閵忥紕鈻旂€广儱鎳愰幗鐘绘煕閿斿搫濡介柛銊ｅ妽缁嬪顓奸崨顓☆唹闁荤姴娲ｇ槐顔炬濠靛鐭楁い鏍仜濞呫垽鏌￠崒娑橆€滅紒棰濆弮瀹曟濡烽妸褏鍞撮悗鍨緲鐎氼參宕归妸鈺佺倞闁绘劘鍩栫花鐘绘煛閳ь剟鏌呭☉婊咁槹缂備緡鍠楅…鍫ュ礆濞戞瑦缍囬柟鎯у暱瀵娊鏌? ;;
+        import_list_header) echo "閻庣懓鎲¤ぐ鍐敋闁秴绀傞柕澶嗘櫅鐢磭绱撻崘鎯ф珯缂佽鲸鐟х槐鎾诲冀瑜嶆繛鍥煥濞戞﹩妾х紒? ;;
+        import_edit_prompt) echo "闂佸搫瀚烽崹浼村箚娴ｅ湱鈹嶆い鏃囧Г閺嗩參鎮楅悽闈涘付闁告瑥妫濋弻濠傤吋閸モ晜鐎梺鎸庣〒閸犳洜娆㈤銏犵闁靛鐓堥弨浠嬫煕濞嗗繐娈╃紒杈ㄧ懇閺屽懎螖閳ь剝銇愰崸妤€绀嗛柛鈩冪⊕椤撻箖鏌ㄥ☉姗嗘缂佽鲸绻堝畷鍫曟倷閼哥數鐩冮柣鐘叉惈閻ゅ洨鎹㈤崘顔芥櫖? ;;
+        import_confirm_prompt) echo "闁哄鐗婇幐鎼佸矗?sure 缂佺虎鍙庨崰娑㈩敇缂佹鈹嶆い鏃囧Г閺嗩參鏌ㄥ☉妯垮婵炲弶鐗楀顏堟晝娴ｅ搫鍔滈柡澶嗘櫅濞村嫮妲? ;;
+        import_value_prompt) echo "闁荤姳绀佹晶浠嬫偪閸℃稑妫橀柡澶婄氨閸? ;;
+        panel_install_prompt) echo "闁诲海鎳撻ˇ鎶剿?Web 闂傚倸鐗勯崹鍝勵熆濮椻偓閺佸秹鎮為崜?N] " ;;
+        panel_port_prompt) echo "闂傚倸鐗勯崹鍝勵熆濡偐鍗氭い鏍ㄨ壘缂?[婵帗绋掗…鍫ヮ敇? 15000]: " ;;
+        inventory_menu) echo "闂佺厧鍟块懟顖溾偓鍨耿楠炴捇骞掑鍡╁仺闂佹寧绋戦悧鍡氥亹閺屻儲鐒诲鑸电〒缁€鍡涙煥? ;;
+        inventory_url_prompt) echo "闂佺厧鍟块懟顖溾偓鍨耿楠炴捇骞掑鍡╁仺婵炴垶鎸搁鍫澝归崶顒€鎹堕柡澶嬪缁?[婵帗绋掗…鍫ヮ敇缁繝鏌? ;;
+        inventory_url_required) echo "闂佺厧鍟块懟顖溾偓鍨耿楠炴捇骞掑鍡╁仺婵炴垶鎸搁鍫澝归崶顒€鎹堕柡澶嬪缁插鏌ㄥ☉妯煎缂佺儵鍋撴繝闈涱樈閸嬫挾妲愬鑸垫櫖? ;;
+        map_port_prompt) echo "闂侀潻闄勫妯好瑰鈧獮鎾诲箳瀹ュ棭鍋ㄧ紓浣规閸ㄦ媽銇?[婵帗绋掗…鍫ヮ敇? " ;;
+        map_render_prompt) echo "闂侀潻闄勫妯好瑰Ο鎭掆偓鎺楀矗婢跺苯甯梻鍌氬€归幐鍐测枔瑜旈弫宥夊醇濠靛棛鈧姊洪悾灞芥珢缂佽鲸鐡熸慨鎺撶⊕椤牓顢? 5]: " ;;
+        java_override) echo "闂佸搫瀚烽崹浼村箚娴ｇ儤鍟洪柛鈩冪懄绾?Java 闁哄鏅滈崝姗€銆侀幋锕€绫嶉悹浣告贡閸氱瓱y/N] " ;;
+        java_select) echo "闂備緡鍋勯ˇ鎵偓?Java 闂佺粯顨呴悧濠傦耿娴煎瓨鏅? ;;
+        memory_prompt) echo "闂佸憡鍔曢幊搴ㄦ偤閵娾晜鏅柛顐ｇ矌娴兼劕鈹?2G / 4G闂佹寧绋戦¨鈧紒? ;;
+        expected_players_prompt) echo "婵☆偅婢樼€氼厼锕㈤敓鐘叉嵍闁靛ě鍐╃枃婵炲瓨绮庨崕銈夊汲閻斿吋鏅柛顐ｇ箓鐠佹煡姊洪銏╂缂佽鲸宀搁弫? ;;
+        version_menu) echo "闂備緡鍋勯ˇ鎵偓?Minecraft 闂佺粯顨呴悧濠傦耿娴煎瓨鏅? ;;
+        version_custom) echo "闂佺厧顨庢禍婊堟偩閻愵剛鈻曞璺鸿嫰椤ｅジ鏌￠崼顐㈠鐟滄澘娼￠弫? ;;
+        edition_menu) echo "闂備緡鍋勯ˇ鎵偓?Minecraft 闂佺粯顨呴悧濠傦耿閹殿喚灏甸悹鍥皺閳ь剛鍏橀弫? ;;
+        edition_java) echo "1) Java 闂? ;;
+        edition_bedrock) echo "2) Bedrock 闂? ;;
+        bedrock_notice) echo "閻熸粎澧楅幐鍛婃櫠閻樺磭顩烽柛娑卞枟閺嗘粓鏌?Java 闂佺粯顨呴悧鐐垫濠婄灃drock 闂佸搫妫楅崐鐟帮耿椤撶姭鍋撻崷顓炰户妤犵偛娲俊? ;;
+        bedrock_detail) echo "Bedrock 闂佸湱鐟抽崱鈺傛杸闁诲繒鍋涢崐鎼佹儍婵犳艾瀚夋い蹇撳閺変粙鏌ｅ鍡楃劷闁? ;;
+        profile_menu) echo "闂備緡鍋勯ˇ鎵偓姘ュ姂閺屽﹤顓奸崶鈺傜€┑鈩冾殣缁茶偐绱為崨瀛樻櫖? ;;
+        profile_beginner) echo "1) 闂佸搫鍊绘晶妤佹櫠? ;;
+        profile_normal) echo "2) 闂佸搫绉村ú銈夊闯椤栫偞鏅柛顐犲劤鐢盯鎮规担闈涒偓褏妲? ;;
+        profile_advanced) echo "3) 婵°倕鍊归…鍥殽? ;;
+        map_menu) echo "闂侀潻闄勫妯好瑰鈧獮鎾诲箳瀹ュ棭鍋ㄩ梺鎸庣☉閻楀棜銇愰弻銉︾劵濠㈣埖绋撶粈鍡涙煥? ;;
+        map_none) echo "1) 婵炴垶鎸哥粔鎾偩閵娧勫晳? ;;
         map_dynmap) echo "2) Dynmap" ;;
         map_bluemap) echo "3) BlueMap" ;;
-        map_url_prompt) echo "地图插件下载地址 [默认]：" ;;
-        map_url_fail) echo "[WARN] 下载地址不可达，请重试或选择不安装。" ;;
-        plan_run) echo "[INFO] 正在执行 plan..." ;;
-        plan_block) echo "[INFO] 被阻拦，可调整参数后重试。" ;;
-        plan_warn) echo "存在警告，是否继续？[y/N] " ;;
-        plan_ok) echo "[INFO] Review 通过，生成执行计划..." ;;
-        edit_params) echo "调整参数（key=value，空行结束）：" ;;
-        frontend_missing) echo "[WARN] 缺少 frontend/dist，面板需要构建。" ;;
-        frontend_building) echo "[INFO] 正在构建前端，请稍候..." ;;
-        npm_missing) echo "[WARN] 未检测到 npm，请安装 Node.js 后再构建。" ;;
-        review_blocked) echo "[INFO] Review 被阻拦，可调整参数后重试。" ;;
-        review_still_block) echo "[INFO] 仍被阻拦，已退出。" ;;
-        review_canceled) echo "[INFO] 已取消。" ;;
+        map_url_prompt) echo "闂侀潻闄勫妯好瑰鈧獮鎾诲箳瀹ュ棭鍋ㄦ繛鎴炴尭椤戝牆霉閸ヮ剙鎹堕柡澶嬪缁?[婵帗绋掗…鍫ヮ敇缁繝鏌? ;;
+        map_url_fail) echo "[WARN] 婵炴垶鎸搁鍫澝归崶顒€鎹堕柡澶嬪缁茶鈽夐幘宕囆㈢憸鏉垮级濞煎繘骞橀崨顖滎槷闁荤姴娲ㄩ崗姗€宕抽崫銉﹀珰闁哄洨鍠庨悘妤呮⒑椤愩埄妲归悗姘ュ妽缁嬪顓奸崨顖涙闁荤喍绀侀幊宀勫焵? ;;
+        plan_run) echo "[INFO] 濠殿喗绻愮徊钘夛耿椤忓牆绠ョ憸鎴︺€?plan..." ;;
+        plan_block) echo "[INFO] 闁荤偞鍑归崑濠偽熼崱娑樼闁挎棁鍋愮粈澶愭煕濞嗘ê鐏ラ柣銊у枛瀵偊寮堕幋婵囶棟闂佽桨鐒﹀姗€骞冨Δ鍛厒鐎广儱鐗忓Σ鎼佹煏? ;;
+        plan_warn) echo "闁诲孩绋掗敋婵犫偓椤忓棙濯伴柨鏇楀亾闁硅绻濋弫宥囦沪閻愵儷锕傛煕濮樻儳顩柟鎾棑缁辨帡顢橀妸褍鎯瀃y/N] " ;;
+        plan_ok) echo "[INFO] Review 闂備緡鍋呮穱铏规崲閸愵喗鏅€光偓閳ь剟寮幘璇茬闁归偊鍘奸埛鏃堟偠濞戞鐒锋い鎾存倐瀹?.." ;;
+        edit_params) echo "闁荤姴顑呴崯顖炲汲閿濆鐭楅柛灞剧⊕濞堝爼鏌ㄥ☉妯诲墤ey=value闂佹寧绋戦惉濂稿煘閺嶎偅鍋樼€光偓閳ь剛鍒掗妸鈺佺骇闁绘洖鍊荤粈鍡涙煥? ;;
+        frontend_missing) echo "[WARN] 缂傚倸鍊搁幖顐︽儍?frontend/dist闂佹寧绋戦惌鍌氼焽娴兼潙绾ч柛褎顨嗘禒姗€鎮烽弴姘卞妽闁诲寒鍨伴娆撳箒閹哄棗浜? ;;
+        frontend_building) echo "[INFO] 濠殿喗绻愮徊钘夛耿椤忓牆鍑犻柛鏇ㄥ亞缁憋箓鏌涢幘宕囆ゆい蹇ｅ墴閺佸秴鐣濋崘鎯ф缂備礁顑呯粔鎾焵?.." ;;
+        npm_missing) echo "[WARN] 闂佸搫鐗滄禍婵嬎夐崨顒煎湱鈧綆浜滈悡?npm闂佹寧绋戦惌渚€顢氶鍌楀亾閻熼偊妲兼い?Node.js 闂佸憡鑹炬鎼佸疮閳ь剟鏌＄€ｎ亜顏╃紓鍌涙崌婵? ;;
+        review_blocked) echo "[INFO] Review 闁荤偞鍑归崑濠偽熼崱娑樼闁挎棁鍋愮粈澶愭煕濞嗘ê鐏ラ柣銊у枛瀵偊寮堕幋婵囶棟闂佽桨鐒﹀姗€骞冨Δ鍛厒鐎广儱鐗忓Σ鎼佹煏? ;;
+        review_still_block) echo "[INFO] 婵炲濮寸粔鐑斤綖閿曞倹鈷撶紓浣姑锟犳煥濞戞瀚伴柛鎴節閺屽懘鍩€椤掑嫬绀勯柟顓熷坊閸? ;;
+        review_canceled) echo "[INFO] 閻庣懓鎲¤ぐ鍐亹閸パ€妲堥柛顐ｇ▓閸? ;;
         *) echo "$key" ;;
       esac
       ;;
@@ -525,7 +547,7 @@ msg() {
 choice_prompt() {
   local range="$1"
   if [ "$LANGUAGE" = "zh" ]; then
-    echo "输入 [${range}]: "
+    echo "闁哄鐗婇幐鎼佸矗?[${range}]: "
   else
     echo "Enter [${range}]: "
   fi
@@ -1402,7 +1424,7 @@ while true; do
   echo "$PLAN_OUTPUT"
   LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
   if [ -z "$LEVEL" ]; then
-    LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^级别:[[:space:]]*//p' | head -n 1)
+    LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^缂備胶瀚忛崘銊у姸:[[:space:]]*//p' | head -n 1)
   fi
   LEVEL="$(echo "$LEVEL" | xargs | tr 'A-Z' 'a-z')"
 
