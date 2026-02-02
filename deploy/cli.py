@@ -519,7 +519,6 @@ def print_execution_summary(plan, claims) -> None:
         print(f"- {_label(lang, 'Map')}: http://{display_ip}:{map_port}/")
     if rcon_port:
         print(f"- {_label(lang, 'RCON')}: {display_ip}:{rcon_port}")
-    print(f\"RCON running at {display_ip}:{rcon_port}\")
     print()
 
 
