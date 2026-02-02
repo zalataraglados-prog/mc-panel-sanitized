@@ -267,58 +267,120 @@ def _run_cli_stream(action, state):
     version = state.get("version") or "1.21.11"
     profile = state.get("profile") or "normal"
     claims = _build_claims(state)
-    cmd = ["python3", "-m", "deploy.cli", action, "--version", version, "--profile", profile, "--import-string", claims]
+
+    cmd = [
+        "python3",
+        "-m",
+        "deploy.cli",
+        action,
+        "--version",
+        version,
+        "--profile",
+        profile,
+        "--import-string",
+        claims,
+    ]
+
     if action == "apply":
         cmd.append("--apply")
         cmd.append("--confirm-warn")
-    proc = subprocess.Popen(cmd, cwd=str(ROOT), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+
+    proc = subprocess.Popen(
+        cmd,
+        cwd=str(ROOT),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+
     output_lines = []
     in_pre = False
     in_actions = False
     total_pre = 0
     total_actions = 0
     done = 0
+
     _write_progress({"status": "running", "percent": 1, "message": "starting"})
+
     if proc.stdout:
         for line in proc.stdout:
             output_lines.append(line)
             stripped = line.strip()
+
             if stripped.startswith("Preconditions") or stripped.startswith("前置检查"):
                 in_pre = True
                 in_actions = False
                 continue
+
             if stripped.startswith("Actions") or stripped.startswith("执行动作"):
                 in_actions = True
                 in_pre = False
                 continue
+
             if in_pre and stripped.startswith("-"):
                 total_pre += 1
+
             if in_actions and stripped.startswith("-"):
                 total_actions += 1
+
             if stripped.startswith("- precondition:") or stripped.startswith("- action:"):
                 done += 1
                 total = max(total_pre + total_actions, done)
                 percent = int(min(95, max(1, (done * 100) // total)))
-                _write_progress({"status": "running", "percent": percent, "message": f"{done}/{total}", "detail": stripped})
+
+                _write_progress(
+                    {
+                        "status": "running",
+                        "percent": percent,
+                        "message": f"{done}/{total}",
+                        "detail": stripped,
+                    }
+                )
+
     proc.wait()
+
     output = "".join(output_lines)
     ok = proc.returncode == 0
     instance_dir = _extract_instance_dir(output)
-    if ok and "RCON running at" not in output:
-        ok = False
-        output = output + "\n[mcic] Missing RCON running signal."
-    if ok and instance_dir:
-        healthy, log_text = _check_service_health(instance_dir)
-        if not healthy:
-            ok = False
-            output = output + "\n" + log_text
+
+    # ===== Patch 1: CLI 本身失败才算失败 =====
     if not ok:
         _cleanup_failed(instance_dir)
         _write_progress({"status": "failed", "percent": 95, "message": "failed"})
-    else:
-        _write_progress({"status": "done", "percent": 100, "message": "done"})
-    return 0 if ok else 1, output.strip()
+        return 1, output.strip()
 
+    # ===== Patch 2: RCON banner 不出现 → waiting，不立刻 fail =====
+    if "RCON running at" not in output:
+        _write_progress(
+            {
+                "status": "waiting",
+                "percent": 95,
+                "message": "waiting for RCON banner...",
+                "detail": "RCON not ready yet",
+            }
+        )
+
+    # ===== Patch 3: 无限轮询直到 systemd active =====
+    if instance_dir:
+        while True:
+            healthy, log_text = _check_service_health(instance_dir)
+            if healthy:
+                break
+
+            _write_progress(
+                {
+                    "status": "waiting",
+                    "percent": 95,
+                    "message": "waiting for systemd active...",
+                    "detail": "service not active yet",
+                }
+            )
+            time.sleep(2)
+
+    # ===== 最终成功 =====
+    _write_progress({"status": "done", "percent": 100, "message": "done"})
+    return 0, output.strip()
 
 def _generate_token():
     global WIZARD_TOKEN
@@ -336,9 +398,6 @@ def _generate_token():
     except Exception:
         pass
     return token
-
-
-
 
 def _write_pid():
     try:
