@@ -581,7 +581,7 @@ btnApply.onclick = async () => {
   btnApply.disabled = true;
   btnApply.classList.add('btn-disabled');
   const original = btnApply.textContent;
-  btnApply.textContent = langSelect.value === 'zh' ? '???...' : 'Applying...';
+  btnApply.textContent = langSelect.value === 'zh' ? '执行中...' : 'Applying...';
   const progress = startProgress();
   if (applyHangTimer) clearTimeout(applyHangTimer);
   applyHangTimer = setTimeout(showHangAlert, 180000);

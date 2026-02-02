@@ -504,13 +504,33 @@ class Handler(BaseHTTPRequestHandler):
             return
 
 
+        # --- serve static files for wizard UI ---
         if parsed.path == "/" or parsed.path == "/index.html":
             index_path = UI_DIR / "index.html"
             if index_path.exists():
                 data = index_path.read_bytes()
                 self._send(200, data, content_type="text/html; charset=utf-8")
                 return
-        self._send(404, json.dumps({"error": "Not Found"}).encode("utf-8"))
+
+        # Serve wizard_script.js
+        if parsed.path == "/wizard_script.js":
+            js_path = UI_DIR / "wizard_script.js"
+            if js_path.exists():
+                data = js_path.read_bytes()
+                self._send(200, data, content_type="application/javascript; charset=utf-8")
+                return
+            self._send(404, json.dumps({"error": "Not Found"}).encode("utf-8"))
+            return
+
+        # Serve favicon.ico (optional)
+        if parsed.path == "/favicon.ico":
+            ico_path = UI_DIR / "favicon.ico"
+            if ico_path.exists():
+                data = ico_path.read_bytes()
+                self._send(200, data, content_type="image/x-icon")
+                return
+            self._send(404, json.dumps({"error": "Not Found"}).encode("utf-8"))
+            return
 
     def do_POST(self):
         parsed = urlparse(self.path)
