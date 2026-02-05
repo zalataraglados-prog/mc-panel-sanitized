@@ -1,12 +1,9 @@
 ﻿#!/bin/bash
 set -e
-echo "+======================================+"
-echo "|   MCIC - Minecraft Compiler &        |"
-echo "|   Instance Coordinator               |"
-echo "+======================================+"
-echo "[INFO] Service restarts are blocked by default to avoid SSH disconnects."
-echo "[INFO] To allow restarts: export MCIC_ALLOW_SERVICE_RESTARTS=1"
 
+echo "======================================"
+echo "  Minecraft Multi-Instance Deployer"
+echo "======================================"
 
 # ------------------------------
 # Must run as root
@@ -15,9 +12,6 @@ if [ "$EUID" -ne 0 ]; then
   echo "Please run as root: sudo bash install.sh"
   exit 1
 fi
-
-# Ensure we have a valid working directory (avoid getcwd errors)
-cd / || exit 1
 
 AUTO_MODE="${MC_PANEL_AUTO:-0}"
 AUTO_YES="${MC_PANEL_ASSUME_YES:-0}"
@@ -52,62 +46,10 @@ retry_cmd() {
     n=$((n + 1))
   done
 }
-setup_policy_rcd() {
-  if [ "${MCIC_ALLOW_SERVICE_RESTARTS:-}" != "1" ]; then
-    cat >/usr/sbin/policy-rc.d <<'EOF'
-#!/bin/sh
-# Block service restarts during install to avoid SSH disconnects
-exit 101
-EOF
-    chmod +x /usr/sbin/policy-rc.d
-    export MCIC_POLICY_RCD=1
-  fi
-}
-
-cleanup_policy_rcd() {
-  if [ "${MCIC_POLICY_RCD:-}" = "1" ]; then
-    rm -f /usr/sbin/policy-rc.d
-  fi
-}
-
-start_wizard_service() {
-  if [ "${MC_PANEL_WIZARD:-1}" != "1" ]; then
-    return 0
-  fi
-  local wizard_port="${MC_PANEL_WIZARD_PORT:-15001}"
-  if command -v systemctl >/dev/null 2>&1; then
-    cat >/etc/systemd/system/mc-wizard.service <<EOF
-[Unit]
-Description=MC Panel Wizard
-After=network.target
-
-[Service]
-Type=simple
-WorkingDirectory=/opt/mc-panel-sanitized
-Environment=MC_PANEL_WIZARD_PORT=${wizard_port}
-ExecStart=/usr/bin/python3 -m deploy.wizard_server
-Restart=on-failure
-StandardOutput=append:/var/log/mc-wizard.log
-StandardError=append:/var/log/mc-wizard.log
-
-[Install]
-WantedBy=multi-user.target
-EOF
-    systemctl daemon-reload
-    systemctl enable --now mc-wizard.service || true
-  else
-    nohup /usr/bin/python3 -m deploy.wizard_server >/var/log/mc-wizard.log 2>&1 &
-  fi
-}
 
 configure_docker_mirrors() {
   local mirrors_raw="$1"
   if [ -z "$mirrors_raw" ]; then
-    return 0
-  fi
-  if ! _mcpanel_validate_mirror_list "$mirrors_raw"; then
-    echo "[WARN] Invalid mirror URL(s). Skip writing /etc/docker/daemon.json"
-    echo "       Mirrors must start with http(s):// and must not include image paths."
     return 0
   fi
   local mirror_json
@@ -123,86 +65,14 @@ PY
     return 0
   fi
   mkdir -p /etc/docker
-  local daemon_path="/etc/docker/daemon.json"
-  local daemon_backup="/etc/docker/daemon.json.bak"
-  if [ -f "$daemon_path" ]; then
-    cp -f "$daemon_path" "$daemon_backup" || true
-  fi
-  echo "$mirror_json" >"$daemon_path"
-  if ! python3 -m json.tool "$daemon_path" >/dev/null 2>&1; then
-    echo "[WARN] Invalid JSON written to $daemon_path; restoring backup."
-    if [ -f "$daemon_backup" ]; then
-      cp -f "$daemon_backup" "$daemon_path" || true
-    fi
-    return 0
-  fi
+  echo "$mirror_json" >/etc/docker/daemon.json
   if command -v systemctl >/dev/null 2>&1; then
     systemctl restart docker || true
-    if ! systemctl is-active --quiet docker; then
-      echo "[WARN] Docker failed to restart with the provided mirrors. Restoring backup."
-      journalctl -xeu docker --no-pager | tail -n 20 || true
-      if [ -f "$daemon_backup" ]; then
-        cp -f "$daemon_backup" "$daemon_path" || true
-        systemctl restart docker || true
-      fi
-    fi
   else
     service docker restart || true
   fi
 }
 
-_mcpanel_validate_mirror() {
-  local url="$1"
-  if ! printf '%s' "$url" | grep -Eq '^https?://'; then
-    return 1
-  fi
-  if printf '%s' "$url" | grep -Eq '[[:space:]]|@'; then
-    return 1
-  fi
-  if printf '%s' "$url" | grep -Eq '/(v1|v2)/|/library/|/docker.io/|/itzg/'; then
-    return 1
-  fi
-  return 0
-}
-
-_mcpanel_validate_mirror_list() {
-  local raw="$1"
-  local item
-  IFS=',' read -r -a __mcpanel_mirrors <<<"$raw"
-  for item in "${__mcpanel_mirrors[@]}"; do
-    item="$(echo "$item" | xargs)"
-    if [ -z "$item" ]; then
-      continue
-    fi
-    if ! _mcpanel_validate_mirror "$item"; then
-      return 1
-    fi
-  done
-  return 0
-}
-
-
-detect_region_hint() {
-  local tz=""
-  if [ -f /etc/timezone ]; then
-    tz="$(cat /etc/timezone | tr -d '\r\n')"
-  else
-    tz="$(timedatectl show -p Timezone --value 2>/dev/null || true)"
-  fi
-  case "$tz" in
-    Asia/Shanghai|Asia/Chongqing|Asia/Beijing|Asia/Urumqi)
-      echo "cn"
-      return 0
-      ;;
-  esac
-  local country=""
-  country="$(curl -fsSL --max-time 3 https://ipinfo.io/country 2>/dev/null | tr -d '\r\n' || true)"
-  if [ "$country" = "CN" ]; then
-    echo "cn"
-    return 0
-  fi
-  echo "other"
-}
 maybe_prompt_docker_mirror() {
   local mirrors="${MC_PANEL_DOCKER_MIRRORS:-}"
   if [ -z "$mirrors" ]; then
@@ -212,18 +82,20 @@ maybe_prompt_docker_mirror() {
     configure_docker_mirrors "$mirrors"
     return 0
   fi
+  if [ "$AUTO_MODE" = "1" ]; then
+    return 0
+  fi
   if ! command -v docker >/dev/null 2>&1; then
     return 0
   fi
   if curl -fsSL --max-time 5 https://registry-1.docker.io/v2/ >/dev/null 2>&1; then
     return 0
   fi
-  if [ "$(detect_region_hint)" = "cn" ]; then
-    echo "[WARN] Docker registry seems unreachable. Detected CN region; applying default mirrors."
-    mirrors="https://6bnoo1rv.mirror.aliyuncs.com,https://hub-mirror.c.163.com,https://mirror.baidubce.com"
+  echo "[WARN] Docker registry seems unreachable. Configure a mirror to continue."
+  mirrors=$(read_tty "Docker mirror URL(s), comma-separated (Enter to skip): ")
+  mirrors="$(echo "$mirrors" | xargs)"
+  if [ -n "$mirrors" ]; then
     configure_docker_mirrors "$mirrors"
-  else
-    echo "[WARN] Docker registry seems unreachable. Skipping mirror prompts; set MC_PANEL_DOCKER_MIRRORS to override."
   fi
 }
 
@@ -234,16 +106,20 @@ maybe_prompt_docker_proxy_pull() {
       return 0
     fi
   fi
+  if [ "$AUTO_MODE" = "1" ] && [ -z "$proxy_prefix" ]; then
+    return 0
+  fi
   if [ -z "$proxy_prefix" ]; then
-    if [ "$(detect_region_hint)" != "cn" ]; then
-      return 0
-    fi
-    proxy_prefix="m.daocloud.io/docker.io"
+    proxy_prefix=$(read_tty "Docker proxy prefix (e.g. m.daocloud.io/docker.io) [Enter to skip]: ")
+    proxy_prefix="$(echo "$proxy_prefix" | xargs)"
+  fi
+  if [ -z "$proxy_prefix" ]; then
+    return 0
   fi
   if ! command -v docker >/dev/null 2>&1; then
     return 0
   fi
-  echo "[INFO] Pulling base image via proxy (${proxy_prefix})..."
+  echo "[INFO] Pulling base image via proxy..."
   if retry_cmd 3 2 docker pull "${proxy_prefix}/itzg/minecraft-server:latest"; then
     docker tag "${proxy_prefix}/itzg/minecraft-server:latest" itzg/minecraft-server:latest || true
   else
@@ -268,54 +144,11 @@ ensure_docker_compose() {
   return 0
 }
 
-ensure_node_npm() {
-  if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
-    return 0
-  fi
-
-  # If node exists but npm is missing, try corepack first
-  if command -v node >/dev/null 2>&1 && ! command -v npm >/dev/null 2>&1; then
-    if command -v corepack >/dev/null 2>&1; then
-      corepack enable || true
-      corepack prepare npm@latest --activate || true
-      if command -v npm >/dev/null 2>&1; then
-        return 0
-      fi
-    fi
-  fi
-
-  if command -v apt-get >/dev/null 2>&1; then
-    # Try installing nodejs only first (npm may conflict with NodeSource)
-    apt-get install -y nodejs || true
-    if command -v node >/dev/null 2>&1 && command -v corepack >/dev/null 2>&1; then
-      corepack enable || true
-      corepack prepare npm@latest --activate || true
-      if command -v npm >/dev/null 2>&1; then
-        return 0
-      fi
-    fi
-
-    # Fallback: try installing npm (may fail on NodeSource)
-    apt-get install -y npm || true
-
-    # If npm is still missing but node exists, remove npm and use corepack
-    if command -v node >/dev/null 2>&1 && ! command -v npm >/dev/null 2>&1; then
-      apt-get remove -y npm || true
-      if command -v corepack >/dev/null 2>&1; then
-        corepack enable || true
-        corepack prepare npm@latest --activate || true
-      fi
-    fi
-  fi
-  return 0
-}
-
 # ------------------------------
 # Ensure dependencies
 # ------------------------------
 if command -v apt-get >/dev/null 2>&1; then
   echo "[INFO] Checking system dependencies..."
-  setup_policy_rcd
   apt-get update
   apt-get install -y \
     ca-certificates \
@@ -324,7 +157,9 @@ if command -v apt-get >/dev/null 2>&1; then
     unzip \
     python3 \
     python3-venv \
-    python3-pip
+    python3-pip \
+    nodejs \
+    npm
   if ! command -v docker >/dev/null 2>&1; then
     echo "[INFO] Installing docker..."
     apt-get install -y docker.io
@@ -335,8 +170,6 @@ if command -v apt-get >/dev/null 2>&1; then
   if command -v systemctl >/dev/null 2>&1; then
     systemctl enable --now docker || true
   fi
-  ensure_node_npm
-  cleanup_policy_rcd
 fi
 
 # ------------------------------
@@ -352,10 +185,10 @@ if ! command -v curl &> /dev/null; then
 fi
 
 INSTALL_DIR="/opt/mc-panel-sanitized"
-BRANCH="demon1.3"
+BRANCH="${MC_PANEL_BRANCH:-demon1.3}"
 
 # ------------------------------
-# Clone / update target branch
+# Clone / update repo
 # ------------------------------
 if [ ! -d "$INSTALL_DIR" ]; then
   echo "[INFO] Cloning repo ($BRANCH)..."
@@ -363,37 +196,11 @@ if [ ! -d "$INSTALL_DIR" ]; then
     https://github.com/zalataraglados-prog/mc-panel-sanitized.git \
     "$INSTALL_DIR"
 else
-  echo "[INFO] Repo exists, updating ($BRANCH)..."
+  echo "[INFO] Repo exists, updating current branch..."
   cd "$INSTALL_DIR"
-  git fetch
-  git checkout "$BRANCH"
-  git pull
+  git fetch --all --prune
+  git pull --ff-only || true
 fi
-
-install_mcic() {
-  local target="/usr/local/bin/mcic"
-  cat >"$target" <<'SH'
-#!/bin/bash
-set -e
-
-ROOT="/opt/mc-panel-sanitized"
-if [ -f "$ROOT/deploy/cli.py" ]; then
-  cd "$ROOT"
-  if [ "$EUID" -ne 0 ]; then
-    exec sudo -E python3 -m deploy.cli "$@"
-  fi
-  exec python3 -m deploy.cli "$@"
-fi
-
-if command -v curl >/dev/null 2>&1; then
-  exec bash -c 'curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/demon1.3/install.sh | sudo bash'
-fi
-
-echo "mcic: curl not found, please install curl or run install.sh manually." >&2
-exit 1
-SH
-  chmod +x "$target"
-}
 
 # Ensure base instance directory exists for preconditions
 mkdir -p /opt/mc-instances
@@ -405,31 +212,12 @@ maybe_prompt_docker_mirror
 maybe_prompt_docker_proxy_pull
 
 # ------------------------------
-# Install CLI wrapper
-# ------------------------------
-install_mcic
-
-# ------------------------------
-# Web wizard (default) / ????????
-# ------------------------------
-MC_PANEL_WIZARD="${MC_PANEL_WIZARD:-1}"
-if [ "$MC_PANEL_WIZARD" = "1" ] && [ "$SKIP_PROMPTS" != "1" ]; then
-  WIZARD_PORT="${MC_PANEL_WIZARD_PORT:-15001}"
-  echo "[INFO] Starting web wizard on port ${WIZARD_PORT}..."
-  start_wizard_service
-  echo "[INFO] Open: http://<server-ip>:${WIZARD_PORT}/"
-  echo "[INFO] OTP: run 'mcic otp' to view one-time token"
-  echo "[INFO] To skip wizard, set MC_PANEL_WIZARD=0"
-  exit 0
-fi
-
-# ------------------------------
 # Language selection
 # ------------------------------
 if [ "$AUTO_MODE" = "1" ] && [ -n "${MC_PANEL_LANG:-}" ]; then
   LANGUAGE="${MC_PANEL_LANG}"
 else
-  LANGUAGE=$(read_tty "Select language [1=EN, 2=濠电偞鍨堕幖鈺呭储娴犲鍑?缂傚倷鑳舵慨顓㈠磻閹捐秮?]: ")
+  LANGUAGE=$(read_tty "Select language [1=EN, 2=涓枃(绠€浣?]: ")
 fi
 case "$LANGUAGE" in
   2) LANGUAGE="zh" ;;
@@ -441,60 +229,60 @@ msg() {
   case "$LANGUAGE" in
     zh)
       case "$key" in
-        panel_maintenance) echo "闂傚倸鍊搁悧鍕垂閸濆嫷鐔嗘俊顖濆亹绾惧ジ鎮楀☉娅亣顣介梻浣瑰缁嬫垿鎮ч崱娑樼闁跨喓濮寸€氬顭跨捄鐚村姛闁哄妫勯妴鎺戭潩椤掑鍔€缂備浇椴稿畝鎼佸极? ;;
-        panel_install) echo "1) 濠电偞鍨堕幐鎼佸箹椤愶箑绀勯柨鐔哄Т鐎氬顭跨捄鐚村姛闁哄妫勯妴鎺戭潩椤掑鍓伴梺浼欑祷閸斿酣骞夊Δ鍛窛閻庢稒蓱閵嗗啴姊? ;;
-        panel_uninstall) echo "2) 闂備礁鎲￠〃鍡涙偤閺囩伝褰掑炊瑜滈崯鍛存煕濞嗗浚妲圭紒鐘冲浮閹宕烽鐐扮钵缂備浇缈伴崕闈浳涢崘顔碱潊闁斥晛鍟伴崙? ;;
-        panel_continue) echo "闂備焦鎮堕崕鎶藉磻閻樻祴鏀﹂柛娑卞灣绾捐偐鎲歌箛娑欏仺閻犲洤妯婂浼存煥濠靛棙鍣介柛鈺傤殜濮婃椽顢欓崫鍕瀷闁荤姳鐒﹂悡鈩冧繆? ;;
-        panel_prompt) echo "闂佸搫顦悧濠囧箰閹间礁鐭?[1-2] 闂備胶鎳撻悺銊╂偋濠婂牆姹查柍褜鍓涚槐鎺戠暆閳ь剛浜搁妸褎顫? ;;
-        instances) echo "闂備礁鎲￠悷顖炲垂閹惰棄鏋侀柕鍫濇礌閸嬫捇宕烽鐐扮钵缂備浇缈伴崕鐢稿极? ;;
-        instance_dir) echo "闂佽楠稿﹢閬嶅磻濡吋顐介柕澶嗘櫆閸庡孩銇勯弮鍥т汗缂佸娼￠弻銊モ槈濡厧顣洪悷婊呭閻擄繝寮婚崨顔肩窞婵炴垶姘ㄩˇ顕€姊哄ú缁樺▏闁告柨顑囬懞閬嶎敆閸曨偉鎽曢梺闈涳紡鐏炶偐纾介梻浣告啞閻熻京绱為崶鈺傤潟婵鍩栭弲? ;;
-        import_string) echo "缂傚倷绶￠崰妤呪€﹂崼銉ョ婵炴垯鍨洪悡鈧悗骞垮劚濞层劑寮搁崒姘ｆ闁规崘顕栭崵瀣磼鏉堛劎鎳囩€规洖鐖奸幃娆撴嚋閻㈢數娉濋梺鑽ゅТ閹碱偊鎮块崶鈺傚床闁告劦鍠楅弲顒€顭块懜鐢点€掔紒? ;;
-        import_mode) echo "闂佽娴烽弫鎼佸储瑜斿畷锝夊幢濞戞ɑ顥濋梺鑽ゅ枑婢瑰棛娑甸埀顒勬⒑?) 缂傚倷绶￠崰妤呪€﹂崼銉ョ婵炴垯鍨洪悡鈧悗骞垮劚濞层劑寮搁崒姘ｆ?2) 濠电偛顕慨瀵糕偓娑掓櫊瀵悂宕橀埡鍐炬祫闁荤姾妗ㄧ拃锕傚吹閵堝鐓曢煫鍥ь儏閸旂數绱掓潏銊ф噰鐎规洖鐖奸幃娆撴嚋閻㈢數娉濋梺鑽ゅТ閹碱偊鎮块崶鈺傚床闁告劦鍠楅弲? ;;
-        import_file) echo "闂傚倷鐒﹀妯肩矓閸洘鍋柛鈩冾焽閳绘棃鏌涘▎蹇ｆЧ闁诲寒鍠栭湁闁绘ê鍟块崝鍫曟煟椤撶喎鍔ゆい鏇樺劦瀹曠喖宕滄担铏瑰炊" ;;
-        import_file_missing) echo "[WARN] 闂備礁鎼崐绋棵洪敐鍛瀻闁靛骏绱曢埢鏃傗偓骞垮劚閹虫劙骞楅悩缁樼厱闁挎柨鎼俊浠嬫煕閵婏絽濡界紒瀣槸椤撳ジ宕ㄩ鈽嗗敼闂佽崵濮村ú锝囨椤旂偓顫曟繝闈涱儏閻銇勯弽顐粶婵炲懌鍨介弻锟犲磼濞戞﹩鈧粎绱掓０婵嗗籍鐎规洘顨婃俊鐑藉Ω瑜忛崬鎾倵閸偅绶查悗姘煎弮瀹曞綊濡搁埡浣哄€為梺缁樺姌閸╂牜鑺遍悩缁樼厸闁逞屽墴閺屽懎鈽夊鍜佹Ч缂傚倷绶￠崰妤呪€﹂崼銉ョ婵炴垶鐟︾紞鍥煙閹冩毐鐎殿喗濞婇弻? ;;
-        import_list_header) echo "闁诲海鎳撻幉陇銇愰崘顕呮晪闂侇剙绉寸粈鍌炴煏婢跺棙娅呴悽顖氱－缁辨捇宕橀幆褎鐝紓浣介哺閻熝呮閹捐鍐€鐟滃秵绻涢崶顒佺叆婵炴垶锕╁褏绱? ;;
-        import_edit_prompt) echo "闂備礁鎼€氱兘宕规导鏉戠畾濞达絽婀遍埞宥嗐亜閺冨洤袚闁哄棭鍙冮幃妤呮偨闂堟稑浠橀梺鍛婄懃濡繈寮绘繝鍌ゅ悑闁搞儮鏅滈悗顓㈡⒑閹稿海銆掗柛鐘虫礈濞嗐垽顢橀姀鐘殿槯闂侀潧顦介悡鍫ュ绩娴犲鐓曟繛鍡楃箰濞堚晝绱掓潏銊ф噰闁哄苯鎳庤灃闁逞屽墲閵囨劙宕稿Δ鈧粈鍡涙煕閳╁啰鈯曟い鎾荤畺閺屻劌鈽夊鍡橆€嗙紓浣介哺缁诲牆鐣烽崼鏇熷€烽柤鍝ユ暩閻╁啴鏌ｉ悩鍙夋儓闁汇倕娲ㄩ幑銏ゅ礃椤旇姤娅? ;;
-        import_confirm_prompt) echo "闂佸搫顦悧濠囧箰閹间礁鐭?sure 缂備胶铏庨崣搴ㄥ窗濞戙埄鏁囩紓浣诡焽閳瑰秵銇勯弮鍥撻柡鍡╁弮閺屻劌鈽夊Ο鍨伃濠电偛寮堕悧妤€顭囬鍫熸櫇濞达絽鎼崝婊堟煛婢跺棙娅呮繛鏉戝濡? ;;
-        import_value_prompt) echo "闂佽崵濮崇粈浣规櫠娴犲鍋柛鈩冪☉濡﹢鏌℃径濠勬皑闁? ;;
-        panel_install_prompt) echo "闂佽娴烽幊鎾凰囬幎鍓?Web 闂傚倸鍊搁悧鍕垂閸濆嫷鐔嗘慨妞诲亾闁轰礁绉归幃鐐哄礈?N] " ;;
-        panel_port_prompt) echo "闂傚倸鍊搁悧鍕垂閸濆嫷鐔嗘俊顖濆亹閸楁碍銇勯弽銊ㄥ缂?[濠殿喗甯楃粙鎺椻€﹂崼銉晣? 15000]: " ;;
-        inventory_menu) echo "闂備胶鍘ч崯鍧楁嚐椤栨壕鍋撻崹顐€挎鐐存崌楠炴帒顓奸崱鈺佷缓闂備焦瀵х粙鎴︽偋閸℃哎浜归柡灞诲劜閻掕顭块懜鐢点€掔紒鈧崱娑欑叆? ;;
-        inventory_url_prompt) echo "闂備胶鍘ч崯鍧楁嚐椤栨壕鍋撻崹顐€挎鐐存崌楠炴帒顓奸崱鈺佷缓濠电偞鍨堕幐鎼侇敄閸緷褰掑炊椤掆偓閹瑰爼鏌℃径瀣嚋缂?[濠殿喗甯楃粙鎺椻€﹂崼銉晣缂侇偓绻濋弻? ;;
-        inventory_url_required) echo "闂備胶鍘ч崯鍧楁嚐椤栨壕鍋撻崹顐€挎鐐存崌楠炴帒顓奸崱鈺佷缓濠电偞鍨堕幐鎼侇敄閸緷褰掑炊椤掆偓閹瑰爼鏌℃径瀣嚋缂佹彃顭烽弻銊モ槈濡厧顣虹紓浣哄劦閸嬫挻绻濋棃娑辨▓闁稿鎸惧Σ鎰潩閼稿灚娅? ;;
-        map_port_prompt) echo "闂備線娼婚梽鍕熆濡ソ鐟邦潨閳ь剟鐛幘璇茬鐎广儱妫崑銊х磽娴ｈ顥旈柛銊﹀閵?[濠殿喗甯楃粙鎺椻€﹂崼銉晣? " ;;
-        map_render_prompt) echo "闂備線娼婚梽鍕熆濡ソ鐟拔熼幁鎺嗗亾閹烘鐭楀璺鸿嫰鐢剟姊婚崒姘偓褰掑箰閸愭祴鏋旂憸鏃堝极瀹ュ閱囨繝闈涙閳ь剙顭峰娲偩鐏炶姤鐝㈢紓浣介哺閻＄喐鎱ㄩ幒鎾垛姇妞ゎ厼鐗撻、? 5]: " ;;
-        java_override) echo "闂備礁鎼€氱兘宕规导鏉戠畾濞达絿鍎ら崯娲煕閳╁啰鎳勭痪?Java 闂佸搫顦弲婊堝礉濮椻偓閵嗕線骞嬮敃鈧猾宥夋偣娴ｅ憡璐￠柛姘辩摫y/N] " ;;
-        java_select) echo "闂傚倷绶￠崑鍕囬幍顔瑰亾?Java 闂備胶绮〃鍛存偋婵犲偊鑰垮ù鐓庣摠閺? ;;
-        memory_prompt) echo "闂備礁鎲￠崝鏇㈠箠鎼淬劍鍋ら柕濞炬櫆閺咁剟鏌涢锝囩煂濞村吋鍔曢埞?2G / 4G闂備焦瀵х粙鎴βㄩ埀顒傜磼? ;;
-        expected_players_prompt) echo "濠碘槅鍋呭妯尖偓姘煎幖閿曘垽鏁撻悩鍙夊祶闂侀潧臎閸愨晝鏋冨┑鐐茬摠缁酣宕曢妶澶婃辈闁绘柨鍚嬮弲顒勬煕椤愶絿绠撻悹浣圭叀濮婃椽顢曢姀鈺傤€嗙紓浣介哺瀹€鎼佸极? ;;
-        version_menu) echo "闂傚倷绶￠崑鍕囬幍顔瑰亾?Minecraft 闂備胶绮〃鍛存偋婵犲偊鑰垮ù鐓庣摠閺? ;;
-        version_custom) echo "闂備胶鍘ч〃搴㈢濠婂牊鍋╅柣鎰靛墰閳绘洖顭跨捄楦垮妞わ絽銈搁弻锟犲醇椤愩垹顫╅悷婊勬緲濞硷繝寮? ;;
-        edition_menu) echo "闂傚倷绶￠崑鍕囬幍顔瑰亾?Minecraft 闂備胶绮〃鍛存偋婵犲偊鑰块柟娈垮枤鐏忕敻鎮归崶顏勭毢闁逞屽墰閸忔﹢寮? ;;
-        edition_java) echo "1) Java 闂? ;;
-        edition_bedrock) echo "2) Bedrock 闂? ;;
-        bedrock_notice) echo "闁荤喐绮庢晶妤呭箰閸涘﹥娅犻柣妯虹－椤╃兘鏌涘☉鍗炴灍闁哄棙绮撻弻?Java 闂備胶绮〃鍛存偋閻愬灚顫曟繝濠勭亙drock 闂備礁鎼Λ妤呭磹閻熷府鑰挎い鎾跺Л閸嬫捇宕烽鐐版埛濡ょ姷鍋涘ú顓熶繆? ;;
-        bedrock_detail) echo "Bedrock 闂備礁婀遍悷鎶藉幢閳哄倹鏉搁梺璇茬箳閸嬫盯宕愰幖浣瑰剭濠电姵鑹剧€氬銇勮箛鎾愁伀闁哄绮欓弻锝咁煥閸℃鍔烽梺? ;;
-        profile_menu) echo "闂傚倷绶￠崑鍕囬幍顔瑰亾濮樸儱濮傞柡灞斤工椤撳ジ宕堕埡鍌溾偓顓炩攽閳╁喚娈ｇ紒鑼跺亹缁辩偤宕ㄧ€涙ɑ娅? ;;
-        profile_beginner) echo "1) 闂備礁鎼崐缁樻櫠濡や焦娅? ;;
-        profile_normal) echo "2) 闂備礁鎼粔鏉懨洪妶澶婇棷妞ゆ牜鍋為弲顒勬煕椤愮姴鍔ら悽顖涚洴閹鎷呴棃娑掑亾瑜忓Σ? ;;
-        profile_advanced) echo "3) 濠德板€曢崐褰掆€﹂崶顭戞? ;;
-        map_menu) echo "闂備線娼婚梽鍕熆濡ソ鐟邦潨閳ь剟鐛幘璇茬鐎广儱妫崑銊╂⒑閹稿海鈽夐柣妤€妫滈妵鎰板蓟閵夛妇鍔垫繝銏ｅ煐缁嬫挾绮堥崱娑欑叆? ;;
-        map_none) echo "1) 濠电偞鍨堕幐鍝ョ矓閹绢喗鍋╅柕濞у嫬鏅? ;;
+        panel_maintenance) echo "闈㈡澘缁存姢锛堝凡鏈夊疄渚嬶級锛? ;;
+        panel_install) echo "1) 涓哄凡鏈夊疄渚嬪畨瑁呴潰鏉? ;;
+        panel_uninstall) echo "2) 鍗歌浇宸叉湁瀹炰緥闈㈡澘" ;;
+        panel_continue) echo "鍥炶溅缁х画姝ｅ父閮ㄧ讲銆? ;;
+        panel_prompt) echo "杈撳叆 [1-2] 鎴栫暀绌猴細" ;;
+        instances) echo "鍙敤瀹炰緥锛? ;;
+        instance_dir) echo "瀹炰緥鐩綍锛堝彲閫夛紝鐢ㄤ簬鏌ョ鍙ｏ級锛? ;;
+        import_string) echo "绮樿创閰嶇疆涓诧紙鍥炶溅璺宠繃锛夛細" ;;
+        import_mode) echo "瀵煎叆鏂瑰紡锛?) 绮樿创閰嶇疆涓?2) 浠庢枃浠跺鍏ワ紙鍥炶溅璺宠繃锛? ;;
+        import_file) echo "閰嶇疆涓叉枃浠惰矾寰勶細" ;;
+        import_file_missing) echo "[WARN] 鏂囦欢涓嶅瓨鍦ㄦ垨涓嶅彲璇伙紝鍙噸鏂拌緭鍏ヨ矾寰勬垨鍥炶溅鏀逛负绮樿创杈撳叆銆? ;;
+        import_list_header) echo "宸插鍏ラ厤缃紙缂栧彿锛夛細" ;;
+        import_edit_prompt) echo "鏄惁淇敼瀵煎叆閰嶇疆锛熻緭鍏ヨ鍙凤紙閫楀彿鍒嗛殧锛夛紝鍥炶溅璺宠繃锛? ;;
+        import_confirm_prompt) echo "杈撳叆 sure 纭淇敼锛屽洖杞﹁烦杩囷細" ;;
+        import_value_prompt) echo "璁剧疆鏂板€? ;;
+        panel_install_prompt) echo "瀹夎 Web 闈㈡澘锛焄y/N] " ;;
+        panel_port_prompt) echo "闈㈡澘绔彛 [榛樿: 15000]: " ;;
+        inventory_menu) echo "鑳屽寘鎻掍欢锛堝彲閫夛級锛? ;;
+        inventory_url_prompt) echo "鑳屽寘鎻掍欢涓嬭浇鍦板潃 [榛樿]锛? ;;
+        inventory_url_required) echo "鑳屽寘鎻掍欢涓嬭浇鍦板潃锛堝繀濉級锛? ;;
+        map_port_prompt) echo "鍦板浘鎻掍欢绔彛 [榛樿: " ;;
+        map_render_prompt) echo "鍦板浘娓叉煋闂撮殧锛堝垎閽燂級[榛樿: 5]: " ;;
+        java_override) echo "鏄惁瑕嗙洊 Java 杩愯鏃讹紵[y/N] " ;;
+        java_select) echo "閫夋嫨 Java 鐗堟湰锛? ;;
+        memory_prompt) echo "鍐呭瓨锛堜緥濡?2G / 4G锛夛細" ;;
+        expected_players_prompt) echo "棰勬湡鍦ㄧ嚎浜烘暟锛堝彲閫夛級锛? ;;
+        version_menu) echo "閫夋嫨 Minecraft 鐗堟湰锛? ;;
+        version_custom) echo "鑷畾涔夌増鏈彿锛? ;;
+        edition_menu) echo "閫夋嫨 Minecraft 鐗堟湰绫诲瀷锛? ;;
+        edition_java) echo "1) Java 鐗? ;;
+        edition_bedrock) echo "2) Bedrock 鐗? ;;
+        bedrock_notice) echo "褰撳墠浠呮敮鎸?Java 鐗堬紝Bedrock 鏆傛湭瀹炵幇銆? ;;
+        bedrock_detail) echo "Bedrock 鎵ц灞傚皻鏈疄鐜般€? ;;
+        profile_menu) echo "閫夋嫨閰嶇疆妗ｄ綅锛? ;;
+        profile_beginner) echo "1) 鏂版墜" ;;
+        profile_normal) echo "2) 鏍囧噯锛堥粯璁わ級" ;;
+        profile_advanced) echo "3) 楂樼骇" ;;
+        map_menu) echo "鍦板浘鎻掍欢锛堝彲閫夛級锛? ;;
+        map_none) echo "1) 涓嶅畨瑁? ;;
         map_dynmap) echo "2) Dynmap" ;;
         map_bluemap) echo "3) BlueMap" ;;
-        map_url_prompt) echo "闂備線娼婚梽鍕熆濡ソ鐟邦潨閳ь剟鐛幘璇茬鐎广儱妫崑銊︾箾閹寸偞灏い鎴濈墕闇夐柛銉墮閹瑰爼鏌℃径瀣嚋缂?[濠殿喗甯楃粙鎺椻€﹂崼銉晣缂侇偓绻濋弻? ;;
-        map_url_fail) echo "[WARN] 濠电偞鍨堕幐鎼侇敄閸緷褰掑炊椤掆偓閹瑰爼鏌℃径瀣嚋缂佽尪顕ч埥澶愬箻瀹曞泦銏㈡喐閺夊灝绾ф繛鐓庣箻楠炴﹢宕ㄩ婊庢Х闂佽崵濮村ú銊╁礂濮椻偓瀹曟娊宕妷锕€鐝伴梺鍝勬川閸犲酣鎮樺Δ鍛拺妞ゆ劑鍩勫Σ褰掓倵濮樸儱濡界紒瀣槸椤撳ジ宕ㄩ娑欘吘闂佽崵鍠嶇粈渚€骞婂畝鍕劦? ;;
-        plan_run) echo "[INFO] 婵犳鍠楃换鎰緤閽樺鑰挎い蹇撶墕缁犮儳鎲搁幋锔衡偓?plan..." ;;
-        plan_block) echo "[INFO] 闂佽崵鍋為崙褰掑磻婵犲伣鐔煎幢濞戞顔嗛梺鎸庢閸嬫劗绮堟径鎰厱婵炲棙锚閻忋儵鏌ｉ妸褍鏋涚€殿噮鍋婂鍫曞箣濠靛浂妫熼梻浣芥〃閻掞箑顭垮鈧獮鍐ㄎ旈崨顔惧帓閻庡箍鍎遍悧蹇撐ｉ幖浣圭厪? ;;
-        plan_warn) echo "闂佽瀛╃粙鎺楁晪濠电姭鍋撴い蹇撴婵即鏌ㄩ弴妤€浜鹃梺纭咁嚋缁绘繈寮鍥︽勃闁绘劦鍎烽敃鍌涚厱婵ɑ鍎抽々顒勬煙閹绢噮妫戠紒杈ㄥ浮椤㈡﹢濡歌閹€儁/N] " ;;
-        plan_ok) echo "[INFO] Review 闂傚倷绶￠崑鍛┍閾忚宕查柛鎰靛枟閺咁剛鈧厜鍋撻柍褜鍓熷顐﹀箻鐠囪尙顓洪梺褰掑亰閸樺ジ鍩涢弮鍫熷仩婵炴垶顭囬悞閿嬨亜閹惧瓨鍊愮€?.." ;;
-        edit_params) echo "闂佽崵濮撮鍛村疮椤栫偛姹查柨婵嗩槸閻鏌涚仦鍓р姇婵炲牆鐖奸弻銊モ槈濡澧y=value闂備焦瀵х粙鎴︽儔婵傜鐓橀柡宥庡亝閸嬫鈧厜鍋撻柍褜鍓涢崚鎺楀Ω閳轰胶楠囬梺缁樻礀閸婅崵绮堥崱娑欑叆? ;;
-        frontend_missing) echo "[WARN] 缂傚倸鍊搁崐鎼佸箹椤愶附鍎?frontend/dist闂備焦瀵х粙鎴︽儗閸屾凹鐒藉ù鍏兼綑缁狙囨煕瑜庨〃鍡樼濮椻偓閹兘寮村鍗炲闂佽瀵掗崹浼搭敋濞嗘挸绠掗柟鍝勬娴? ;;
-        frontend_building) echo "[INFO] 婵犳鍠楃换鎰緤閽樺鑰挎い蹇撶墕閸戠娀鏌涢弴銊ヤ簽缂佹唻绠撻弻娑㈠箻瀹曞泦銈嗐亜韫囷絽澧撮柡浣哥Т閻ｆ繈宕橀幆褎顔夌紓鍌欑椤戝懐绮旈幘顔肩劦?.." ;;
-        npm_missing) echo "[WARN] 闂備礁鎼悧婊勭濠靛瑤澶愬川椤掔厧婀遍埀顒婄秵娴滄粓鎮?npm闂備焦瀵х粙鎴︽儗娓氣偓椤㈡岸顢楅崒妤€浜鹃柣鐔煎亰濡插吋銇?Node.js 闂備礁鎲￠懝鐐殽閹间礁鐤柍褜鍓熼弻锛勨偓锝庝簻椤忊晝绱撻崒娑欏磳濠? ;;
-        review_blocked) echo "[INFO] Review 闂佽崵鍋為崙褰掑磻婵犲伣鐔煎幢濞戞顔嗛梺鎸庢閸嬫劗绮堟径鎰厱婵炲棙锚閻忋儵鏌ｉ妸褍鏋涚€殿噮鍋婂鍫曞箣濠靛浂妫熼梻浣芥〃閻掞箑顭垮鈧獮鍐ㄎ旈崨顔惧帓閻庡箍鍎遍悧蹇撐ｉ幖浣圭厪? ;;
-        review_still_block) echo "[INFO] 濠电偛顕慨瀵哥矓閻戞枻缍栭柨鏇炲€归埛鎾剁磽娴ｅ顏堫敂閿熺姵鐓ユ繛鎴烆焾鐎氫即鏌涢幋顖滅瘈闁哄苯鎳橀崺鈧い鎺戝缁€鍕煙椤撶喎鍧婇柛? ;;
-        review_canceled) echo "[INFO] 闁诲海鎳撻幉陇銇愰崘顓滀汗闁搞儜鈧Σ鍫ユ煕椤愶絿鈻撻柛? ;;
+        map_url_prompt) echo "鍦板浘鎻掍欢涓嬭浇鍦板潃 [榛樿]锛? ;;
+        map_url_fail) echo "[WARN] 涓嬭浇鍦板潃涓嶅彲杈撅紝璇烽噸璇曟垨閫夋嫨涓嶅畨瑁呫€? ;;
+        plan_run) echo "[INFO] 姝ｅ湪鎵ц plan..." ;;
+        plan_block) echo "[INFO] 琚樆鎷︼紝鍙皟鏁村弬鏁板悗閲嶈瘯銆? ;;
+        plan_warn) echo "瀛樺湪璀﹀憡锛屾槸鍚︾户缁紵[y/N] " ;;
+        plan_ok) echo "[INFO] Review 閫氳繃锛岀敓鎴愭墽琛岃鍒?.." ;;
+        edit_params) echo "璋冩暣鍙傛暟锛坘ey=value锛岀┖琛岀粨鏉燂級锛? ;;
+        frontend_missing) echo "[WARN] 缂哄皯 frontend/dist锛岄潰鏉块渶瑕佹瀯寤恒€? ;;
+        frontend_building) echo "[INFO] 姝ｅ湪鏋勫缓鍓嶇锛岃绋嶅€?.." ;;
+        npm_missing) echo "[WARN] 鏈娴嬪埌 npm锛岃瀹夎 Node.js 鍚庡啀鏋勫缓銆? ;;
+        review_blocked) echo "[INFO] Review 琚樆鎷︼紝鍙皟鏁村弬鏁板悗閲嶈瘯銆? ;;
+        review_still_block) echo "[INFO] 浠嶈闃绘嫤锛屽凡閫€鍑恒€? ;;
+        review_canceled) echo "[INFO] 宸插彇娑堛€? ;;
         *) echo "$key" ;;
       esac
       ;;
@@ -563,7 +351,7 @@ msg() {
 choice_prompt() {
   local range="$1"
   if [ "$LANGUAGE" = "zh" ]; then
-    echo "闂佸搫顦悧濠囧箰閹间礁鐭?[${range}]: "
+    echo "杈撳叆 [${range}]: "
   else
     echo "Enter [${range}]: "
   fi
@@ -705,7 +493,7 @@ import urllib.request
 url = "https://api.github.com/repos/zalataraglados-prog/vanilla_catalog/contents/catalog"
 fallback = [
     "1.21.11",
-    "1.21.11",
+    "1.21.4",
     "1.20.6",
     "1.20.5",
     "1.20.4",
@@ -846,7 +634,7 @@ PY
 
 mapfile -t VERSIONS < "$VERSIONS_FILE"
 if [ "${#VERSIONS[@]}" -eq 0 ]; then
-  VERSIONS=("1.21.11")
+  VERSIONS=("1.21.4")
 fi
 
 if [ -n "$IMPORT_VERSION" ]; then
@@ -1111,7 +899,9 @@ if [ "$PANEL_ENABLED" = "true" ]; then
     echo "$(msg frontend_missing)"
     if ! command -v npm >/dev/null 2>&1; then
       echo "$(msg npm_missing)"
-      ensure_node_npm
+      if command -v apt >/dev/null 2>&1; then
+        apt update && apt install -y nodejs npm
+      fi
     fi
     if command -v npm >/dev/null 2>&1; then
       echo "$(msg frontend_building)"
@@ -1364,10 +1154,13 @@ PY
 if [ "$PROFILE" = "beginner" ]; then
   BEGINNER_KEYS="keepInventory enable-command-block"
   tmp_keys="/tmp/param_keys.beginner.txt"
-  awk -F'\t' 'BEGIN{split(ENVIRON["BEGINNER_KEYS"],a," "); for(i in a) keep[a[i]]=1} keep[$1]' \
+  awk -F'	' 'BEGIN{split(ENVIRON["BEGINNER_KEYS"],a," "); for(i in a) keep[a[i]]=1} keep[$1]' \
     /tmp/param_keys.txt > "$tmp_keys"
   mv "$tmp_keys" /tmp/param_keys.txt
 fi
+
+if [ "$SKIP_PROMPTS" = "1" ]; then
+
 if [ "$SKIP_PROMPTS" = "1" ]; then
   : 
 else
@@ -1440,7 +1233,7 @@ while true; do
   echo "$PLAN_OUTPUT"
   LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
   if [ -z "$LEVEL" ]; then
-    LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^缂傚倷鑳剁€氬繘宕橀妸褍濮?[[:space:]]*//p' | head -n 1)
+    LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^绾у埆:[[:space:]]*//p' | head -n 1)
   fi
   LEVEL="$(echo "$LEVEL" | xargs | tr 'A-Z' 'a-z')"
 
@@ -1606,7 +1399,5 @@ echo "$CLAIMS_STRING"
 echo ""
 echo "[INFO] Execution plan complete."
 exit 0
-
-
 
 
