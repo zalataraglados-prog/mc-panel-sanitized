@@ -1,4 +1,4 @@
-﻿# MC Panel 
+# MC Panel 
 
 ## Release Notice / 发布声明
 
@@ -25,6 +25,49 @@ This project is a configuration decision engine for Minecraft deployments with a
 ```
 curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/v1.0.2/install.sh | sudo bash
 ```
+
+After the first install, you can use the short CLI (Linux only):
+安装完成后可使用简写 CLI（仅 Linux）：
+
+```
+mcic
+```
+
+MCIC command dictionary (full):
+MCIC 命令字典（完整版）：
+
+Common instance flags (most commands support these):
+通用实例参数（多数命令可用）：
+- `--instance-dir <path>` 实例目录
+- `--instance <name>` 实例名
+- `--base-dir <path>` 实例根目录（默认 /opt/mc-instances）
+
+Instance list / select:
+实例管理：
+- `mcic instances` 列出实例（完整路径）
+
+Panel management:
+面板管理：
+- `mcic panel install` 安装面板
+  - `--instance-dir <path>` 指定实例
+  - `--base-dir <path>` 实例根目录
+  - `--panel-port <port>` 指定面板端口
+  - `--panel-root <path>` 指定面板仓库路径
+  - `--no-start` 不启动服务
+  - `--no-build` 跳过前端构建
+- `mcic panel uninstall` 卸载面板
+  - `--instance-dir <path>` 指定实例
+  - `--base-dir <path>` 实例根目录
+
+Runtime controls:
+运行控制：
+- `mcic up | down | restart`
+
+Instance resolution order / 实例解析优先级
+1) `--instance-dir` / `--instance`
+2) 环境变量 `MCIC_INSTANCE` / `MC_PANEL_INSTANCE`
+3) 自动推断唯一实例（仅在只有一个实例时）
+
 ### Docker mirror & proxy pull / Docker 镜像加速与代理拉取
 
 If Docker Hub is unreachable, the installer can prompt for a mirror or a proxy prefix:
