@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 set -e
 
 echo "======================================"
@@ -185,10 +185,10 @@ if ! command -v curl &> /dev/null; then
 fi
 
 INSTALL_DIR="/opt/mc-panel-sanitized"
-BRANCH="demon1.1"
+BRANCH="${MC_PANEL_BRANCH:-v1.0.2}"
 
 # ------------------------------
-# Clone / update demon1.1 branch
+# Clone / update repo
 # ------------------------------
 if [ ! -d "$INSTALL_DIR" ]; then
   echo "[INFO] Cloning repo ($BRANCH)..."
@@ -196,11 +196,10 @@ if [ ! -d "$INSTALL_DIR" ]; then
     https://github.com/zalataraglados-prog/mc-panel-sanitized.git \
     "$INSTALL_DIR"
 else
-  echo "[INFO] Repo exists, updating ($BRANCH)..."
+  echo "[INFO] Repo exists, updating current branch..."
   cd "$INSTALL_DIR"
-  git fetch
-  git checkout "$BRANCH"
-  git pull
+  git fetch --all --prune
+  git pull --ff-only || true
 fi
 
 # Ensure base instance directory exists for preconditions
@@ -218,7 +217,7 @@ maybe_prompt_docker_proxy_pull
 if [ "$AUTO_MODE" = "1" ] && [ -n "${MC_PANEL_LANG:-}" ]; then
   LANGUAGE="${MC_PANEL_LANG}"
 else
-  LANGUAGE=$(read_tty "Select language [1=EN, 2=中文(简体)]: ")
+  LANGUAGE=$(read_tty "Select language [1=EN, 2=涓枃(绠€浣?]: ")
 fi
 case "$LANGUAGE" in
   2) LANGUAGE="zh" ;;
@@ -230,60 +229,60 @@ msg() {
   case "$LANGUAGE" in
     zh)
       case "$key" in
-        panel_maintenance) echo "面板维护（已有实例）：" ;;
-        panel_install) echo "1) 为已有实例安装面板" ;;
-        panel_uninstall) echo "2) 卸载已有实例面板" ;;
-        panel_continue) echo "回车继续正常部署。" ;;
-        panel_prompt) echo "输入 [1-2] 或留空：" ;;
-        instances) echo "可用实例：" ;;
-        instance_dir) echo "实例目录（可选，用于查端口）：" ;;
-        import_string) echo "粘贴配置串（回车跳过）：" ;;
-        import_mode) echo "导入方式：1) 粘贴配置串 2) 从文件导入（回车跳过）" ;;
-        import_file) echo "配置串文件路径：" ;;
-        import_file_missing) echo "[WARN] 文件不存在或不可读，可重新输入路径或回车改为粘贴输入。" ;;
-        import_list_header) echo "已导入配置（编号）：" ;;
-        import_edit_prompt) echo "是否修改导入配置？输入行号（逗号分隔），回车跳过：" ;;
-        import_confirm_prompt) echo "输入 sure 确认修改，回车跳过：" ;;
-        import_value_prompt) echo "设置新值" ;;
-        panel_install_prompt) echo "安装 Web 面板？[y/N] " ;;
-        panel_port_prompt) echo "面板端口 [默认: 15000]: " ;;
-        inventory_menu) echo "背包插件（可选）：" ;;
-        inventory_url_prompt) echo "背包插件下载地址 [默认]：" ;;
-        inventory_url_required) echo "背包插件下载地址（必填）：" ;;
-        map_port_prompt) echo "地图插件端口 [默认: " ;;
-        map_render_prompt) echo "地图渲染间隔（分钟）[默认: 5]: " ;;
-        java_override) echo "是否覆盖 Java 运行时？[y/N] " ;;
-        java_select) echo "选择 Java 版本：" ;;
-        memory_prompt) echo "内存（例如 2G / 4G）：" ;;
-        expected_players_prompt) echo "预期在线人数（可选）：" ;;
-        version_menu) echo "选择 Minecraft 版本：" ;;
-        version_custom) echo "自定义版本号：" ;;
-        edition_menu) echo "选择 Minecraft 版本类型：" ;;
-        edition_java) echo "1) Java 版" ;;
-        edition_bedrock) echo "2) Bedrock 版" ;;
-        bedrock_notice) echo "当前仅支持 Java 版，Bedrock 暂未实现。" ;;
-        bedrock_detail) echo "Bedrock 执行层尚未实现。" ;;
-        profile_menu) echo "选择配置档位：" ;;
-        profile_beginner) echo "1) 新手" ;;
-        profile_normal) echo "2) 标准（默认）" ;;
-        profile_advanced) echo "3) 高级" ;;
-        map_menu) echo "地图插件（可选）：" ;;
-        map_none) echo "1) 不安装" ;;
+        panel_maintenance) echo "闈㈡澘缁存姢锛堝凡鏈夊疄渚嬶級锛? ;;
+        panel_install) echo "1) 涓哄凡鏈夊疄渚嬪畨瑁呴潰鏉? ;;
+        panel_uninstall) echo "2) 鍗歌浇宸叉湁瀹炰緥闈㈡澘" ;;
+        panel_continue) echo "鍥炶溅缁х画姝ｅ父閮ㄧ讲銆? ;;
+        panel_prompt) echo "杈撳叆 [1-2] 鎴栫暀绌猴細" ;;
+        instances) echo "鍙敤瀹炰緥锛? ;;
+        instance_dir) echo "瀹炰緥鐩綍锛堝彲閫夛紝鐢ㄤ簬鏌ョ鍙ｏ級锛? ;;
+        import_string) echo "绮樿创閰嶇疆涓诧紙鍥炶溅璺宠繃锛夛細" ;;
+        import_mode) echo "瀵煎叆鏂瑰紡锛?) 绮樿创閰嶇疆涓?2) 浠庢枃浠跺鍏ワ紙鍥炶溅璺宠繃锛? ;;
+        import_file) echo "閰嶇疆涓叉枃浠惰矾寰勶細" ;;
+        import_file_missing) echo "[WARN] 鏂囦欢涓嶅瓨鍦ㄦ垨涓嶅彲璇伙紝鍙噸鏂拌緭鍏ヨ矾寰勬垨鍥炶溅鏀逛负绮樿创杈撳叆銆? ;;
+        import_list_header) echo "宸插鍏ラ厤缃紙缂栧彿锛夛細" ;;
+        import_edit_prompt) echo "鏄惁淇敼瀵煎叆閰嶇疆锛熻緭鍏ヨ鍙凤紙閫楀彿鍒嗛殧锛夛紝鍥炶溅璺宠繃锛? ;;
+        import_confirm_prompt) echo "杈撳叆 sure 纭淇敼锛屽洖杞﹁烦杩囷細" ;;
+        import_value_prompt) echo "璁剧疆鏂板€? ;;
+        panel_install_prompt) echo "瀹夎 Web 闈㈡澘锛焄y/N] " ;;
+        panel_port_prompt) echo "闈㈡澘绔彛 [榛樿: 15000]: " ;;
+        inventory_menu) echo "鑳屽寘鎻掍欢锛堝彲閫夛級锛? ;;
+        inventory_url_prompt) echo "鑳屽寘鎻掍欢涓嬭浇鍦板潃 [榛樿]锛? ;;
+        inventory_url_required) echo "鑳屽寘鎻掍欢涓嬭浇鍦板潃锛堝繀濉級锛? ;;
+        map_port_prompt) echo "鍦板浘鎻掍欢绔彛 [榛樿: " ;;
+        map_render_prompt) echo "鍦板浘娓叉煋闂撮殧锛堝垎閽燂級[榛樿: 5]: " ;;
+        java_override) echo "鏄惁瑕嗙洊 Java 杩愯鏃讹紵[y/N] " ;;
+        java_select) echo "閫夋嫨 Java 鐗堟湰锛? ;;
+        memory_prompt) echo "鍐呭瓨锛堜緥濡?2G / 4G锛夛細" ;;
+        expected_players_prompt) echo "棰勬湡鍦ㄧ嚎浜烘暟锛堝彲閫夛級锛? ;;
+        version_menu) echo "閫夋嫨 Minecraft 鐗堟湰锛? ;;
+        version_custom) echo "鑷畾涔夌増鏈彿锛? ;;
+        edition_menu) echo "閫夋嫨 Minecraft 鐗堟湰绫诲瀷锛? ;;
+        edition_java) echo "1) Java 鐗? ;;
+        edition_bedrock) echo "2) Bedrock 鐗? ;;
+        bedrock_notice) echo "褰撳墠浠呮敮鎸?Java 鐗堬紝Bedrock 鏆傛湭瀹炵幇銆? ;;
+        bedrock_detail) echo "Bedrock 鎵ц灞傚皻鏈疄鐜般€? ;;
+        profile_menu) echo "閫夋嫨閰嶇疆妗ｄ綅锛? ;;
+        profile_beginner) echo "1) 鏂版墜" ;;
+        profile_normal) echo "2) 鏍囧噯锛堥粯璁わ級" ;;
+        profile_advanced) echo "3) 楂樼骇" ;;
+        map_menu) echo "鍦板浘鎻掍欢锛堝彲閫夛級锛? ;;
+        map_none) echo "1) 涓嶅畨瑁? ;;
         map_dynmap) echo "2) Dynmap" ;;
         map_bluemap) echo "3) BlueMap" ;;
-        map_url_prompt) echo "地图插件下载地址 [默认]：" ;;
-        map_url_fail) echo "[WARN] 下载地址不可达，请重试或选择不安装。" ;;
-        plan_run) echo "[INFO] 正在执行 plan..." ;;
-        plan_block) echo "[INFO] 被阻拦，可调整参数后重试。" ;;
-        plan_warn) echo "存在警告，是否继续？[y/N] " ;;
-        plan_ok) echo "[INFO] Review 通过，生成执行计划..." ;;
-        edit_params) echo "调整参数（key=value，空行结束）：" ;;
-        frontend_missing) echo "[WARN] 缺少 frontend/dist，面板需要构建。" ;;
-        frontend_building) echo "[INFO] 正在构建前端，请稍候..." ;;
-        npm_missing) echo "[WARN] 未检测到 npm，请安装 Node.js 后再构建。" ;;
-        review_blocked) echo "[INFO] Review 被阻拦，可调整参数后重试。" ;;
-        review_still_block) echo "[INFO] 仍被阻拦，已退出。" ;;
-        review_canceled) echo "[INFO] 已取消。" ;;
+        map_url_prompt) echo "鍦板浘鎻掍欢涓嬭浇鍦板潃 [榛樿]锛? ;;
+        map_url_fail) echo "[WARN] 涓嬭浇鍦板潃涓嶅彲杈撅紝璇烽噸璇曟垨閫夋嫨涓嶅畨瑁呫€? ;;
+        plan_run) echo "[INFO] 姝ｅ湪鎵ц plan..." ;;
+        plan_block) echo "[INFO] 琚樆鎷︼紝鍙皟鏁村弬鏁板悗閲嶈瘯銆? ;;
+        plan_warn) echo "瀛樺湪璀﹀憡锛屾槸鍚︾户缁紵[y/N] " ;;
+        plan_ok) echo "[INFO] Review 閫氳繃锛岀敓鎴愭墽琛岃鍒?.." ;;
+        edit_params) echo "璋冩暣鍙傛暟锛坘ey=value锛岀┖琛岀粨鏉燂級锛? ;;
+        frontend_missing) echo "[WARN] 缂哄皯 frontend/dist锛岄潰鏉块渶瑕佹瀯寤恒€? ;;
+        frontend_building) echo "[INFO] 姝ｅ湪鏋勫缓鍓嶇锛岃绋嶅€?.." ;;
+        npm_missing) echo "[WARN] 鏈娴嬪埌 npm锛岃瀹夎 Node.js 鍚庡啀鏋勫缓銆? ;;
+        review_blocked) echo "[INFO] Review 琚樆鎷︼紝鍙皟鏁村弬鏁板悗閲嶈瘯銆? ;;
+        review_still_block) echo "[INFO] 浠嶈闃绘嫤锛屽凡閫€鍑恒€? ;;
+        review_canceled) echo "[INFO] 宸插彇娑堛€? ;;
         *) echo "$key" ;;
       esac
       ;;
@@ -352,7 +351,7 @@ msg() {
 choice_prompt() {
   local range="$1"
   if [ "$LANGUAGE" = "zh" ]; then
-    echo "输入 [${range}]: "
+    echo "杈撳叆 [${range}]: "
   else
     echo "Enter [${range}]: "
   fi
@@ -1234,7 +1233,7 @@ while true; do
   echo "$PLAN_OUTPUT"
   LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
   if [ -z "$LEVEL" ]; then
-    LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^级别:[[:space:]]*//p' | head -n 1)
+    LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^绾у埆:[[:space:]]*//p' | head -n 1)
   fi
   LEVEL="$(echo "$LEVEL" | xargs | tr 'A-Z' 'a-z')"
 
@@ -1400,3 +1399,5 @@ echo "$CLAIMS_STRING"
 echo ""
 echo "[INFO] Execution plan complete."
 exit 0
+
+
