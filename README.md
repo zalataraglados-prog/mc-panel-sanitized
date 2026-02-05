@@ -60,10 +60,6 @@ Panel management:
   - `--instance-dir <path>` 指定实例
   - `--base-dir <path>` 实例根目录
 
-Runtime controls:
-运行控制：
-- `mcic up | down | restart`
-
 Instance resolution order / 实例解析优先级
 1) `--instance-dir` / `--instance`
 2) 环境变量 `MCIC_INSTANCE` / `MC_PANEL_INSTANCE`
