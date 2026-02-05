@@ -1,4 +1,4 @@
-﻿# MC Panel (demon1.3)
+﻿# MC Panel 
 
 ## Release Notice / 发布声明
 
@@ -20,23 +20,11 @@
 This project is a configuration decision engine for Minecraft deployments with an optional runtime panel.
 本项目是一个 Minecraft 部署前的配置裁决引擎，运行期面板为可选组件。
 
-## Quick start (plan + dry-run) / 快速开始（仅 plan + dry-run）
+## Quick start (plan + dry-run) / 快速开始
 
 ```
-curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/demon1.3/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/v1.0.2/install.sh | sudo bash
 ```
-
-## Network resilience / 网络可靠性
-
-The installer retries external HTTP fetches with backoff to survive flaky networks.
-安装脚本对外部请求自动重试并指数退避，减少因网络波动导致的失败。
-
-Optional environment variables:
-可选环境变量：
-
-- `MC_PANEL_HTTP_RETRIES` (default 3) / 重试次数
-- `MC_PANEL_HTTP_BACKOFF_SECONDS` (default 2) / 初始退避秒数
-
 ### Docker mirror & proxy pull / Docker 镜像加速与代理拉取
 
 If Docker Hub is unreachable, the installer can prompt for a mirror or a proxy prefix:
@@ -61,21 +49,6 @@ Example (manual proxy pull):
 ```
 sudo docker pull m.daocloud.io/docker.io/itzg/minecraft-server:latest
 sudo docker tag m.daocloud.io/docker.io/itzg/minecraft-server:latest itzg/minecraft-server:latest
-```
-
-### Multi-mirror fallback / 多镜像源兜底
-
-Docker will try registry mirrors in order; configure multiple mirrors to improve resilience.
-Docker 会按顺序尝试镜像源；配置多个镜像源能提升成功率。
-
-The mirror prompt also accepts multiple comma-separated URLs.
-镜像提示同样支持多个逗号分隔的地址。
-
-```
-sudo tee /etc/docker/daemon.json >/dev/null <<'EOF'
-{"registry-mirrors":["https://mirror-a.example.com","https://mirror-b.example.com"]}
-EOF
-sudo systemctl restart docker
 ```
 
 ## Optional Web Panel / 可选 Web 面板
@@ -141,54 +114,6 @@ Options / 可选参数：
 ```
 sudo python3 -m deploy.cli panel uninstall --instance-dir /opt/mc-instances/<instance-name>
 ```
-
-## Map plugins / 地图插件
-
-During deploy, you can optionally enable Dynmap or BlueMap. The deployer can configure:
-部署时可选 Dynmap 或 BlueMap，部署器可配置：
-
-- plugin port (`map.plugin_port`) / 插件端口
-- render interval (`map.render_interval`) / 渲染间隔
-- optional world file copy (`map.file`, `map.target`, `map.overwrite`) / 可选世界文件导入
-
-### BlueMap (Paper required) / BlueMap（需要 Paper）
-
-If `map.plugin=bluemap` is selected, the deployer forces `docker.env.TYPE=PAPER` to ensure plugin loading.
-BlueMap requires accepting resource download in `core.conf` and will not render until it has generated tiles.
-The deployer sets `accept-download: true` by default.
-
-如果选择 `map.plugin=bluemap`，部署器会强制 `docker.env.TYPE=PAPER` 以确保插件可加载。
-BlueMap 需要在 `core.conf` 中允许资源下载，生成瓦片后才会渲染。
-部署器默认设置 `accept-download: true`。
-
-The panel shows a live preview by embedding the external BlueMap viewer (port 8100),
-and provides a button to open the detailed map in a new window.
-面板内嵌 8100 端口的 BlueMap 页面作为预览，并提供按钮打开详细地图。
-
-If BlueMap has no tiles yet, run:
-`bluemap render world` (panel/RCON) or `/bluemap render world` (in-game).
-
-若 BlueMap 尚未生成瓦片，请执行：
-`bluemap render world`（面板/RCON）或 `/bluemap render world`（游戏内）。
-
-## Inventory plugins / 背包插件
-
-During deploy, you can optionally install an inventory plugin for richer inventory editing.
-Supported choices: InvSee++ or OpenInv. Defaults point to the `vanilla_catalog` repository, but you can override the URL.
-
-部署时可选安装背包插件用于更丰富的背包编辑。
-支持：InvSee++ 或 OpenInv。默认下载源指向 `vanilla_catalog` 仓库，也可覆盖 URL。
-
-### Offline inventory editing / 离线背包编辑
-
-If OpenInv is installed and the player has joined at least once (so `usercache.json` exists),
-the panel can read/write the offline inventory directly from `world/playerdata/*.dat`.
-Online players are still handled via RCON.
-
-若安装 OpenInv 且玩家至少进入过一次（存在 `usercache.json`），
-面板可直接读取/写入 `world/playerdata/*.dat`。
-在线玩家仍通过 RCON 处理。
-
 ## Modpack compatibility / 整合包兼容
 
 If you provide `modpack.loader` (or `modpack.type`/`modpack.stack`) in claims params,
@@ -231,7 +156,3 @@ Decimals are normalized to MB before starting the server to avoid JVM errors.
 `docker.env.MEMORY` 支持整数或小数（如 `2G`, `2.5G`）。
 小数会自动转换为 MB 再启动服务器，避免 JVM 参数报错。
 
-## License & Attribution / 许可与致谢
-
-This project uses AI assistance in development and documentation.
-本项目在开发与文档中大量使用 AI 辅助。
