@@ -1160,8 +1160,6 @@ if [ "$PROFILE" = "beginner" ]; then
 fi
 
 if [ "$SKIP_PROMPTS" = "1" ]; then
-
-if [ "$SKIP_PROMPTS" = "1" ]; then
   : 
 else
   while IFS=$'\t' read -r key default_hint dtype min_val max_val; do
@@ -1173,9 +1171,9 @@ else
     fi
     label="$key"
     if [ "$key" = "keepInventory" ]; then
-      label="?????"
+      label="死亡不掉落"
     elif [ "$key" = "enable-command-block" ]; then
-      label="????????????????"
+      label="允许命令方块"
     fi
     if [ -n "$prompt_default" ]; then
       prompt="Set ${label} [default: ${prompt_default}]: "
