@@ -26,6 +26,7 @@ This project is a configuration decision engine for Minecraft deployments with a
 curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/v1.0.2/install.sh | sudo bash
 ```
 
+
 After the first install, you can use the short CLI (Linux only):
 安装完成后可使用简写 CLI（仅 Linux）：
 
@@ -198,3 +199,4 @@ Decimals are normalized to MB before starting the server to avoid JVM errors.
 
 `docker.env.MEMORY` 支持整数或小数（如 `2G`, `2.5G`）。
 小数会自动转换为 MB 再启动服务器，避免 JVM 参数报错。
+
