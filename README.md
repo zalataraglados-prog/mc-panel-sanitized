@@ -1,4 +1,4 @@
-﻿# MC Panel 
+# MC Panel 
 
 ## Release Notice / 发布声明
 
