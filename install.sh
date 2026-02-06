@@ -73,6 +73,28 @@ PY
   fi
 }
 
+
+detect_region_hint() {
+  local tz=""
+  if [ -f /etc/timezone ]; then
+    tz="$(cat /etc/timezone | tr -d '\r\n')"
+  else
+    tz="$(timedatectl show -p Timezone --value 2>/dev/null || true)"
+  fi
+  case "$tz" in
+    Asia/Shanghai|Asia/Chongqing|Asia/Beijing|Asia/Urumqi)
+      echo "cn"
+      return 0
+      ;;
+  esac
+  local country=""
+  country="$(curl -fsSL --max-time 3 https://ipinfo.io/country 2>/dev/null | tr -d '\r\n' || true)"
+  if [ "$country" = "CN" ]; then
+    echo "cn"
+    return 0
+  fi
+  echo "other"
+}
 maybe_prompt_docker_mirror() {
   local mirrors="${MC_PANEL_DOCKER_MIRRORS:-}"
   if [ -z "$mirrors" ]; then
@@ -82,20 +104,18 @@ maybe_prompt_docker_mirror() {
     configure_docker_mirrors "$mirrors"
     return 0
   fi
-  if [ "$AUTO_MODE" = "1" ]; then
-    return 0
-  fi
   if ! command -v docker >/dev/null 2>&1; then
     return 0
   fi
   if curl -fsSL --max-time 5 https://registry-1.docker.io/v2/ >/dev/null 2>&1; then
     return 0
   fi
-  echo "[WARN] Docker registry seems unreachable. Configure a mirror to continue."
-  mirrors=$(read_tty "Docker mirror URL(s), comma-separated (Enter to skip): ")
-  mirrors="$(echo "$mirrors" | xargs)"
-  if [ -n "$mirrors" ]; then
+  if [ "$(detect_region_hint)" = "cn" ]; then
+    echo "[WARN] Docker registry seems unreachable. Detected CN region; applying default mirrors."
+    mirrors="https://6bnoo1rv.mirror.aliyuncs.com,https://hub-mirror.c.163.com,https://mirror.baidubce.com"
     configure_docker_mirrors "$mirrors"
+  else
+    echo "[WARN] Docker registry seems unreachable. Skipping mirror prompts; set MC_PANEL_DOCKER_MIRRORS to override."
   fi
 }
 
@@ -106,20 +126,16 @@ maybe_prompt_docker_proxy_pull() {
       return 0
     fi
   fi
-  if [ "$AUTO_MODE" = "1" ] && [ -z "$proxy_prefix" ]; then
-    return 0
-  fi
   if [ -z "$proxy_prefix" ]; then
-    proxy_prefix=$(read_tty "Docker proxy prefix (e.g. m.daocloud.io/docker.io) [Enter to skip]: ")
-    proxy_prefix="$(echo "$proxy_prefix" | xargs)"
-  fi
-  if [ -z "$proxy_prefix" ]; then
-    return 0
+    if [ "$(detect_region_hint)" != "cn" ]; then
+      return 0
+    fi
+    proxy_prefix="m.daocloud.io/docker.io"
   fi
   if ! command -v docker >/dev/null 2>&1; then
     return 0
   fi
-  echo "[INFO] Pulling base image via proxy..."
+  echo "[INFO] Pulling base image via proxy (${proxy_prefix})..."
   if retry_cmd 3 2 docker pull "${proxy_prefix}/itzg/minecraft-server:latest"; then
     docker tag "${proxy_prefix}/itzg/minecraft-server:latest" itzg/minecraft-server:latest || true
   else
@@ -261,7 +277,7 @@ msg() {
         edition_java) echo "1) Java 鐗? ;;
         edition_bedrock) echo "2) Bedrock 鐗? ;;
         bedrock_notice) echo "褰撳墠浠呮敮鎸?Java 鐗堬紝Bedrock 鏆傛湭瀹炵幇銆? ;;
-        bedrock_detail) echo "Bedrock 鎵ц灞傚皻鏈疄鐜般€? ;;
+        bedrock_detail) echo "Bedrock 鎵ц灏氭湭瀹炵幇銆? ;;
         profile_menu) echo "閫夋嫨閰嶇疆妗ｄ綅锛? ;;
         profile_beginner) echo "1) 鏂版墜" ;;
         profile_normal) echo "2) 鏍囧噯锛堥粯璁わ級" ;;
@@ -271,7 +287,7 @@ msg() {
         map_dynmap) echo "2) Dynmap" ;;
         map_bluemap) echo "3) BlueMap" ;;
         map_url_prompt) echo "鍦板浘鎻掍欢涓嬭浇鍦板潃 [榛樿]锛? ;;
-        map_url_fail) echo "[WARN] 涓嬭浇鍦板潃涓嶅彲杈撅紝璇烽噸璇曟垨閫夋嫨涓嶅畨瑁呫€? ;;
+        map_url_fail) echo "[WARN] 鍦板潃涓嶅彲杈撅紝璇烽噸璇曟垨閫夋嫨涓嶅畨瑁呫€? ;;
         plan_run) echo "[INFO] 姝ｅ湪鎵ц plan..." ;;
         plan_block) echo "[INFO] 琚樆鎷︼紝鍙皟鏁村弬鏁板悗閲嶈瘯銆? ;;
         plan_warn) echo "瀛樺湪璀﹀憡锛屾槸鍚︾户缁紵[y/N] " ;;
@@ -347,11 +363,10 @@ msg() {
       ;;
   esac
 }
-
 choice_prompt() {
   local range="$1"
   if [ "$LANGUAGE" = "zh" ]; then
-    echo "杈撳叆 [${range}]: "
+    echo "闁哄鐗婇幐鎼佸矗?[${range}]: "
   else
     echo "Enter [${range}]: "
   fi
@@ -1171,9 +1186,9 @@ else
     fi
     label="$key"
     if [ "$key" = "keepInventory" ]; then
-      label="死亡不掉落"
+      label="姝讳骸涓嶆帀钀?
     elif [ "$key" = "enable-command-block" ]; then
-      label="允许命令方块"
+      label="鍏佽鍛戒护鏂瑰潡"
     fi
     if [ -n "$prompt_default" ]; then
       prompt="Set ${label} [default: ${prompt_default}]: "
@@ -1231,7 +1246,7 @@ while true; do
   echo "$PLAN_OUTPUT"
   LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
   if [ -z "$LEVEL" ]; then
-    LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^绾у埆:[[:space:]]*//p' | head -n 1)
+    LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^缂備胶瀚忛崘銊у姸:[[:space:]]*//p' | head -n 1)
   fi
   LEVEL="$(echo "$LEVEL" | xargs | tr 'A-Z' 'a-z')"
 
@@ -1397,5 +1412,10 @@ echo "$CLAIMS_STRING"
 echo ""
 echo "[INFO] Execution plan complete."
 exit 0
+
+
+
+
+
 
 
