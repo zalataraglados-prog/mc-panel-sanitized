@@ -979,15 +979,28 @@ if [ "$PANEL_ENABLED" = "true" ]; then
   if [ ! -f "$INSTALL_DIR/frontend/dist/index.html" ]; then
     echo ""
     echo "$(msg frontend_missing)"
+    FRONTEND_BUILD_FAILED=""
     if ! command -v npm >/dev/null 2>&1; then
       echo "$(msg npm_missing)"
-      ensure_node_npm
-    fi
-    if command -v npm >/dev/null 2>&1; then
+      echo "[WARN] npm unavailable; skipping build. The panel will show setup instructions."
+    else
+      if command -v curl >/dev/null 2>&1; then
+        if ! curl -fsSL --max-time 6 https://registry.npmjs.org/ >/dev/null 2>&1; then
+          echo "[WARN] =================================================="
+          echo "[WARN] npm registry unreachable. Build may fail."
+          echo "[WARN] If the panel is blank, open the panel URL for instructions."
+          echo "[WARN] =================================================="
+        fi
+      fi
       echo "$(msg frontend_building)"
-      (cd "$INSTALL_DIR/frontend" && npm install && npm run build)
+      (cd "$INSTALL_DIR/frontend" && npm install && npm run build) || FRONTEND_BUILD_FAILED="1"
+      if [ "$FRONTEND_BUILD_FAILED" = "1" ]; then
+        echo "[WARN] Frontend build failed, retrying after cleanup..."
+        (cd "$INSTALL_DIR/frontend" && rm -rf node_modules package-lock.json && npm install && npm run build) || FRONTEND_BUILD_FAILED="1"
+      fi
     fi
     if [ ! -f "$INSTALL_DIR/frontend/dist/index.html" ]; then
+      echo "[WARN] Frontend still missing. Open the panel URL for troubleshooting instructions."
       mkdir -p "$INSTALL_DIR/frontend/dist"
       cat >"$INSTALL_DIR/frontend/dist/index.html" <<'HTML'
 <!doctype html>
@@ -1515,15 +1528,3 @@ echo "$CLAIMS_STRING"
 echo ""
 echo "[INFO] Execution plan complete."
 exit 0
-
-
-
-
-
-
-
-
-
-
-
-
