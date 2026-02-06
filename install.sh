@@ -226,6 +226,23 @@ ensure_node_npm() {
   return 0
 }
 
+
+
+build_frontend_with_docker() {
+  local node_image="${MC_PANEL_NODE_IMAGE:-node:18}"
+  if ! command -v docker >/dev/null 2>&1; then
+    return 1
+  fi
+  echo "[INFO] Building frontend with Docker (${node_image})..."
+  if ! docker image inspect "$node_image" >/dev/null 2>&1; then
+    if ! docker pull "$node_image"; then
+      echo "[WARN] Docker image pull failed (${node_image})."
+      return 1
+    fi
+  fi
+  docker run --rm -v "$INSTALL_DIR:/app" -w /app/frontend "$node_image"     sh -c 'if [ -f package-lock.json ]; then npm ci; else npm install; fi && npm run build'
+}
+
 # ------------------------------
 # Ensure dependencies
 # ------------------------------
@@ -982,7 +999,10 @@ if [ "$PANEL_ENABLED" = "true" ]; then
     FRONTEND_BUILD_FAILED=""
     if ! command -v npm >/dev/null 2>&1; then
       echo "$(msg npm_missing)"
-      echo "[WARN] npm unavailable; skipping build. The panel will show setup instructions."
+      echo "[WARN] npm unavailable; attempting Docker-based build."
+      if ! build_frontend_with_docker; then
+        FRONTEND_BUILD_FAILED="1"
+      fi
     else
       if command -v curl >/dev/null 2>&1; then
         if ! curl -fsSL --max-time 6 https://registry.npmjs.org/ >/dev/null 2>&1; then
@@ -998,6 +1018,13 @@ if [ "$PANEL_ENABLED" = "true" ]; then
         echo "[WARN] Frontend build failed, retrying after cleanup..."
         (cd "$INSTALL_DIR/frontend" && rm -rf node_modules package-lock.json && npm install && npm run build) || FRONTEND_BUILD_FAILED="1"
       fi
+      if [ "$FRONTEND_BUILD_FAILED" = "1" ]; then
+        echo "[WARN] Frontend build failed, trying Docker build..."
+        build_frontend_with_docker || FRONTEND_BUILD_FAILED="1"
+      fi
+    fi
+    if [ -f "$INSTALL_DIR/frontend/dist/index.html" ]; then
+      echo "[INFO] Frontend build completed. Run: systemctl restart mc-panel"
     fi
     if [ ! -f "$INSTALL_DIR/frontend/dist/index.html" ]; then
       echo "[WARN] Frontend still missing. Open the panel URL for troubleshooting instructions."
@@ -1024,14 +1051,22 @@ if [ "$PANEL_ENABLED" = "true" ]; then
       <p>Run:</p>
       <pre><code>cd /opt/mc-panel-sanitized/frontend
 npm install
-npm run build</code></pre>
+npm run build
+systemctl restart mc-panel</code></pre>
+      <p>Docker fallback:</p>
+      <pre><code>docker run --rm -v /opt/mc-panel-sanitized:/app -w /app/frontend node:18 sh -c "npm install && npm run build"
+systemctl restart mc-panel</code></pre>
       <hr/>
       <h2>面板前端未构建</h2>
       <p>前端构建失败或未安装 npm。</p>
       <p>请执行：</p>
       <pre><code>cd /opt/mc-panel-sanitized/frontend
 npm install
-npm run build</code></pre>
+npm run build
+systemctl restart mc-panel</code></pre>
+      <p>Docker 兜底：</p>
+      <pre><code>docker run --rm -v /opt/mc-panel-sanitized:/app -w /app/frontend node:18 sh -c "npm install && npm run build"
+systemctl restart mc-panel</code></pre>
     </div>
   </div>
 </body>

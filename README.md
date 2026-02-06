@@ -1,4 +1,4 @@
-# MC Panel 
+﻿# MC Panel 
 
 ## Release Notice / 发布声明
 
@@ -25,12 +25,10 @@ This project is a configuration decision engine for Minecraft deployments with a
 ```
 curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/v1.0.2/install.sh | sudo bash
 ```
-
-
 ### Docker mirror & proxy pull / Docker 镜像加速与代理拉取
 
 If Docker Hub is unreachable, the installer auto-applies a CN mirror fallback based on region hints (timezone/IP). It no longer prompts.
-当 Docker Hub 不可达时，安装脚本会基于区域提示（时区/IP）自动应用国内镜像加速，不再交互询问。
+当 Docker Hub 不可达时，安装脚本会根据地区提示（时区/IP）自动应用国内镜像，不再提示。
 
 Environment variables (override behavior):
 环境变量（手动覆盖）：
@@ -39,7 +37,7 @@ Environment variables (override behavior):
 - `MC_PANEL_DOCKER_MIRROR` (legacy single mirror, still supported)
 - `MC_PANEL_DOCKER_PROXY_PREFIX` (e.g. `m.daocloud.io/docker.io`)
 
-If `itzg/minecraft-server:latest` already exists locally, the installer skips the proxy pull.
+If `itzg/minecraft-server:latest` already exists locally, the installer skips proxy pre-pull.
 若本地已存在 `itzg/minecraft-server:latest`，安装脚本会跳过代理预拉取。
 
 Example (manual proxy pull):
@@ -64,7 +62,31 @@ The panel is optional. It can be installed during deploy or added later without 
 - 前端构建产物：`frontend/dist`（使用 Node.js + npm 构建）
 
 The installer auto-builds the frontend when panel is enabled and npm is available.
+If the panel shows a troubleshooting page, rebuild the frontend and restart the service:
+```
+cd /opt/mc-panel-sanitized/frontend
+npm install
+npm run build
+systemctl restart mc-panel
+```
+Docker fallback:
+```
+docker run --rm -v /opt/mc-panel-sanitized:/app -w /app/frontend node:18 sh -c "npm install && npm run build"
+systemctl restart mc-panel
+```
 若启用面板且 npm 可用，安装脚本会自动构建前端。
+若页面显示故障提示，请重建前端并重启服务：
+```
+cd /opt/mc-panel-sanitized/frontend
+npm install
+npm run build
+systemctl restart mc-panel
+```
+Docker 兜底：
+```
+docker run --rm -v /opt/mc-panel-sanitized:/app -w /app/frontend node:18 sh -c "npm install && npm run build"
+systemctl restart mc-panel
+```
 
 Command input rule:
 Panel commands do NOT need a leading `/`. In-game chat commands still use `/`.
@@ -154,3 +176,4 @@ Decimals are normalized to MB before starting the server to avoid JVM errors.
 
 `docker.env.MEMORY` 支持整数或小数（如 `2G`, `2.5G`）。
 小数会自动转换为 MB 再启动服务器，避免 JVM 参数报错。
+
