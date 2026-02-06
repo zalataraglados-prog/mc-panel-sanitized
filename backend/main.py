@@ -3,6 +3,7 @@ from typing import Iterable
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.logging import get_logger
@@ -82,7 +83,47 @@ def _mount_static() -> None:
             logger.info("Mounted panel static dir: %s", candidate)
             return
         logger.info("Static candidate missing: %s (index=%s)", candidate, index_path)
-    logger.warning("No panel static dir mounted; root will return 404.")
+    logger.warning("No panel static dir mounted; serving fallback HTML.")
 
+    @app.get("/", include_in_schema=False)
+    async def panel_fallback():
+        return HTMLResponse(_FALLBACK_HTML)
+
+
+
+_FALLBACK_HTML = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MC Panel</title>
+  <style>
+    body { font-family: system-ui, Segoe UI, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
+    .wrap { max-width: 820px; margin: 40px auto; padding: 24px; }
+    .card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 18px; }
+    code { background: #0b1220; padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h2>Panel UI not built</h2>
+      <p>The frontend build failed or npm is not available.</p>
+      <p>Run:</p>
+      <pre><code>cd /opt/mc-panel-sanitized/frontend
+npm install
+npm run build</code></pre>
+      <hr/>
+      <h2>面板前端未构建</h2>
+      <p>前端构建失败或未安装 npm。</p>
+      <p>请执行：</p>
+      <pre><code>cd /opt/mc-panel-sanitized/frontend
+npm install
+npm run build</code></pre>
+    </div>
+  </div>
+</body>
+</html>
+"""
 
 _mount_static()
