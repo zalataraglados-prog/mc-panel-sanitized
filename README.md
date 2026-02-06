@@ -1,4 +1,4 @@
-# MC Panel 
+﻿# MC Panel 
 
 ## Release Notice / 发布声明
 
@@ -67,21 +67,18 @@ Instance resolution order / 实例解析优先级
 
 ### Docker mirror & proxy pull / Docker 镜像加速与代理拉取
 
-If Docker Hub is unreachable, the installer can prompt for a mirror or a proxy prefix:
-当 Docker Hub 不可达时，安装脚本会提示你配置镜像加速或代理前缀：
+If Docker Hub is unreachable, the installer auto-applies a CN mirror fallback based on region hints (timezone/IP). It no longer prompts.
+当 Docker Hub 不可达时，安装脚本会基于区域提示（时区/IP）自动应用国内镜像加速，不再交互询问。
 
-- Mirror prompt (writes `/etc/docker/daemon.json`, restarts Docker)
-- Proxy pull prompt (pre-pulls via proxy and tags locally)
-
-Environment variables (skip prompts):
-环境变量（跳过交互）：
+Environment variables (override behavior):
+环境变量（手动覆盖）：
 
 - `MC_PANEL_DOCKER_MIRRORS` (comma-separated, e.g. `https://a.mirror,https://b.mirror`)
 - `MC_PANEL_DOCKER_MIRROR` (legacy single mirror, still supported)
 - `MC_PANEL_DOCKER_PROXY_PREFIX` (e.g. `m.daocloud.io/docker.io`)
 
-If `itzg/minecraft-server:latest` already exists locally, the installer skips the proxy prompt.
-若本地已存在 `itzg/minecraft-server:latest`，安装脚本会跳过代理提示。
+If `itzg/minecraft-server:latest` already exists locally, the installer skips the proxy pull.
+若本地已存在 `itzg/minecraft-server:latest`，安装脚本会跳过代理预拉取。
 
 Example (manual proxy pull):
 示例（手动代理拉取）：
@@ -195,4 +192,3 @@ Decimals are normalized to MB before starting the server to avoid JVM errors.
 
 `docker.env.MEMORY` 支持整数或小数（如 `2G`, `2.5G`）。
 小数会自动转换为 MB 再启动服务器，避免 JVM 参数报错。
-

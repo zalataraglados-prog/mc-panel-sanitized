@@ -1,9 +1,13 @@
-﻿#!/bin/bash
+#!/bin/bash
 set -e
-
-echo "======================================"
-echo "  Minecraft Multi-Instance Deployer"
-echo "======================================"
+export LANG="${LANG:-C.UTF-8}"
+export LC_ALL="${LC_ALL:-C.UTF-8}"
+echo "+======================================+"
+echo "|   MCIC - Minecraft Compiler &        |"
+echo "|   Instance Coordinator               |"
+echo "+======================================+"
+echo "[INFO] Service restarts are blocked by default to avoid SSH disconnects."
+echo "[INFO] To allow restarts: export MCIC_ALLOW_SERVICE_RESTARTS=1"
 
 # ------------------------------
 # Must run as root
@@ -12,6 +16,8 @@ if [ "$EUID" -ne 0 ]; then
   echo "Please run as root: sudo bash install.sh"
   exit 1
 fi
+
+cd / || exit 1
 
 AUTO_MODE="${MC_PANEL_AUTO:-0}"
 AUTO_YES="${MC_PANEL_ASSUME_YES:-0}"
@@ -45,6 +51,24 @@ retry_cmd() {
     current_delay=$((current_delay * 2))
     n=$((n + 1))
   done
+}
+
+setup_policy_rcd() {
+  if [ "${MCIC_ALLOW_SERVICE_RESTARTS:-}" != "1" ]; then
+    cat >/usr/sbin/policy-rc.d <<'EOF'
+#!/bin/sh
+# Block service restarts during install to avoid SSH disconnects
+exit 101
+EOF
+    chmod +x /usr/sbin/policy-rc.d
+    export MCIC_POLICY_RCD=1
+  fi
+}
+
+cleanup_policy_rcd() {
+  if [ "${MCIC_POLICY_RCD:-}" = "1" ]; then
+    rm -f /usr/sbin/policy-rc.d
+  fi
 }
 
 configure_docker_mirrors() {
@@ -160,11 +184,54 @@ ensure_docker_compose() {
   return 0
 }
 
+ensure_node_npm() {
+  if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+    return 0
+  fi
+
+  # If node exists but npm is missing, try corepack first
+  if command -v node >/dev/null 2>&1 && ! command -v npm >/dev/null 2>&1; then
+    if command -v corepack >/dev/null 2>&1; then
+      corepack enable || true
+      corepack prepare npm@latest --activate || true
+      if command -v npm >/dev/null 2>&1; then
+        return 0
+      fi
+    fi
+  fi
+
+  if command -v apt-get >/dev/null 2>&1; then
+    # Try installing nodejs only first (npm may conflict with NodeSource)
+    apt-get install -y nodejs || true
+    if command -v node >/dev/null 2>&1 && command -v corepack >/dev/null 2>&1; then
+      corepack enable || true
+      corepack prepare npm@latest --activate || true
+      if command -v npm >/dev/null 2>&1; then
+        return 0
+      fi
+    fi
+
+    # Fallback: try installing npm (may fail on NodeSource)
+    apt-get install -y npm || true
+
+    # If npm is still missing but node exists, remove npm and use corepack
+    if command -v node >/dev/null 2>&1 && ! command -v npm >/dev/null 2>&1; then
+      apt-get remove -y npm || true
+      if command -v corepack >/dev/null 2>&1; then
+        corepack enable || true
+        corepack prepare npm@latest --activate || true
+      fi
+    fi
+  fi
+  return 0
+}
+
 # ------------------------------
 # Ensure dependencies
 # ------------------------------
 if command -v apt-get >/dev/null 2>&1; then
   echo "[INFO] Checking system dependencies..."
+  setup_policy_rcd
   apt-get update
   apt-get install -y \
     ca-certificates \
@@ -173,9 +240,7 @@ if command -v apt-get >/dev/null 2>&1; then
     unzip \
     python3 \
     python3-venv \
-    python3-pip \
-    nodejs \
-    npm
+    python3-pip
   if ! command -v docker >/dev/null 2>&1; then
     echo "[INFO] Installing docker..."
     apt-get install -y docker.io
@@ -183,6 +248,8 @@ if command -v apt-get >/dev/null 2>&1; then
   else
     ensure_docker_compose
   fi
+  ensure_node_npm
+  cleanup_policy_rcd
   if command -v systemctl >/dev/null 2>&1; then
     systemctl enable --now docker || true
   fi
@@ -366,7 +433,7 @@ msg() {
 choice_prompt() {
   local range="$1"
   if [ "$LANGUAGE" = "zh" ]; then
-    echo "闁哄鐗婇幐鎼佸矗?[${range}]: "
+    echo "输入 [${range}]: "
   else
     echo "Enter [${range}]: "
   fi
@@ -914,13 +981,49 @@ if [ "$PANEL_ENABLED" = "true" ]; then
     echo "$(msg frontend_missing)"
     if ! command -v npm >/dev/null 2>&1; then
       echo "$(msg npm_missing)"
-      if command -v apt >/dev/null 2>&1; then
-        apt update && apt install -y nodejs npm
-      fi
+      ensure_node_npm
     fi
     if command -v npm >/dev/null 2>&1; then
       echo "$(msg frontend_building)"
       (cd "$INSTALL_DIR/frontend" && npm install && npm run build)
+    fi
+    if [ ! -f "$INSTALL_DIR/frontend/dist/index.html" ]; then
+      mkdir -p "$INSTALL_DIR/frontend/dist"
+      cat >"$INSTALL_DIR/frontend/dist/index.html" <<'HTML'
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MC Panel</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,sans-serif;background:#0f172a;color:#e2e8f0;margin:0}
+    .wrap{max-width:820px;margin:40px auto;padding:24px}
+    .card{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:18px}
+    code{background:#0b1220;padding:2px 6px;border-radius:6px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h2>Panel UI not built</h2>
+      <p>The frontend build failed or npm is not available.</p>
+      <p>Run:</p>
+      <pre><code>cd /opt/mc-panel-sanitized/frontend
+npm install
+npm run build</code></pre>
+      <hr/>
+      <h2>面板前端未构建</h2>
+      <p>前端构建失败或未安装 npm。</p>
+      <p>请执行：</p>
+      <pre><code>cd /opt/mc-panel-sanitized/frontend
+npm install
+npm run build</code></pre>
+    </div>
+  </div>
+</body>
+</html>
+HTML
     fi
   fi
 fi
@@ -1246,7 +1349,7 @@ while true; do
   echo "$PLAN_OUTPUT"
   LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
   if [ -z "$LEVEL" ]; then
-    LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^缂備胶瀚忛崘銊у姸:[[:space:]]*//p' | head -n 1)
+    LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^级别:[[:space:]]*//p' | head -n 1)
   fi
   LEVEL="$(echo "$LEVEL" | xargs | tr 'A-Z' 'a-z')"
 
@@ -1412,6 +1515,7 @@ echo "$CLAIMS_STRING"
 echo ""
 echo "[INFO] Execution plan complete."
 exit 0
+
 
 
 
