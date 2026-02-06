@@ -61,30 +61,32 @@ The panel is optional. It can be installed during deploy or added later without 
 - Python 依赖：`fastapi`, `uvicorn`
 - 前端构建产物：`frontend/dist`（使用 Node.js + npm 构建）
 
-The installer auto-builds the frontend when panel is enabled and npm is available.
-If the panel shows a troubleshooting page, rebuild the frontend and restart the service:
+The installer auto-builds the frontend when panel is enabled. For stability it prefers a Dockerized build (fixed Node 18).
+If the panel shows a troubleshooting page, rebuild and restart:
+```
+docker run --rm -v /opt/mc-panel-sanitized:/app -w /app/frontend node:18 \
+  sh -c "npm ci && npm run build"
+systemctl restart mc-panel
+```
+Fallback (local npm):
 ```
 cd /opt/mc-panel-sanitized/frontend
 npm install
 npm run build
 systemctl restart mc-panel
 ```
-Docker fallback:
+若启用面板，安装脚本会自动构建前端。为保证稳定性，优先使用 Docker 固定 Node 18 构建。
+若页面显示故障提示，请重建并重启：
 ```
-docker run --rm -v /opt/mc-panel-sanitized:/app -w /app/frontend node:18 sh -c "npm install && npm run build"
+docker run --rm -v /opt/mc-panel-sanitized:/app -w /app/frontend node:18 \
+  sh -c "npm ci && npm run build"
 systemctl restart mc-panel
 ```
-若启用面板且 npm 可用，安装脚本会自动构建前端。
-若页面显示故障提示，请重建前端并重启服务：
+兜底（本机 npm）：
 ```
 cd /opt/mc-panel-sanitized/frontend
 npm install
 npm run build
-systemctl restart mc-panel
-```
-Docker 兜底：
-```
-docker run --rm -v /opt/mc-panel-sanitized:/app -w /app/frontend node:18 sh -c "npm install && npm run build"
 systemctl restart mc-panel
 ```
 
