@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 set -e
 echo "+======================================+"
 echo "|   MCIC - Minecraft Compiler &        |"
@@ -181,6 +181,28 @@ _mcpanel_validate_mirror_list() {
   return 0
 }
 
+
+detect_region_hint() {
+  local tz=""
+  if [ -f /etc/timezone ]; then
+    tz="$(cat /etc/timezone | tr -d '\r\n')"
+  else
+    tz="$(timedatectl show -p Timezone --value 2>/dev/null || true)"
+  fi
+  case "$tz" in
+    Asia/Shanghai|Asia/Chongqing|Asia/Beijing|Asia/Urumqi)
+      echo "cn"
+      return 0
+      ;;
+  esac
+  local country=""
+  country="$(curl -fsSL --max-time 3 https://ipinfo.io/country 2>/dev/null | tr -d '\r\n' || true)"
+  if [ "$country" = "CN" ]; then
+    echo "cn"
+    return 0
+  fi
+  echo "other"
+}
 maybe_prompt_docker_mirror() {
   local mirrors="${MC_PANEL_DOCKER_MIRRORS:-}"
   if [ -z "$mirrors" ]; then
@@ -190,20 +212,18 @@ maybe_prompt_docker_mirror() {
     configure_docker_mirrors "$mirrors"
     return 0
   fi
-  if [ "$AUTO_MODE" = "1" ]; then
-    return 0
-  fi
   if ! command -v docker >/dev/null 2>&1; then
     return 0
   fi
   if curl -fsSL --max-time 5 https://registry-1.docker.io/v2/ >/dev/null 2>&1; then
     return 0
   fi
-  echo "[WARN] Docker registry seems unreachable. Configure a mirror to continue."
-  mirrors=$(read_tty "Docker mirror URL(s), comma-separated (Enter to skip): ")
-  mirrors="$(echo "$mirrors" | xargs)"
-  if [ -n "$mirrors" ]; then
+  if [ "$(detect_region_hint)" = "cn" ]; then
+    echo "[WARN] Docker registry seems unreachable. Detected CN region; applying default mirrors."
+    mirrors="https://6bnoo1rv.mirror.aliyuncs.com,https://hub-mirror.c.163.com,https://mirror.baidubce.com"
     configure_docker_mirrors "$mirrors"
+  else
+    echo "[WARN] Docker registry seems unreachable. Skipping mirror prompts; set MC_PANEL_DOCKER_MIRRORS to override."
   fi
 }
 
@@ -214,20 +234,16 @@ maybe_prompt_docker_proxy_pull() {
       return 0
     fi
   fi
-  if [ "$AUTO_MODE" = "1" ] && [ -z "$proxy_prefix" ]; then
-    return 0
-  fi
   if [ -z "$proxy_prefix" ]; then
-    proxy_prefix=$(read_tty "Docker proxy prefix (e.g. m.daocloud.io/docker.io) [Enter to skip]: ")
-    proxy_prefix="$(echo "$proxy_prefix" | xargs)"
-  fi
-  if [ -z "$proxy_prefix" ]; then
-    return 0
+    if [ "$(detect_region_hint)" != "cn" ]; then
+      return 0
+    fi
+    proxy_prefix="m.daocloud.io/docker.io"
   fi
   if ! command -v docker >/dev/null 2>&1; then
     return 0
   fi
-  echo "[INFO] Pulling base image via proxy..."
+  echo "[INFO] Pulling base image via proxy (${proxy_prefix})..."
   if retry_cmd 3 2 docker pull "${proxy_prefix}/itzg/minecraft-server:latest"; then
     docker tag "${proxy_prefix}/itzg/minecraft-server:latest" itzg/minecraft-server:latest || true
   else
@@ -413,7 +429,7 @@ fi
 if [ "$AUTO_MODE" = "1" ] && [ -n "${MC_PANEL_LANG:-}" ]; then
   LANGUAGE="${MC_PANEL_LANG}"
 else
-  LANGUAGE=$(read_tty "Select language [1=EN, 2=婵炴垶鎼╅崢浠嬪几?缂備胶濮崑鎾趁?]: ")
+  LANGUAGE=$(read_tty "Select language [1=EN, 2=濠电偞鍨堕幖鈺呭储娴犲鍑?缂傚倷鑳舵慨顓㈠磻閹捐秮?]: ")
 fi
 case "$LANGUAGE" in
   2) LANGUAGE="zh" ;;
@@ -425,60 +441,60 @@ msg() {
   case "$LANGUAGE" in
     zh)
       case "$key" in
-        panel_maintenance) echo "闂傚倸鐗勯崹鍝勵熆濡偐纾奸悗娑櫭闂佹寧绋戦悧鍡涘礄閿熺姴瀚夊璺猴功閺夎棄銆掑顒夊劀缂佽鲸宀搁弫? ;;
-        panel_install) echo "1) 婵炴垶鎸搁幖顐﹀礄閿熺姴瀚夊璺猴功閺夎棄銆掑顒夊剰闁伙絻鍔庨幉妤呭川鐎涙ɑ銆冮梺? ;;
-        panel_uninstall) echo "2) 闂佸憡顨嗛悺鏇灻归崶褜鍟呴柛娆忣槹缁犳帡鎮楅崷顓炰粧缂佽翰鍎靛Λ鍐閳╁啰鍑? ;;
-        panel_continue) echo "闂佹悶鍎抽崑鐘测攦閸涱垳纾肩憸蹇涙偨鐠囧樊娼伴柨婵嗘噽閸╂姊洪鍝勫閻犱焦鐓℃俊? ;;
-        panel_prompt) echo "闁哄鐗婇幐鎼佸矗?[1-2] 闂佺懓鐡ㄩ悧婊堝汲閳ь剛绱掑畝鈧亸銊ф? ;;
-        instances) echo "闂佸憡鐟崹鎶藉极閵堝洠鍋撻崷顓炰粧缂佽翰鍎甸弫? ;;
-        instance_dir) echo "闁诲骸婀遍崑妯兼閵夆晜鍎庢い鏃囧亹缁夊潡鏌ㄥ☉妯煎鐟滅増鐓￠弻鍛緞濞戞氨顦梺娲绘娇閸斿鑺遍鍕摕闁靛／灞肩磽闂佸憡鐟辩紞鍥╂濮樿埖鏅? ;;
-        import_string) echo "缂備緡鍠楅…鍫ュ礆濞戙垺鐓€鐎广儱娲ㄩ弸鍌氣槈閹捐鍤嬬紒杈ㄧ懇瀹曞爼鎮欓懜鐢电泝闁荤姴鎼悿鍥╂崲閸愵喗鏅鑸电〒缁? ;;
-        import_mode) echo "闁诲海鏁搁崢褔宕ｉ崱娑樻闁荤喐澹嗙涵鈧梺?) 缂備緡鍠楅…鍫ュ礆濞戙垺鐓€鐎广儱娲ㄩ弸鍌氣槈?2) 婵炲濮寸€涒晠寮搁崘鈺冾浄閻犺桨璀﹂崵銈夋煕韫囧鍔电紒杈ㄧ懇瀹曞爼鎮欓懜鐢电泝闁荤姴鎼悿鍥╂崲閸愵喗鏅? ;;
-        import_file) echo "闂備焦婢樼粔鍫曟偪閸℃鈻旈柛娆忣槹閻庮喖霉閻樺啿鍔堕柣顓熷劤椤曘儵宕熼崜浣虹崶" ;;
-        import_file_missing) echo "[WARN] 闂佸搫鍊稿ú锝呪枎閵忥紕鈻旂€广儱鎳愰幗鐘绘煕閿斿搫濡介柛銊ｅ妽缁嬪顓奸崨顓☆唹闁荤姴娲ｇ槐顔炬濠靛鐭楁い鏍仜濞呫垽鏌￠崒娑橆€滅紒棰濆弮瀹曟濡烽妸褏鍞撮悗鍨緲鐎氼參宕归妸鈺佺倞闁绘劘鍩栫花鐘绘煛閳ь剟鏌呭☉婊咁槹缂備緡鍠楅…鍫ュ礆濞戞瑦缍囬柟鎯у暱瀵娊鏌? ;;
-        import_list_header) echo "閻庣懓鎲¤ぐ鍐敋闁秴绀傞柕澶嗘櫅鐢磭绱撻崘鎯ф珯缂佽鲸鐟х槐鎾诲冀瑜嶆繛鍥煥濞戞﹩妾х紒? ;;
-        import_edit_prompt) echo "闂佸搫瀚烽崹浼村箚娴ｅ湱鈹嶆い鏃囧Г閺嗩參鎮楅悽闈涘付闁告瑥妫濋弻濠傤吋閸モ晜鐎梺鎸庣〒閸犳洜娆㈤銏犵闁靛鐓堥弨浠嬫煕濞嗗繐娈╃紒杈ㄧ懇閺屽懎螖閳ь剝銇愰崸妤€绀嗛柛鈩冪⊕椤撻箖鏌ㄥ☉姗嗘缂佽鲸绻堝畷鍫曟倷閼哥數鐩冮柣鐘叉惈閻ゅ洨鎹㈤崘顔芥櫖? ;;
-        import_confirm_prompt) echo "闁哄鐗婇幐鎼佸矗?sure 缂佺虎鍙庨崰娑㈩敇缂佹鈹嶆い鏃囧Г閺嗩參鏌ㄥ☉妯垮婵炲弶鐗楀顏堟晝娴ｅ搫鍔滈柡澶嗘櫅濞村嫮妲? ;;
-        import_value_prompt) echo "闁荤姳绀佹晶浠嬫偪閸℃稑妫橀柡澶婄氨閸? ;;
-        panel_install_prompt) echo "闁诲海鎳撻ˇ鎶剿?Web 闂傚倸鐗勯崹鍝勵熆濮椻偓閺佸秹鎮為崜?N] " ;;
-        panel_port_prompt) echo "闂傚倸鐗勯崹鍝勵熆濡偐鍗氭い鏍ㄨ壘缂?[婵帗绋掗…鍫ヮ敇? 15000]: " ;;
-        inventory_menu) echo "闂佺厧鍟块懟顖溾偓鍨耿楠炴捇骞掑鍡╁仺闂佹寧绋戦悧鍡氥亹閺屻儲鐒诲鑸电〒缁€鍡涙煥? ;;
-        inventory_url_prompt) echo "闂佺厧鍟块懟顖溾偓鍨耿楠炴捇骞掑鍡╁仺婵炴垶鎸搁鍫澝归崶顒€鎹堕柡澶嬪缁?[婵帗绋掗…鍫ヮ敇缁繝鏌? ;;
-        inventory_url_required) echo "闂佺厧鍟块懟顖溾偓鍨耿楠炴捇骞掑鍡╁仺婵炴垶鎸搁鍫澝归崶顒€鎹堕柡澶嬪缁插鏌ㄥ☉妯煎缂佺儵鍋撴繝闈涱樈閸嬫挾妲愬鑸垫櫖? ;;
-        map_port_prompt) echo "闂侀潻闄勫妯好瑰鈧獮鎾诲箳瀹ュ棭鍋ㄧ紓浣规閸ㄦ媽銇?[婵帗绋掗…鍫ヮ敇? " ;;
-        map_render_prompt) echo "闂侀潻闄勫妯好瑰Ο鎭掆偓鎺楀矗婢跺苯甯梻鍌氬€归幐鍐测枔瑜旈弫宥夊醇濠靛棛鈧姊洪悾灞芥珢缂佽鲸鐡熸慨鎺撶⊕椤牓顢? 5]: " ;;
-        java_override) echo "闂佸搫瀚烽崹浼村箚娴ｇ儤鍟洪柛鈩冪懄绾?Java 闁哄鏅滈崝姗€銆侀幋锕€绫嶉悹浣告贡閸氱瓱y/N] " ;;
-        java_select) echo "闂備緡鍋勯ˇ鎵偓?Java 闂佺粯顨呴悧濠傦耿娴煎瓨鏅? ;;
-        memory_prompt) echo "闂佸憡鍔曢幊搴ㄦ偤閵娾晜鏅柛顐ｇ矌娴兼劕鈹?2G / 4G闂佹寧绋戦¨鈧紒? ;;
-        expected_players_prompt) echo "婵☆偅婢樼€氼厼锕㈤敓鐘叉嵍闁靛ě鍐╃枃婵炲瓨绮庨崕銈夊汲閻斿吋鏅柛顐ｇ箓鐠佹煡姊洪銏╂缂佽鲸宀搁弫? ;;
-        version_menu) echo "闂備緡鍋勯ˇ鎵偓?Minecraft 闂佺粯顨呴悧濠傦耿娴煎瓨鏅? ;;
-        version_custom) echo "闂佺厧顨庢禍婊堟偩閻愵剛鈻曞璺鸿嫰椤ｅジ鏌￠崼顐㈠鐟滄澘娼￠弫? ;;
-        edition_menu) echo "闂備緡鍋勯ˇ鎵偓?Minecraft 闂佺粯顨呴悧濠傦耿閹殿喚灏甸悹鍥皺閳ь剛鍏橀弫? ;;
+        panel_maintenance) echo "闂傚倸鍊搁悧鍕垂閸濆嫷鐔嗘俊顖濆亹绾惧ジ鎮楀☉娅亣顣介梻浣瑰缁嬫垿鎮ч崱娑樼闁跨喓濮寸€氬顭跨捄鐚村姛闁哄妫勯妴鎺戭潩椤掑鍔€缂備浇椴稿畝鎼佸极? ;;
+        panel_install) echo "1) 濠电偞鍨堕幐鎼佸箹椤愶箑绀勯柨鐔哄Т鐎氬顭跨捄鐚村姛闁哄妫勯妴鎺戭潩椤掑鍓伴梺浼欑祷閸斿酣骞夊Δ鍛窛閻庢稒蓱閵嗗啴姊? ;;
+        panel_uninstall) echo "2) 闂備礁鎲￠〃鍡涙偤閺囩伝褰掑炊瑜滈崯鍛存煕濞嗗浚妲圭紒鐘冲浮閹宕烽鐐扮钵缂備浇缈伴崕闈浳涢崘顔碱潊闁斥晛鍟伴崙? ;;
+        panel_continue) echo "闂備焦鎮堕崕鎶藉磻閻樻祴鏀﹂柛娑卞灣绾捐偐鎲歌箛娑欏仺閻犲洤妯婂浼存煥濠靛棙鍣介柛鈺傤殜濮婃椽顢欓崫鍕瀷闁荤姳鐒﹂悡鈩冧繆? ;;
+        panel_prompt) echo "闂佸搫顦悧濠囧箰閹间礁鐭?[1-2] 闂備胶鎳撻悺銊╂偋濠婂牆姹查柍褜鍓涚槐鎺戠暆閳ь剛浜搁妸褎顫? ;;
+        instances) echo "闂備礁鎲￠悷顖炲垂閹惰棄鏋侀柕鍫濇礌閸嬫捇宕烽鐐扮钵缂備浇缈伴崕鐢稿极? ;;
+        instance_dir) echo "闂佽楠稿﹢閬嶅磻濡吋顐介柕澶嗘櫆閸庡孩銇勯弮鍥т汗缂佸娼￠弻銊モ槈濡厧顣洪悷婊呭閻擄繝寮婚崨顔肩窞婵炴垶姘ㄩˇ顕€姊哄ú缁樺▏闁告柨顑囬懞閬嶎敆閸曨偉鎽曢梺闈涳紡鐏炶偐纾介梻浣告啞閻熻京绱為崶鈺傤潟婵鍩栭弲? ;;
+        import_string) echo "缂傚倷绶￠崰妤呪€﹂崼銉ョ婵炴垯鍨洪悡鈧悗骞垮劚濞层劑寮搁崒姘ｆ闁规崘顕栭崵瀣磼鏉堛劎鎳囩€规洖鐖奸幃娆撴嚋閻㈢數娉濋梺鑽ゅТ閹碱偊鎮块崶鈺傚床闁告劦鍠楅弲顒€顭块懜鐢点€掔紒? ;;
+        import_mode) echo "闂佽娴烽弫鎼佸储瑜斿畷锝夊幢濞戞ɑ顥濋梺鑽ゅ枑婢瑰棛娑甸埀顒勬⒑?) 缂傚倷绶￠崰妤呪€﹂崼銉ョ婵炴垯鍨洪悡鈧悗骞垮劚濞层劑寮搁崒姘ｆ?2) 濠电偛顕慨瀵糕偓娑掓櫊瀵悂宕橀埡鍐炬祫闁荤姾妗ㄧ拃锕傚吹閵堝鐓曢煫鍥ь儏閸旂數绱掓潏銊ф噰鐎规洖鐖奸幃娆撴嚋閻㈢數娉濋梺鑽ゅТ閹碱偊鎮块崶鈺傚床闁告劦鍠楅弲? ;;
+        import_file) echo "闂傚倷鐒﹀妯肩矓閸洘鍋柛鈩冾焽閳绘棃鏌涘▎蹇ｆЧ闁诲寒鍠栭湁闁绘ê鍟块崝鍫曟煟椤撶喎鍔ゆい鏇樺劦瀹曠喖宕滄担铏瑰炊" ;;
+        import_file_missing) echo "[WARN] 闂備礁鎼崐绋棵洪敐鍛瀻闁靛骏绱曢埢鏃傗偓骞垮劚閹虫劙骞楅悩缁樼厱闁挎柨鎼俊浠嬫煕閵婏絽濡界紒瀣槸椤撳ジ宕ㄩ鈽嗗敼闂佽崵濮村ú锝囨椤旂偓顫曟繝闈涱儏閻銇勯弽顐粶婵炲懌鍨介弻锟犲磼濞戞﹩鈧粎绱掓０婵嗗籍鐎规洘顨婃俊鐑藉Ω瑜忛崬鎾倵閸偅绶查悗姘煎弮瀹曞綊濡搁埡浣哄€為梺缁樺姌閸╂牜鑺遍悩缁樼厸闁逞屽墴閺屽懎鈽夊鍜佹Ч缂傚倷绶￠崰妤呪€﹂崼銉ョ婵炴垶鐟︾紞鍥煙閹冩毐鐎殿喗濞婇弻? ;;
+        import_list_header) echo "闁诲海鎳撻幉陇銇愰崘顕呮晪闂侇剙绉寸粈鍌炴煏婢跺棙娅呴悽顖氱－缁辨捇宕橀幆褎鐝紓浣介哺閻熝呮閹捐鍐€鐟滃秵绻涢崶顒佺叆婵炴垶锕╁褏绱? ;;
+        import_edit_prompt) echo "闂備礁鎼€氱兘宕规导鏉戠畾濞达絽婀遍埞宥嗐亜閺冨洤袚闁哄棭鍙冮幃妤呮偨闂堟稑浠橀梺鍛婄懃濡繈寮绘繝鍌ゅ悑闁搞儮鏅滈悗顓㈡⒑閹稿海銆掗柛鐘虫礈濞嗐垽顢橀姀鐘殿槯闂侀潧顦介悡鍫ュ绩娴犲鐓曟繛鍡楃箰濞堚晝绱掓潏銊ф噰闁哄苯鎳庤灃闁逞屽墲閵囨劙宕稿Δ鈧粈鍡涙煕閳╁啰鈯曟い鎾荤畺閺屻劌鈽夊鍡橆€嗙紓浣介哺缁诲牆鐣烽崼鏇熷€烽柤鍝ユ暩閻╁啴鏌ｉ悩鍙夋儓闁汇倕娲ㄩ幑銏ゅ礃椤旇姤娅? ;;
+        import_confirm_prompt) echo "闂佸搫顦悧濠囧箰閹间礁鐭?sure 缂備胶铏庨崣搴ㄥ窗濞戙埄鏁囩紓浣诡焽閳瑰秵銇勯弮鍥撻柡鍡╁弮閺屻劌鈽夊Ο鍨伃濠电偛寮堕悧妤€顭囬鍫熸櫇濞达絽鎼崝婊堟煛婢跺棙娅呮繛鏉戝濡? ;;
+        import_value_prompt) echo "闂佽崵濮崇粈浣规櫠娴犲鍋柛鈩冪☉濡﹢鏌℃径濠勬皑闁? ;;
+        panel_install_prompt) echo "闂佽娴烽幊鎾凰囬幎鍓?Web 闂傚倸鍊搁悧鍕垂閸濆嫷鐔嗘慨妞诲亾闁轰礁绉归幃鐐哄礈?N] " ;;
+        panel_port_prompt) echo "闂傚倸鍊搁悧鍕垂閸濆嫷鐔嗘俊顖濆亹閸楁碍銇勯弽銊ㄥ缂?[濠殿喗甯楃粙鎺椻€﹂崼銉晣? 15000]: " ;;
+        inventory_menu) echo "闂備胶鍘ч崯鍧楁嚐椤栨壕鍋撻崹顐€挎鐐存崌楠炴帒顓奸崱鈺佷缓闂備焦瀵х粙鎴︽偋閸℃哎浜归柡灞诲劜閻掕顭块懜鐢点€掔紒鈧崱娑欑叆? ;;
+        inventory_url_prompt) echo "闂備胶鍘ч崯鍧楁嚐椤栨壕鍋撻崹顐€挎鐐存崌楠炴帒顓奸崱鈺佷缓濠电偞鍨堕幐鎼侇敄閸緷褰掑炊椤掆偓閹瑰爼鏌℃径瀣嚋缂?[濠殿喗甯楃粙鎺椻€﹂崼銉晣缂侇偓绻濋弻? ;;
+        inventory_url_required) echo "闂備胶鍘ч崯鍧楁嚐椤栨壕鍋撻崹顐€挎鐐存崌楠炴帒顓奸崱鈺佷缓濠电偞鍨堕幐鎼侇敄閸緷褰掑炊椤掆偓閹瑰爼鏌℃径瀣嚋缂佹彃顭烽弻銊モ槈濡厧顣虹紓浣哄劦閸嬫挻绻濋棃娑辨▓闁稿鎸惧Σ鎰潩閼稿灚娅? ;;
+        map_port_prompt) echo "闂備線娼婚梽鍕熆濡ソ鐟邦潨閳ь剟鐛幘璇茬鐎广儱妫崑銊х磽娴ｈ顥旈柛銊﹀閵?[濠殿喗甯楃粙鎺椻€﹂崼銉晣? " ;;
+        map_render_prompt) echo "闂備線娼婚梽鍕熆濡ソ鐟拔熼幁鎺嗗亾閹烘鐭楀璺鸿嫰鐢剟姊婚崒姘偓褰掑箰閸愭祴鏋旂憸鏃堝极瀹ュ閱囨繝闈涙閳ь剙顭峰娲偩鐏炶姤鐝㈢紓浣介哺閻＄喐鎱ㄩ幒鎾垛姇妞ゎ厼鐗撻、? 5]: " ;;
+        java_override) echo "闂備礁鎼€氱兘宕规导鏉戠畾濞达絿鍎ら崯娲煕閳╁啰鎳勭痪?Java 闂佸搫顦弲婊堝礉濮椻偓閵嗕線骞嬮敃鈧猾宥夋偣娴ｅ憡璐￠柛姘辩摫y/N] " ;;
+        java_select) echo "闂傚倷绶￠崑鍕囬幍顔瑰亾?Java 闂備胶绮〃鍛存偋婵犲偊鑰垮ù鐓庣摠閺? ;;
+        memory_prompt) echo "闂備礁鎲￠崝鏇㈠箠鎼淬劍鍋ら柕濞炬櫆閺咁剟鏌涢锝囩煂濞村吋鍔曢埞?2G / 4G闂備焦瀵х粙鎴βㄩ埀顒傜磼? ;;
+        expected_players_prompt) echo "濠碘槅鍋呭妯尖偓姘煎幖閿曘垽鏁撻悩鍙夊祶闂侀潧臎閸愨晝鏋冨┑鐐茬摠缁酣宕曢妶澶婃辈闁绘柨鍚嬮弲顒勬煕椤愶絿绠撻悹浣圭叀濮婃椽顢曢姀鈺傤€嗙紓浣介哺瀹€鎼佸极? ;;
+        version_menu) echo "闂傚倷绶￠崑鍕囬幍顔瑰亾?Minecraft 闂備胶绮〃鍛存偋婵犲偊鑰垮ù鐓庣摠閺? ;;
+        version_custom) echo "闂備胶鍘ч〃搴㈢濠婂牊鍋╅柣鎰靛墰閳绘洖顭跨捄楦垮妞わ絽銈搁弻锟犲醇椤愩垹顫╅悷婊勬緲濞硷繝寮? ;;
+        edition_menu) echo "闂傚倷绶￠崑鍕囬幍顔瑰亾?Minecraft 闂備胶绮〃鍛存偋婵犲偊鑰块柟娈垮枤鐏忕敻鎮归崶顏勭毢闁逞屽墰閸忔﹢寮? ;;
         edition_java) echo "1) Java 闂? ;;
         edition_bedrock) echo "2) Bedrock 闂? ;;
-        bedrock_notice) echo "閻熸粎澧楅幐鍛婃櫠閻樺磭顩烽柛娑卞枟閺嗘粓鏌?Java 闂佺粯顨呴悧鐐垫濠婄灃drock 闂佸搫妫楅崐鐟帮耿椤撶姭鍋撻崷顓炰户妤犵偛娲俊? ;;
-        bedrock_detail) echo "Bedrock 闂佸湱鐟抽崱鈺傛杸闁诲繒鍋涢崐鎼佹儍婵犳艾瀚夋い蹇撳閺変粙鏌ｅ鍡楃劷闁? ;;
-        profile_menu) echo "闂備緡鍋勯ˇ鎵偓姘ュ姂閺屽﹤顓奸崶鈺傜€┑鈩冾殣缁茶偐绱為崨瀛樻櫖? ;;
-        profile_beginner) echo "1) 闂佸搫鍊绘晶妤佹櫠? ;;
-        profile_normal) echo "2) 闂佸搫绉村ú銈夊闯椤栫偞鏅柛顐犲劤鐢盯鎮规担闈涒偓褏妲? ;;
-        profile_advanced) echo "3) 婵°倕鍊归…鍥殽? ;;
-        map_menu) echo "闂侀潻闄勫妯好瑰鈧獮鎾诲箳瀹ュ棭鍋ㄩ梺鎸庣☉閻楀棜銇愰弻銉︾劵濠㈣埖绋撶粈鍡涙煥? ;;
-        map_none) echo "1) 婵炴垶鎸哥粔鎾偩閵娧勫晳? ;;
+        bedrock_notice) echo "闁荤喐绮庢晶妤呭箰閸涘﹥娅犻柣妯虹－椤╃兘鏌涘☉鍗炴灍闁哄棙绮撻弻?Java 闂備胶绮〃鍛存偋閻愬灚顫曟繝濠勭亙drock 闂備礁鎼Λ妤呭磹閻熷府鑰挎い鎾跺Л閸嬫捇宕烽鐐版埛濡ょ姷鍋涘ú顓熶繆? ;;
+        bedrock_detail) echo "Bedrock 闂備礁婀遍悷鎶藉幢閳哄倹鏉搁梺璇茬箳閸嬫盯宕愰幖浣瑰剭濠电姵鑹剧€氬銇勮箛鎾愁伀闁哄绮欓弻锝咁煥閸℃鍔烽梺? ;;
+        profile_menu) echo "闂傚倷绶￠崑鍕囬幍顔瑰亾濮樸儱濮傞柡灞斤工椤撳ジ宕堕埡鍌溾偓顓炩攽閳╁喚娈ｇ紒鑼跺亹缁辩偤宕ㄧ€涙ɑ娅? ;;
+        profile_beginner) echo "1) 闂備礁鎼崐缁樻櫠濡や焦娅? ;;
+        profile_normal) echo "2) 闂備礁鎼粔鏉懨洪妶澶婇棷妞ゆ牜鍋為弲顒勬煕椤愮姴鍔ら悽顖涚洴閹鎷呴棃娑掑亾瑜忓Σ? ;;
+        profile_advanced) echo "3) 濠德板€曢崐褰掆€﹂崶顭戞? ;;
+        map_menu) echo "闂備線娼婚梽鍕熆濡ソ鐟邦潨閳ь剟鐛幘璇茬鐎广儱妫崑銊╂⒑閹稿海鈽夐柣妤€妫滈妵鎰板蓟閵夛妇鍔垫繝銏ｅ煐缁嬫挾绮堥崱娑欑叆? ;;
+        map_none) echo "1) 濠电偞鍨堕幐鍝ョ矓閹绢喗鍋╅柕濞у嫬鏅? ;;
         map_dynmap) echo "2) Dynmap" ;;
         map_bluemap) echo "3) BlueMap" ;;
-        map_url_prompt) echo "闂侀潻闄勫妯好瑰鈧獮鎾诲箳瀹ュ棭鍋ㄦ繛鎴炴尭椤戝牆霉閸ヮ剙鎹堕柡澶嬪缁?[婵帗绋掗…鍫ヮ敇缁繝鏌? ;;
-        map_url_fail) echo "[WARN] 婵炴垶鎸搁鍫澝归崶顒€鎹堕柡澶嬪缁茶鈽夐幘宕囆㈢憸鏉垮级濞煎繘骞橀崨顖滎槷闁荤姴娲ㄩ崗姗€宕抽崫銉﹀珰闁哄洨鍠庨悘妤呮⒑椤愩埄妲归悗姘ュ妽缁嬪顓奸崨顖涙闁荤喍绀侀幊宀勫焵? ;;
-        plan_run) echo "[INFO] 濠殿喗绻愮徊钘夛耿椤忓牆绠ョ憸鎴︺€?plan..." ;;
-        plan_block) echo "[INFO] 闁荤偞鍑归崑濠偽熼崱娑樼闁挎棁鍋愮粈澶愭煕濞嗘ê鐏ラ柣銊у枛瀵偊寮堕幋婵囶棟闂佽桨鐒﹀姗€骞冨Δ鍛厒鐎广儱鐗忓Σ鎼佹煏? ;;
-        plan_warn) echo "闁诲孩绋掗敋婵犫偓椤忓棙濯伴柨鏇楀亾闁硅绻濋弫宥囦沪閻愵儷锕傛煕濮樻儳顩柟鎾棑缁辨帡顢橀妸褍鎯瀃y/N] " ;;
-        plan_ok) echo "[INFO] Review 闂備緡鍋呮穱铏规崲閸愵喗鏅€光偓閳ь剟寮幘璇茬闁归偊鍘奸埛鏃堟偠濞戞鐒锋い鎾存倐瀹?.." ;;
-        edit_params) echo "闁荤姴顑呴崯顖炲汲閿濆鐭楅柛灞剧⊕濞堝爼鏌ㄥ☉妯诲墤ey=value闂佹寧绋戦惉濂稿煘閺嶎偅鍋樼€光偓閳ь剛鍒掗妸鈺佺骇闁绘洖鍊荤粈鍡涙煥? ;;
-        frontend_missing) echo "[WARN] 缂傚倸鍊搁幖顐︽儍?frontend/dist闂佹寧绋戦惌鍌氼焽娴兼潙绾ч柛褎顨嗘禒姗€鎮烽弴姘卞妽闁诲寒鍨伴娆撳箒閹哄棗浜? ;;
-        frontend_building) echo "[INFO] 濠殿喗绻愮徊钘夛耿椤忓牆鍑犻柛鏇ㄥ亞缁憋箓鏌涢幘宕囆ゆい蹇ｅ墴閺佸秴鐣濋崘鎯ф缂備礁顑呯粔鎾焵?.." ;;
-        npm_missing) echo "[WARN] 闂佸搫鐗滄禍婵嬎夐崨顒煎湱鈧綆浜滈悡?npm闂佹寧绋戦惌渚€顢氶鍌楀亾閻熼偊妲兼い?Node.js 闂佸憡鑹炬鎼佸疮閳ь剟鏌＄€ｎ亜顏╃紓鍌涙崌婵? ;;
-        review_blocked) echo "[INFO] Review 闁荤偞鍑归崑濠偽熼崱娑樼闁挎棁鍋愮粈澶愭煕濞嗘ê鐏ラ柣銊у枛瀵偊寮堕幋婵囶棟闂佽桨鐒﹀姗€骞冨Δ鍛厒鐎广儱鐗忓Σ鎼佹煏? ;;
-        review_still_block) echo "[INFO] 婵炲濮寸粔鐑斤綖閿曞倹鈷撶紓浣姑锟犳煥濞戞瀚伴柛鎴節閺屽懘鍩€椤掑嫬绀勯柟顓熷坊閸? ;;
-        review_canceled) echo "[INFO] 閻庣懓鎲¤ぐ鍐亹閸パ€妲堥柛顐ｇ▓閸? ;;
+        map_url_prompt) echo "闂備線娼婚梽鍕熆濡ソ鐟邦潨閳ь剟鐛幘璇茬鐎广儱妫崑銊︾箾閹寸偞灏い鎴濈墕闇夐柛銉墮閹瑰爼鏌℃径瀣嚋缂?[濠殿喗甯楃粙鎺椻€﹂崼銉晣缂侇偓绻濋弻? ;;
+        map_url_fail) echo "[WARN] 濠电偞鍨堕幐鎼侇敄閸緷褰掑炊椤掆偓閹瑰爼鏌℃径瀣嚋缂佽尪顕ч埥澶愬箻瀹曞泦銏㈡喐閺夊灝绾ф繛鐓庣箻楠炴﹢宕ㄩ婊庢Х闂佽崵濮村ú銊╁礂濮椻偓瀹曟娊宕妷锕€鐝伴梺鍝勬川閸犲酣鎮樺Δ鍛拺妞ゆ劑鍩勫Σ褰掓倵濮樸儱濡界紒瀣槸椤撳ジ宕ㄩ娑欘吘闂佽崵鍠嶇粈渚€骞婂畝鍕劦? ;;
+        plan_run) echo "[INFO] 婵犳鍠楃换鎰緤閽樺鑰挎い蹇撶墕缁犮儳鎲搁幋锔衡偓?plan..." ;;
+        plan_block) echo "[INFO] 闂佽崵鍋為崙褰掑磻婵犲伣鐔煎幢濞戞顔嗛梺鎸庢閸嬫劗绮堟径鎰厱婵炲棙锚閻忋儵鏌ｉ妸褍鏋涚€殿噮鍋婂鍫曞箣濠靛浂妫熼梻浣芥〃閻掞箑顭垮鈧獮鍐ㄎ旈崨顔惧帓閻庡箍鍎遍悧蹇撐ｉ幖浣圭厪? ;;
+        plan_warn) echo "闂佽瀛╃粙鎺楁晪濠电姭鍋撴い蹇撴婵即鏌ㄩ弴妤€浜鹃梺纭咁嚋缁绘繈寮鍥︽勃闁绘劦鍎烽敃鍌涚厱婵ɑ鍎抽々顒勬煙閹绢噮妫戠紒杈ㄥ浮椤㈡﹢濡歌閹€儁/N] " ;;
+        plan_ok) echo "[INFO] Review 闂傚倷绶￠崑鍛┍閾忚宕查柛鎰靛枟閺咁剛鈧厜鍋撻柍褜鍓熷顐﹀箻鐠囪尙顓洪梺褰掑亰閸樺ジ鍩涢弮鍫熷仩婵炴垶顭囬悞閿嬨亜閹惧瓨鍊愮€?.." ;;
+        edit_params) echo "闂佽崵濮撮鍛村疮椤栫偛姹查柨婵嗩槸閻鏌涚仦鍓р姇婵炲牆鐖奸弻銊モ槈濡澧y=value闂備焦瀵х粙鎴︽儔婵傜鐓橀柡宥庡亝閸嬫鈧厜鍋撻柍褜鍓涢崚鎺楀Ω閳轰胶楠囬梺缁樻礀閸婅崵绮堥崱娑欑叆? ;;
+        frontend_missing) echo "[WARN] 缂傚倸鍊搁崐鎼佸箹椤愶附鍎?frontend/dist闂備焦瀵х粙鎴︽儗閸屾凹鐒藉ù鍏兼綑缁狙囨煕瑜庨〃鍡樼濮椻偓閹兘寮村鍗炲闂佽瀵掗崹浼搭敋濞嗘挸绠掗柟鍝勬娴? ;;
+        frontend_building) echo "[INFO] 婵犳鍠楃换鎰緤閽樺鑰挎い蹇撶墕閸戠娀鏌涢弴銊ヤ簽缂佹唻绠撻弻娑㈠箻瀹曞泦銈嗐亜韫囷絽澧撮柡浣哥Т閻ｆ繈宕橀幆褎顔夌紓鍌欑椤戝懐绮旈幘顔肩劦?.." ;;
+        npm_missing) echo "[WARN] 闂備礁鎼悧婊勭濠靛瑤澶愬川椤掔厧婀遍埀顒婄秵娴滄粓鎮?npm闂備焦瀵х粙鎴︽儗娓氣偓椤㈡岸顢楅崒妤€浜鹃柣鐔煎亰濡插吋銇?Node.js 闂備礁鎲￠懝鐐殽閹间礁鐤柍褜鍓熼弻锛勨偓锝庝簻椤忊晝绱撻崒娑欏磳濠? ;;
+        review_blocked) echo "[INFO] Review 闂佽崵鍋為崙褰掑磻婵犲伣鐔煎幢濞戞顔嗛梺鎸庢閸嬫劗绮堟径鎰厱婵炲棙锚閻忋儵鏌ｉ妸褍鏋涚€殿噮鍋婂鍫曞箣濠靛浂妫熼梻浣芥〃閻掞箑顭垮鈧獮鍐ㄎ旈崨顔惧帓閻庡箍鍎遍悧蹇撐ｉ幖浣圭厪? ;;
+        review_still_block) echo "[INFO] 濠电偛顕慨瀵哥矓閻戞枻缍栭柨鏇炲€归埛鎾剁磽娴ｅ顏堫敂閿熺姵鐓ユ繛鎴烆焾鐎氫即鏌涢幋顖滅瘈闁哄苯鎳橀崺鈧い鎺戝缁€鍕煙椤撶喎鍧婇柛? ;;
+        review_canceled) echo "[INFO] 闁诲海鎳撻幉陇銇愰崘顓滀汗闁搞儜鈧Σ鍫ユ煕椤愶絿鈻撻柛? ;;
         *) echo "$key" ;;
       esac
       ;;
@@ -547,7 +563,7 @@ msg() {
 choice_prompt() {
   local range="$1"
   if [ "$LANGUAGE" = "zh" ]; then
-    echo "闁哄鐗婇幐鎼佸矗?[${range}]: "
+    echo "闂佸搫顦悧濠囧箰閹间礁鐭?[${range}]: "
   else
     echo "Enter [${range}]: "
   fi
@@ -1424,7 +1440,7 @@ while true; do
   echo "$PLAN_OUTPUT"
   LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
   if [ -z "$LEVEL" ]; then
-    LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^缂備胶瀚忛崘銊у姸:[[:space:]]*//p' | head -n 1)
+    LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^缂傚倷鑳剁€氬繘宕橀妸褍濮?[[:space:]]*//p' | head -n 1)
   fi
   LEVEL="$(echo "$LEVEL" | xargs | tr 'A-Z' 'a-z')"
 
@@ -1590,3 +1606,7 @@ echo "$CLAIMS_STRING"
 echo ""
 echo "[INFO] Execution plan complete."
 exit 0
+
+
+
+
