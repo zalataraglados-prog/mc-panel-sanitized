@@ -180,6 +180,16 @@ textarea::placeholder {
   border: 1px solid #f9731633;
 }
 
+.status-ready {
+  color: #facc15;
+  border: 1px solid #facc1533;
+}
+
+.status-unknown {
+  color: #f97316;
+  border: 1px solid #f9731633;
+}
+
 .subtle {
   margin-top: 8px;
   color: var(--muted);

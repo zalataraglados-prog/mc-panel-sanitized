@@ -158,6 +158,7 @@ const translations = {
     userDeleteConfirm: "Delete this user?",
     running: "RUNNING",
     stopped: "STOPPED",
+    ready: "READY",
     unknown: "UNKNOWN",
     live: "LIVE",
     offline: "OFFLINE",
@@ -305,6 +306,7 @@ const translations = {
     userDeleteConfirm: "\u786e\u8ba4\u5220\u9664\u8be5\u7528\u6237\uff1f",
     running: "\u8fd0\u884c\u4e2d",
     stopped: "\u5df2\u505c\u6b62",
+    ready: "\u53ef\u542f\u52a8",
     unknown: "\u672a\u77e5",
     live: "\u5728\u7ebf",
     offline: "\u79bb\u7ebf",
@@ -1726,8 +1728,16 @@ export function App() {
           <span className="tag">
             {t.roleLabel}: {role || t.guest}
           </span>
-          <span className={`tag ${serverRunning ? "status-live" : "status-offline"}`}>
-            {serverRunning === null ? t.unknown : serverRunning ? t.running : t.stopped}
+          <span
+            className={`tag ${
+              serverRunning === null
+                ? "status-unknown"
+                : serverRunning
+                ? "status-live"
+                : "status-ready"
+            }`}
+          >
+            {serverRunning === null ? t.unknown : serverRunning ? t.running : t.ready}
           </span>
           <span className={`tag ${rconOk ? "status-live" : "status-offline"}`}>
             {rconOk ? t.rconOk : t.rconFail}
