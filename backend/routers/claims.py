@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import re
 
 from fastapi import APIRouter, Depends, Query
 
@@ -34,6 +35,65 @@ def _read_server_properties(instance_dir: str) -> dict:
         key, value = line.split("=", 1)
         entries[key.strip()] = _clean_value(value)
     return entries
+
+
+def _read_compose_env(instance_dir: str) -> dict:
+    path = Path(instance_dir) / "docker-compose.yml"
+    if not path.exists():
+        return {}
+    env: dict = {}
+    in_env = False
+    env_indent = None
+    for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if not in_env and re.match(r"\s*environment:\s*$", line):
+            env_indent = len(line) - len(line.lstrip())
+            in_env = True
+            continue
+        if in_env:
+            indent = len(line) - len(line.lstrip())
+            if indent <= (env_indent or 0):
+                in_env = False
+                continue
+            stripped = line.strip()
+            if stripped.startswith("- " ) and "=" in stripped:
+                key, value = stripped[2:].split("=", 1)
+                env[key.strip()] = _clean_value(value)
+    return env
+
+
+def _params_from_config(config: dict) -> dict:
+    if not isinstance(config, dict):
+        return {}
+    params: dict = {}
+    mc = config.get("minecraft") if isinstance(config.get("minecraft"), dict) else {}
+    if mc:
+        if "version" in mc:
+            params["minecraft.version"] = mc.get("version")
+        if "engine" in mc:
+            params["stack.type"] = str(mc.get("engine")).lower()
+        jvm = mc.get("jvm") if isinstance(mc.get("jvm"), dict) else {}
+        if jvm and jvm.get("memory"):
+            params["docker.env.MEMORY"] = jvm.get("memory")
+    panel = config.get("panel") if isinstance(config.get("panel"), dict) else {}
+    if panel:
+        if "enabled" in panel:
+            params["panel.enable"] = panel.get("enabled")
+        if "port" in panel:
+            params["panel.port"] = panel.get("port")
+    return params
+
+
+def _params_from_compose_env(env: dict) -> dict:
+    if not isinstance(env, dict):
+        return {}
+    params: dict = {}
+    if env.get("MEMORY"):
+        params["docker.env.MEMORY"] = env.get("MEMORY")
+    if env.get("VERSION"):
+        params["minecraft.version"] = env.get("VERSION")
+    return params
 
 
 def _clean_value(raw: str) -> str:
@@ -114,9 +174,25 @@ def export_claims(
     version = mc.get("version") or "1.21.4"
     stack_type = (mc.get("engine") or "paper").lower()
 
+    config_params = _params_from_config(config)
+    compose_env = _read_compose_env(instance_dir)
+    compose_params = _params_from_compose_env(compose_env)
+
+    version = (compose_params.get("minecraft.version")
+               or config_params.get("minecraft.version")
+               or mc.get("version")
+               or "1.21.4")
+
+    # Avoid leaking version into extras; use version header only.
+    config_params.pop("minecraft.version", None)
+    compose_params.pop("minecraft.version", None)
+
     bundle = load_rules_bundle(version)
     catalog = bundle.get("catalog", {})
     defaults = _defaults_from_catalog(catalog)
+
+    defaults.update(config_params)
+    defaults.update(compose_params)
 
     server_props = _read_server_properties(instance_dir)
     for key, value in server_props.items():
@@ -133,9 +209,7 @@ def export_claims(
     gamerule_values = _read_gamerules(instance_dir, catalog)
     defaults.update(gamerule_values)
 
-    defaults["edition"] = "java"
     defaults["stack.type"] = stack_type
-    defaults["minecraft.version"] = version
 
     if format == "compact":
         claims_string = encode_compact(defaults, catalog, version)
