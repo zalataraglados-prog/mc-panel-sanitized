@@ -1060,16 +1060,16 @@ npm install
 npm run build
 systemctl restart mc-panel</code></pre>
       <hr/>
-      <h2>闈㈡澘鍓嶇鏈瀯寤?/h2>
-      <p>鍓嶇鏋勫缓澶辫触鎴栨湭瀹夎 npm銆?/p>
-      <p>浼樺厛浣跨敤 Docker锛堟洿绋冲畾锛夛細</p>
+      <h2>面板前端未构建</h2>
+      <p>前端构建失败或未安装 npm。</p>
+      <p>优先（稳定，Docker 构建）：</p>
       <pre><code>docker run --rm -v /opt/mc-panel-sanitized:/app -w /app/frontend node:18 sh -c "npm ci && npm run build"
-systemctl restart mc-panel</code></pre>
-      <p>鍏滃簳锛堟湰鏈?npm锛夛細</p>
+      systemctl restart mc-panel</code></pre>
+      <p>后备（本地 npm）：</p>
       <pre><code>cd /opt/mc-panel-sanitized/frontend
-npm install
-npm run build
-systemctl restart mc-panel</code></pre>
+      npm install
+      npm run build
+      systemctl restart mc-panel</code></pre>
     </div>
   </div>
 </body>
@@ -1406,7 +1406,7 @@ while true; do
   echo "$PLAN_OUTPUT"
   LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^Level:[[:space:]]*//p' | head -n 1)
   if [ -z "$LEVEL" ]; then
-    LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^绾у埆:[[:space:]]*//p' | head -n 1)
+  LEVEL=$(echo "$PLAN_OUTPUT" | sed -n 's/^级别:[[:space:]]*//p' | head -n 1)
   fi
   LEVEL="$(echo "$LEVEL" | xargs | tr 'A-Z' 'a-z')"
 
