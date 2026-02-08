@@ -351,6 +351,30 @@ def _run_cli_stream(action, state):
         _write_progress({"status": "failed", "percent": 95, "message": "failed", "detail": "no output from cli"})
         return 1, ""
 
+    if ok:
+        if instance_dir and not os.path.isdir(instance_dir):
+            _cleanup_failed(instance_dir)
+            _write_progress(
+                {
+                    "status": "failed",
+                    "percent": 95,
+                    "message": "failed",
+                    "detail": "instance dir missing (apply likely did not run)",
+                }
+            )
+            return 1, output.strip()
+        if "Execution succeeded." not in output and "执行成功" not in output:
+            _cleanup_failed(instance_dir)
+            _write_progress(
+                {
+                    "status": "failed",
+                    "percent": 95,
+                    "message": "failed",
+                    "detail": "apply did not report success",
+                }
+            )
+            return 1, output.strip()
+
     # ===== Patch 1: CLI 本身失败才算失败 =====
     if not ok:
         _cleanup_failed(instance_dir)
@@ -370,10 +394,23 @@ def _run_cli_stream(action, state):
 
     # ===== Patch 3: 无限轮询直到 systemd active =====
     if instance_dir:
+        deadline = time.time() + 10 * 60
         while True:
             healthy, log_text = _check_service_health(instance_dir)
             if healthy:
                 break
+
+            if time.time() > deadline:
+                _cleanup_failed(instance_dir)
+                _write_progress(
+                    {
+                        "status": "failed",
+                        "percent": 95,
+                        "message": "failed",
+                        "detail": "timeout waiting for systemd active",
+                    }
+                )
+                return 1, output.strip()
 
             _write_progress(
                 {
