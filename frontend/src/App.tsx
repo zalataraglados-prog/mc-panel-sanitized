@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactElement } from "react";
 import zhCn from "./assets/zh_cn.json";
 
 type Metric = { label: string; value: string };
@@ -814,7 +815,7 @@ export function App() {
               />
             );
           })
-          .filter((item): item is JSX.Element => Boolean(item))
+          .filter((item): item is ReactElement => Boolean(item))
       : null;
 
   const appendLogLine = (message: string) => {

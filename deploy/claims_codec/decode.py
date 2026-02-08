@@ -17,7 +17,8 @@ class Claims:
         self.imported_from_string = imported
 
     def param_capability(self, param_key: str) -> str:
-        return param_key.split(".", 1)[0]
+        from deploy.mapper.mappings import capability_from_param_key
+        return capability_from_param_key(param_key)
 
 
 def _add_padding(s: str) -> str:

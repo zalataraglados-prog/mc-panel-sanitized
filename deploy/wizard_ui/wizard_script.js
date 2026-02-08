@@ -307,9 +307,18 @@ function applyProfileDefaults(profile, force = false) {
   });
 }
 
-function sensitivityAllowed(sensitivity, profile) {
-  if (!sensitivity) return true;
+function normalizeSensitivity(sensitivity) {
+  if (!sensitivity) return '';
   const s = String(sensitivity).toLowerCase();
+  if (['novice', 'beginner', 'basic', 'low'].includes(s)) return 'novice';
+  if (['normal', 'standard', 'intermediate', 'medium'].includes(s)) return 'normal';
+  if (['advanced', 'expert', 'pro', 'high'].includes(s)) return 'expert';
+  return s;
+}
+
+function sensitivityAllowed(sensitivity, profile) {
+  const s = normalizeSensitivity(sensitivity);
+  if (!s) return true;
   if (profile === 'beginner') return s === 'novice';
   if (profile === 'normal') return s !== 'expert';
   return true;

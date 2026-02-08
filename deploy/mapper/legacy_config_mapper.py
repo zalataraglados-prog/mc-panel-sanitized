@@ -10,7 +10,7 @@ Deterministic, side-effect free.
 import copy
 from typing import Dict
 
-from .mappings import PARAMETER_MAPPINGS
+from .mappings import PARAMETER_MAPPINGS, capability_from_param_key
 from .profiles import PROFILE_OVERRIDES
 
 
@@ -34,7 +34,7 @@ def map_claims_to_legacy_config(
         if not mapping:
             continue
 
-        capability_id = claims.param_capability(param_key)
+        capability_id = capability_from_param_key(param_key)
         if capability_id not in allowed_capabilities:
             continue
 
@@ -70,7 +70,7 @@ def _apply_profile_overrides(
             continue
 
         # Profile overrides must still respect capability permission
-        capability_id = _infer_capability_from_param(param_key)
+        capability_id = capability_from_param_key(param_key)
         if capability_id not in allowed_capabilities:
             continue
 
@@ -104,4 +104,4 @@ def _infer_capability_from_param(param_key: str) -> str:
 
     This must stay consistent with Planner definitions.
     """
-    return param_key.split(".", 1)[0]
+    return capability_from_param_key(param_key)

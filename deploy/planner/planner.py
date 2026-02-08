@@ -94,6 +94,8 @@ def _validate_params(params: dict, catalog: dict | None = None) -> List[PlanMess
 
 
 def _capabilities_from_params(params: dict, claims) -> List[CapabilityResult]:
+    from deploy.mapper.mappings import capability_from_param_key
+
     seen: Set[str] = set()
     results = []
     for key in params.keys():
@@ -101,7 +103,7 @@ def _capabilities_from_params(params: dict, claims) -> List[CapabilityResult]:
             continue
         if key not in PARAMETER_MAPPINGS:
             continue
-        cap = claims.param_capability(key)
+        cap = capability_from_param_key(key)
         if cap in seen:
             continue
         seen.add(cap)

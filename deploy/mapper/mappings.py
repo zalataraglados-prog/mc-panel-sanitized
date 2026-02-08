@@ -82,3 +82,16 @@ def is_plugin_param(key: str) -> bool:
 
 def is_mod_param(key: str) -> bool:
     return any(key.startswith(prefix) for prefix in MOD_PARAM_PREFIXES)
+
+
+def capability_from_param_key(param_key: str) -> str:
+    """
+    Resolve capability id for a parameter key.
+
+    Uses the mapping table to normalize aliases (e.g. server-port, panel.port)
+    to their canonical capability root (network, minecraft, docker, features).
+    """
+    mapping = PARAMETER_MAPPINGS.get(param_key)
+    if mapping:
+        return mapping[0]
+    return param_key.split(".", 1)[0]
