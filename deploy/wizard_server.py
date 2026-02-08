@@ -260,6 +260,8 @@ def _run_cli(action, state):
         cmd.append("--confirm-warn")
     proc = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
     output = (proc.stdout or "") + ("\n" + proc.stderr if proc.stderr else "")
+    if proc.returncode == 0 and not output.strip():
+        return 1, "no output from cli"
     return proc.returncode, output.strip()
 
 
@@ -343,6 +345,11 @@ def _run_cli_stream(action, state):
     output = "".join(output_lines)
     ok = proc.returncode == 0
     instance_dir = _extract_instance_dir(output)
+
+    if ok and not output.strip():
+        _cleanup_failed(instance_dir)
+        _write_progress({"status": "failed", "percent": 95, "message": "failed", "detail": "no output from cli"})
+        return 1, ""
 
     # ===== Patch 1: CLI 本身失败才算失败 =====
     if not ok:
