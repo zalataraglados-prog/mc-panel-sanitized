@@ -827,3 +827,70 @@ def main():
     if args.command == "plan":
         return 0
 
+    lang = os.environ.get("MC_PANEL_LANG", "en")
+    if apply_plan.summary.level == "block":
+        if lang == "zh":
+            print("已被评审阻止，无法执行 apply。")
+        else:
+            print("Apply is blocked by planner review.")
+        return 1
+
+    if args.apply:
+        if apply_plan.summary.level == "warn" and not args.confirm_warn:
+            if lang == "zh":
+                print("当前为 warn 级别，执行 apply 需要 --confirm-warn。")
+            else:
+                print("Apply requires --confirm-warn when review level is warn.")
+            return 1
+
+    mode = "apply" if args.apply else "dry-run"
+    inspector = HostInspector()
+    base_dir = os.environ.get("MC_PANEL_BASE_DIR", "/opt/mc-instances")
+    host_facts = [
+        inspector.check_path_exists(base_dir),
+        inspector.check_path_writable(base_dir),
+    ]
+    server_port = _resolve_server_port(claims.params)
+    if any(key.startswith("docker.") for key in claims.params.keys()):
+        host_facts.append(inspector.check_docker_available())
+    panel_enabled = str(claims.params.get("panel.enable", "false")).lower() in ("true", "1", "yes", "y")
+    if panel_enabled:
+        host_facts.append(inspector.check_service_exists("mc-panel.service"))
+
+    plan = build_execution_plan(
+        claims=claims,
+        review=review_payload,
+        host_facts=host_facts,
+        mode=mode,
+    )
+    print_execution_plan(plan)
+    log_event("execution_plan", plan.to_dict())
+
+    if not args.apply:
+        return 0
+
+    executor = ExecutionPlanExecutor(inspector=inspector)
+    result = executor.execute(plan)
+    if not result.ok:
+        if lang == "zh":
+            print("执行失败。")
+        else:
+            print("Execution failed.")
+        for step in result.steps:
+            status = "OK" if step.ok else "FAIL"
+            print(f"- {step.name:24} {status} {step.details}")
+        return 1
+
+    if lang == "zh":
+        print("执行成功。")
+    else:
+        print("Execution succeeded.")
+    for step in result.steps:
+        print(f"- {step.name:24} OK {step.details}")
+    print_execution_summary(plan, claims)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
