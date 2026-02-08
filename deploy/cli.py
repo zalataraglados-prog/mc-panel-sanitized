@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -609,6 +610,43 @@ def main():
                 help="Confirm execution when review level is warn",
             )
 
+    list_parser = sub.add_parser("instances", help="List instances under base directory")
+    list_parser.add_argument(
+        "--base-dir",
+        default=os.environ.get("MC_PANEL_BASE_DIR", "/opt/mc-instances"),
+        help="Base directory where instances are stored",
+    )
+
+    panel_parser = sub.add_parser("panel", help="Install or uninstall the web panel")
+    panel_sub = panel_parser.add_subparsers(dest="panel_command", required=True)
+    panel_install = panel_sub.add_parser("install", help="Install panel service")
+    panel_install.add_argument("--instance-dir", help="Target instance directory")
+    panel_install.add_argument(
+        "--base-dir",
+        default=os.environ.get("MC_PANEL_BASE_DIR", "/opt/mc-instances"),
+        help="Base directory where instances are stored",
+    )
+    panel_install.add_argument("--panel-port", type=int, help="Override panel port")
+    panel_install.add_argument("--no-start", action="store_true", help="Do not start service immediately")
+    panel_install.add_argument("--no-build", action="store_true", help="Skip frontend build step")
+    panel_install.add_argument(
+        "--panel-root",
+        default=os.environ.get("MC_PANEL_ROOT"),
+        help="Panel repository root (default: auto-detect)",
+    )
+
+    panel_uninstall = panel_sub.add_parser("uninstall", help="Uninstall panel service")
+    panel_uninstall.add_argument("--instance-dir", help="Target instance directory")
+    panel_uninstall.add_argument(
+        "--base-dir",
+        default=os.environ.get("MC_PANEL_BASE_DIR", "/opt/mc-instances"),
+        help="Base directory where instances are stored",
+    )
+
+    for name in ("up", "down", "restart"):
+        p = sub.add_parser(name, help=f"{name} instance via systemd/docker compose")
+        _add_instance_args(p)
+
     mcic_otp = sub.add_parser(
         "otp",
         help="Show wizard OTP (for web wizard login)",
@@ -665,6 +703,55 @@ def main():
         if getattr(args, "tui_args", None):
             cmd += args.tui_args
         return subprocess.run(cmd, check=False).returncode
+
+    if args.command == "instances":
+        inspector = HostInspector()
+        result = inspector.list_instances(args.base_dir)
+        print(json.dumps(result, indent=2, ensure_ascii=True))
+        return 0
+
+    if args.command == "panel":
+        if args.panel_command == "install":
+            service = install_panel(
+                instance_dir=args.instance_dir,
+                base_dir=args.base_dir,
+                panel_port=args.panel_port,
+                start=not args.no_start,
+                build_frontend=not args.no_build,
+                panel_root=args.panel_root,
+            )
+            print(f"Panel service installed: {service}")
+            return 0
+        if args.panel_command == "uninstall":
+            service = uninstall_panel(
+                instance_dir=args.instance_dir,
+                base_dir=args.base_dir,
+            )
+            print(f"Panel service removed: {service}")
+            return 0
+        raise SystemExit("Unknown panel command.")
+
+    if args.command in ("up", "down", "restart"):
+        instance_dir = _resolve_instance_dir(args)
+        instance_name = _resolve_instance_name(instance_dir, _load_config(instance_dir))
+        service = f"{instance_name}.service"
+        action = args.command
+        used_systemd = False
+        if shutil.which("systemctl"):
+            used_systemd = True
+            if _systemctl_action(action, service):
+                print(f"{action} via systemd: {service}")
+                return 0
+            print(f"[WARN] systemd {action} failed for {service}; falling back to docker compose.")
+        code = _docker_compose_action(instance_dir, instance_name, action)
+        if code == 0:
+            print(f"{action} via docker compose: {instance_name}")
+            return 0
+        if used_systemd:
+            print(f"[ERROR] systemd failed and docker compose returned {code}.")
+        else:
+            print(f"[ERROR] docker compose returned {code}.")
+        return 1
 
     claims = None
     rules_bundle = None
