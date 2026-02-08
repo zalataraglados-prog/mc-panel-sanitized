@@ -614,6 +614,19 @@ class ExecutionPlanExecutor:
                     result.log_path = self._write_log(plan, result)
                     if instance_dir and not existed_before:
                         self._mark_failure(instance_dir, "precondition")
+                        self._safe_cleanup_instance_dir(instance_dir)
+                    return result
+
+            for action in plan.actions:
+                step = self._execute_action(action)
+                steps.append(step)
+                executed_actions.append(step)
+                if not step.ok:
+                    result = ExecutionResult(ok=False, steps=steps, rollback_pending=bool(executed_actions))
+                    result.log_path = self._write_log(plan, result)
+                    if instance_dir and not existed_before:
+                        self._mark_failure(instance_dir, "action")
+                        self._safe_cleanup_instance_dir(instance_dir)
                     return result
 
             result = ExecutionResult(ok=True, steps=steps)
