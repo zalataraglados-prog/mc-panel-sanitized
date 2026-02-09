@@ -67,8 +67,8 @@ Instance list / select:
 Wizard-first flow / 导引优先（CLI 兜底）：
 - 默认使用导引网页（Wizard）进行部署。
 - Wizard 不可用时，可使用 CLI 兜底：
-  - `mcic tui`（或 `mcic legacy`）进入 CLI 交互部署流程
-  - 示例：`mcic tui apply --version 1.21.11 --profile normal`
+  - `mcic tui`（或 `mcic legacy`）进入 CLI 交互部署流程（与安装脚本的 CLI 流程一致）
+  - 直跑非交互 CLI：`mcic plan` / `mcic apply`（或 `mcic tui plan|apply ...`）
 
 Panel management:
 面板管理：

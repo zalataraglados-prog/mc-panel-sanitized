@@ -9,6 +9,9 @@ echo "+======================================+"
 echo "[INFO] Service restarts are blocked by default to avoid SSH disconnects."
 echo "[INFO] To allow restarts: export MCIC_ALLOW_SERVICE_RESTARTS=1"
 
+SKIP_SETUP="${MC_PANEL_SKIP_SETUP:-0}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # ------------------------------
 # Must run as root
 # ------------------------------
@@ -247,60 +250,70 @@ build_frontend_with_docker() {
 # ------------------------------
 # Ensure dependencies
 # ------------------------------
-if command -v apt-get >/dev/null 2>&1; then
-  echo "[INFO] Checking system dependencies..."
-  setup_policy_rcd
-  apt-get update
-  apt-get install -y \
-    ca-certificates \
-    curl \
-    git \
-    unzip \
-    python3 \
-    python3-venv \
-    python3-pip
-  if ! command -v docker >/dev/null 2>&1; then
-    echo "[INFO] Installing docker..."
-    apt-get install -y docker.io
-    ensure_docker_compose
-  else
-    ensure_docker_compose
+if [ "$SKIP_SETUP" != "1" ]; then
+  if command -v apt-get >/dev/null 2>&1; then
+    echo "[INFO] Checking system dependencies..."
+    setup_policy_rcd
+    apt-get update
+    apt-get install -y \
+      ca-certificates \
+      curl \
+      git \
+      unzip \
+      python3 \
+      python3-venv \
+      python3-pip
+    if ! command -v docker >/dev/null 2>&1; then
+      echo "[INFO] Installing docker..."
+      apt-get install -y docker.io
+      ensure_docker_compose
+    else
+      ensure_docker_compose
+    fi
+    ensure_node_npm
+    cleanup_policy_rcd
+    if command -v systemctl >/dev/null 2>&1; then
+      systemctl enable --now docker || true
+    fi
   fi
-  ensure_node_npm
-  cleanup_policy_rcd
-  if command -v systemctl >/dev/null 2>&1; then
-    systemctl enable --now docker || true
-  fi
 fi
 
-# ------------------------------
-# Check git
-# ------------------------------
-if ! command -v git &> /dev/null; then
-  echo "[INFO] Installing git..."
-  apt update && apt install -y git
-fi
-
-if ! command -v curl &> /dev/null; then
-  echo "[WARN] curl not found; rule downloads may fail."
-fi
-
-INSTALL_DIR="/opt/mc-panel-sanitized"
+INSTALL_DIR="${MC_PANEL_ROOT:-/opt/mc-panel-sanitized}"
 BRANCH="${MC_PANEL_BRANCH:-demon1.3}"
 
-# ------------------------------
-# Clone / update repo
-# ------------------------------
-if [ ! -d "$INSTALL_DIR" ]; then
-  echo "[INFO] Cloning repo ($BRANCH)..."
-  git clone -b "$BRANCH" --single-branch \
-    https://github.com/zalataraglados-prog/mc-panel-sanitized.git \
-    "$INSTALL_DIR"
+if [ "$SKIP_SETUP" != "1" ]; then
+  # ------------------------------
+  # Check git
+  # ------------------------------
+  if ! command -v git &> /dev/null; then
+    echo "[INFO] Installing git..."
+    apt update && apt install -y git
+  fi
+
+  if ! command -v curl &> /dev/null; then
+    echo "[WARN] curl not found; rule downloads may fail."
+  fi
+
+  # ------------------------------
+  # Clone / update repo
+  # ------------------------------
+  if [ ! -d "$INSTALL_DIR" ]; then
+    echo "[INFO] Cloning repo ($BRANCH)..."
+    git clone -b "$BRANCH" --single-branch \
+      https://github.com/zalataraglados-prog/mc-panel-sanitized.git \
+      "$INSTALL_DIR"
+  else
+    echo "[INFO] Repo exists, updating current branch..."
+    cd "$INSTALL_DIR"
+    git fetch --all --prune
+    git pull --ff-only || true
+  fi
 else
-  echo "[INFO] Repo exists, updating current branch..."
+  if [ ! -d "$INSTALL_DIR" ]; then
+    echo "[ERROR] Repo not found at ${INSTALL_DIR}. Set MC_PANEL_ROOT or re-run install."
+    exit 1
+  fi
   cd "$INSTALL_DIR"
-  git fetch --all --prune
-  git pull --ff-only || true
 fi
 
 # Ensure base instance directory exists for preconditions

@@ -696,6 +696,16 @@ def main():
         return 1
 
     if args.command == "tui":
+        explicit_args = len(sys.argv) > 2
+        if not explicit_args:
+            root = Path(__file__).resolve().parents[1]
+            script = root / "install.sh"
+            if script.exists():
+                env = os.environ.copy()
+                env.setdefault("MC_PANEL_USE_CLI", "1")
+                env.setdefault("MC_PANEL_SKIP_SETUP", "1")
+                env.setdefault("MC_PANEL_ROOT", str(root))
+                return subprocess.run(["/bin/bash", str(script)], check=False, env=env).returncode
         mode = args.mode or "apply"
         cmd = [sys.executable, "-m", "deploy.cli", mode]
         if mode == "apply":
