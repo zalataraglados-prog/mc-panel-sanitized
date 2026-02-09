@@ -1,4 +1,4 @@
-ï»¿const $ = (id) => document.getElementById(id);
+const $ = (id) => document.getElementById(id);
 const output = $('output');
 const panelLink = $('panel_link');
 const catalogContainer = $('catalog_sections');
@@ -49,116 +49,116 @@ const UI_DEFAULTS = {
   "server-port": "25565",
   "rcon.port": "25575",
   "map.plugin": "none",
-  "map.plugin_port": "8123",
+  "map.plugin_port": "8100",
   "map.render_interval": "5",
   "inventory.plugin": "none"
 };
 
 const translations = {
   zh: {
-    title: 'MCIC å¼•å¯¼å‘å¯¼',
-    language: 'è¯­è¨€',
-    basic: 'åŸºç¡€è®¾ç½®',
-    versionLabel: 'ç‰ˆæœ¬ï¼ˆé»˜è®¤ 1.21.11ï¼‰',
+    title: 'MCIC Òıµ¼Ïòµ¼',
+    language: 'ÓïÑÔ',
+    basic: '»ù´¡ÉèÖÃ',
+    versionLabel: '°æ±¾£¨Ä¬ÈÏ 1.21.11£©',
     versionPlaceholder: '1.21.11',
-    profile: 'é…ç½®æ¡£ä½',
-    profileBeginner: 'æ–°æ‰‹',
-    profileNormal: 'æ ‡å‡†',
-    profileAdvanced: 'é«˜çº§',
-    otpLabel: 'ä¸€æ¬¡æ€§å£ä»¤ï¼ˆOTPï¼‰',
+    profile: 'ÅäÖÃµµÎ»',
+    profileBeginner: 'ĞÂÊÖ',
+    profileNormal: '±ê×¼',
+    profileAdvanced: '¸ß¼¶',
+    otpLabel: 'Ò»´ÎĞÔ¿ÚÁî£¨OTP£©',
     otpPlaceholder: '',
-    otpHint: 'Plan / Apply / ä¿å­˜éœ€è¦ OTPã€‚',
-    importMode: 'å¯¼å…¥æ–¹å¼',
-    importNone: 'ä¸å¯¼å…¥',
-    importPaste: 'ç²˜è´´é…ç½®ä¸²',
-    importFile: 'ä»æ–‡ä»¶è·¯å¾„å¯¼å…¥',
-    importValue: 'é…ç½®ä¸² / æ–‡ä»¶è·¯å¾„',
-    importPlaceholder: 'ç²˜è´´é…ç½®ä¸²ï¼Œæˆ–å¡«å†™æ–‡ä»¶è·¯å¾„',
-    importHint: 'è‹¥é€‰æ‹©â€œä»æ–‡ä»¶è·¯å¾„å¯¼å…¥â€ï¼Œè¯·å¡«å†™æœåŠ¡å™¨ä¸Šçš„æ–‡ä»¶è·¯å¾„ã€‚',
-    beginner: 'æ–°æ‰‹é€‰é¡¹',
-    keepInventory: 'æ­»äº¡ä¸æ‰è½',
-    allowCheats: 'å…è®¸ä½œå¼Šï¼ˆå‘½ä»¤æ–¹å—ï¼‰',
-    core: 'æ ¸å¿ƒå‚æ•°',
-    expectedPlayers: 'é¢„æœŸäººæ•°',
-    expectedPlayersPh: 'ä¾‹å¦‚ 3',
-    maxPlayers: 'æœ€å¤§äººæ•°',
-    maxPlayersPh: 'ä¾‹å¦‚ 20',
-    difficulty: 'éš¾åº¦',
-    difficultyPeaceful: 'å’Œå¹³',
-    difficultyEasy: 'ç®€å•',
-    difficultyNormal: 'æ™®é€š',
-    difficultyHard: 'å›°éš¾',
-    gamemode: 'æ¸¸æˆæ¨¡å¼',
-    gmSurvival: 'ç”Ÿå­˜',
-    gmCreative: 'åˆ›é€ ',
-    gmAdventure: 'å†’é™©',
-    gmSpectator: 'æ—è§‚',
-    onlineMode: 'åœ¨çº¿æ¨¡å¼',
+    otpHint: 'Plan / Apply / ±£´æĞèÒª OTP¡£',
+    importMode: 'µ¼Èë·½Ê½',
+    importNone: '²»µ¼Èë',
+    importPaste: 'Õ³ÌùÅäÖÃ´®',
+    importFile: '´ÓÎÄ¼şÂ·¾¶µ¼Èë',
+    importValue: 'ÅäÖÃ´® / ÎÄ¼şÂ·¾¶',
+    importPlaceholder: 'Õ³ÌùÅäÖÃ´®£¬»òÌîĞ´ÎÄ¼şÂ·¾¶',
+    importHint: 'ÈôÑ¡Ôñ¡°´ÓÎÄ¼şÂ·¾¶µ¼Èë¡±£¬ÇëÌîĞ´·şÎñÆ÷ÉÏµÄÎÄ¼şÂ·¾¶¡£',
+    beginner: 'ĞÂÊÖÑ¡Ïî',
+    keepInventory: 'ËÀÍö²»µôÂä',
+    allowCheats: 'ÔÊĞí×÷±×£¨ÃüÁî·½¿é£©',
+    core: 'ºËĞÄ²ÎÊı',
+    expectedPlayers: 'Ô¤ÆÚÈËÊı',
+    expectedPlayersPh: 'ÀıÈç 3',
+    maxPlayers: '×î´óÈËÊı',
+    maxPlayersPh: 'ÀıÈç 20',
+    difficulty: 'ÄÑ¶È',
+    difficultyPeaceful: 'ºÍÆ½',
+    difficultyEasy: '¼òµ¥',
+    difficultyNormal: 'ÆÕÍ¨',
+    difficultyHard: 'À§ÄÑ',
+    gamemode: 'ÓÎÏ·Ä£Ê½',
+    gmSurvival: 'Éú´æ',
+    gmCreative: '´´Ôì',
+    gmAdventure: 'Ã°ÏÕ',
+    gmSpectator: 'ÅÔ¹Û',
+    onlineMode: 'ÔÚÏßÄ£Ê½',
     pvp: 'PVP',
-    whitelist: 'ç™½åå•',
-    spawnProtection: 'å‡ºç”Ÿä¿æŠ¤',
-    spawnProtectionPh: 'ä¾‹å¦‚ 16',
-    performance: 'æ€§èƒ½å‚æ•°',
-    memory: 'å†…å­˜ï¼ˆdocker.env.MEMORYï¼‰',
-    memoryPh: 'ä¾‹å¦‚ 2G / 2048M',
-    viewDistance: 'è§†è·',
-    viewDistancePh: 'ä¾‹å¦‚ 6',
-    simulationDistance: 'æ¨¡æ‹Ÿè·ç¦»',
-    simulationDistancePh: 'ä¾‹å¦‚ 4',
-    randomTick: 'éšæœºåˆ»é€Ÿåº¦',
-    randomTickPh: 'ä¾‹å¦‚ 3',
-    maxEntityCramming: 'æœ€å¤§å®ä½“æŒ¤å‹',
-    maxEntityCrammingPh: 'ä¾‹å¦‚ 24',
-    panel: 'é¢æ¿ / ç½‘ç»œ / RCON',
-    portCheck: 'ç«¯å£å ç”¨æ£€æµ‹',
-    portCheckBtn: 'æ£€æµ‹ç«¯å£',
-    portCheckHint: 'ç‚¹å‡»æ£€æµ‹å¸¸ç”¨ç«¯å£æ˜¯å¦è¢«å ç”¨ã€‚',
-    portCheckOk: 'å¯ç”¨',
-    portCheckBusy: 'å ç”¨',
-    portCheckFail: 'æ£€æµ‹å¤±è´¥',
-    panelEnable: 'å¯ç”¨é¢æ¿',
-    panelPort: 'é¢æ¿ç«¯å£',
+    whitelist: '°×Ãûµ¥',
+    spawnProtection: '³öÉú±£»¤',
+    spawnProtectionPh: 'ÀıÈç 16',
+    performance: 'ĞÔÄÜ²ÎÊı',
+    memory: 'ÄÚ´æ£¨docker.env.MEMORY£©',
+    memoryPh: 'ÀıÈç 2G / 2048M',
+    viewDistance: 'ÊÓ¾à',
+    viewDistancePh: 'ÀıÈç 6',
+    simulationDistance: 'Ä£Äâ¾àÀë',
+    simulationDistancePh: 'ÀıÈç 4',
+    randomTick: 'Ëæ»ú¿ÌËÙ¶È',
+    randomTickPh: 'ÀıÈç 3',
+    maxEntityCramming: '×î´óÊµÌå¼·Ñ¹',
+    maxEntityCrammingPh: 'ÀıÈç 24',
+    panel: 'Ãæ°å / ÍøÂç / RCON',
+    portCheck: '¶Ë¿ÚÕ¼ÓÃ¼ì²â',
+    portCheckBtn: '¼ì²â¶Ë¿Ú',
+    portCheckHint: 'µã»÷¼ì²â³£ÓÃ¶Ë¿ÚÊÇ·ñ±»Õ¼ÓÃ¡£',
+    portCheckOk: '¿ÉÓÃ',
+    portCheckBusy: 'Õ¼ÓÃ',
+    portCheckFail: '¼ì²âÊ§°Ü',
+    panelEnable: 'ÆôÓÃÃæ°å',
+    panelPort: 'Ãæ°å¶Ë¿Ú',
     panelPortPh: '15000',
-    serverPort: 'MC ç«¯å£',
+    serverPort: 'MC ¶Ë¿Ú',
     serverPortPh: '25565',
-    rconEnable: 'å¯ç”¨ RCON',
-    rconPort: 'RCON ç«¯å£',
+    rconEnable: 'ÆôÓÃ RCON',
+    rconPort: 'RCON ¶Ë¿Ú',
     rconPortPh: '25575',
-    map: 'åœ°å›¾ / æ’ä»¶',
-    mapPlugin: 'åœ°å›¾æ’ä»¶',
-    installBluemap: 'å®‰è£… BlueMap',
-    installInvsee: 'å®‰è£… InvSee++',
-    skipInstall: 'ä¸å®‰è£…',
-    mapPort: 'åœ°å›¾ç«¯å£',
-    mapPortPh: '8123',
-    mapInterval: 'æ¸²æŸ“é—´éš”',
+    map: 'µØÍ¼ / ²å¼ş',
+    mapPlugin: 'µØÍ¼²å¼ş',
+    installBluemap: '°²×° BlueMap',
+    installInvsee: '°²×° InvSee++',
+    skipInstall: '²»°²×°',
+    mapPort: 'µØÍ¼¶Ë¿Ú',
+    mapPortPh: '8100',
+    mapInterval: 'äÖÈ¾¼ä¸ô',
     mapIntervalPh: '5',
-    inventoryPlugin: 'èƒŒåŒ…æ’ä»¶',
-    advanced: 'é«˜çº§å‚æ•°ï¼ˆç›®å½•ï¼‰',
-    custom: 'è‡ªå®šä¹‰å‚æ•°',
-    customHint: 'é¢å¤– key=valueï¼ˆæ¯è¡Œä¸€æ¡ï¼‰',
+    inventoryPlugin: '±³°ü²å¼ş',
+    advanced: '¸ß¼¶²ÎÊı£¨Ä¿Â¼£©',
+    custom: '×Ô¶¨Òå²ÎÊı',
+    customHint: '¶îÍâ key=value£¨Ã¿ĞĞÒ»Ìõ£©',
     customPlaceholder: 'max-players=3\nview-distance=4\nkeepInventory=true',
-    customHint2: 'å°†è¦†ç›–ä¸Šæ–¹ä¸å¯¼å…¥é…ç½®ä¸­çš„å€¼ã€‚',
-    btnPlan: 'è¿è¡Œ Planï¼ˆè¯„å®¡ï¼‰',
-    btnApply: 'æ‰§è¡Œ Apply',
-    btnSave: 'ä¿å­˜é…ç½®',
-    applyNotice: 'æ‰§è¡Œå¯èƒ½éœ€è¦å‡ åˆ†é’Ÿåˆ°å‡ ååˆ†é’Ÿï¼Œè¯·è€å¿ƒç­‰å¾…ï¼›è‹¥é•¿æ—¶é—´æ— è¿›åº¦ä¼šæç¤ºæ—¥å¿—ã€‚',
-    output: 'è¾“å‡º',
-    panelHint: 'å¦‚å·²å®‰è£…ä¸»é¢æ¿ï¼š',
-    panelLink: 'æ‰“å¼€é¢æ¿',
-    default: 'é»˜è®¤',
-    on: 'å¼€å¯',
-    off: 'å…³é—­',
-    catalogLoading: 'æ­£åœ¨åŠ è½½å‚æ•°...',
-    applySuccessTitle: 'éƒ¨ç½²å·²æäº¤',
-    applySuccessBody: 'æœåŠ¡å™¨å·²ç»æ¥æ”¶åˆ°éƒ¨ç½²å‘½ä»¤ã€‚',
-    applyFailTitle: 'æ‰§è¡Œå¤±è´¥',
-    applyFailBody: 'æ‰§è¡Œå¤±è´¥ï¼Œè¯·æŸ¥çœ‹è¾“å‡ºã€‚',
-    applyWarnTitle: 'æ‰§è¡Œè¶…æ—¶æé†’',
-    applyWarnBody: 'æ‰§è¡Œæ—¶é—´è¿‡é•¿ï¼Œè¯·æ£€æŸ¥è¾“å‡ºæˆ– SSH æ—¥å¿—ã€‚',
-    progressRunning: 'æ‰§è¡Œä¸­',
-    progressDone: 'å·²å®Œæˆ',
-    progressFailed: 'å¤±è´¥'
+    customHint2: '½«¸²¸ÇÉÏ·½Óëµ¼ÈëÅäÖÃÖĞµÄÖµ¡£',
+    btnPlan: 'ÔËĞĞ Plan£¨ÆÀÉó£©',
+    btnApply: 'Ö´ĞĞ Apply',
+    btnSave: '±£´æÅäÖÃ',
+    applyNotice: 'Ö´ĞĞ¿ÉÄÜĞèÒª¼¸·ÖÖÓµ½¼¸Ê®·ÖÖÓ£¬ÇëÄÍĞÄµÈ´ı£»Èô³¤Ê±¼äÎŞ½ø¶È»áÌáÊ¾ÈÕÖ¾¡£',
+    output: 'Êä³ö',
+    panelHint: 'ÈçÒÑ°²×°Ö÷Ãæ°å£º',
+    panelLink: '´ò¿ªÃæ°å',
+    default: 'Ä¬ÈÏ',
+    on: '¿ªÆô',
+    off: '¹Ø±Õ',
+    catalogLoading: 'ÕıÔÚ¼ÓÔØ²ÎÊı...',
+    applySuccessTitle: '²¿ÊğÒÑÌá½»',
+    applySuccessBody: '·şÎñÆ÷ÒÑ¾­½ÓÊÕµ½²¿ÊğÃüÁî¡£',
+    applyFailTitle: 'Ö´ĞĞÊ§°Ü',
+    applyFailBody: 'Ö´ĞĞÊ§°Ü£¬Çë²é¿´Êä³ö¡£',
+    applyWarnTitle: 'Ö´ĞĞ³¬Ê±ÌáĞÑ',
+    applyWarnBody: 'Ö´ĞĞÊ±¼ä¹ı³¤£¬Çë¼ì²éÊä³ö»ò SSH ÈÕÖ¾¡£',
+    progressRunning: 'Ö´ĞĞÖĞ',
+    progressDone: 'ÒÑÍê³É',
+    progressFailed: 'Ê§°Ü'
   },
   en: {
     title: 'MCIC Wizard',
@@ -235,7 +235,7 @@ const translations = {
     installInvsee: 'Install InvSee++',
     skipInstall: 'Do not install',
     mapPort: 'Map port',
-    mapPortPh: '8123',
+    mapPortPh: '8100',
     mapInterval: 'Render interval',
     mapIntervalPh: '5',
     inventoryPlugin: 'Inventory plugin',
@@ -344,7 +344,7 @@ function sensitivityAllowed(sensitivity, profile) {
 
 function buildFieldHtml(key, meta, hint, taxonomy) {
   const type = (meta && meta.type) || 'string';
-  const desc = taxonomy ? `${taxonomy.category || ''} ${taxonomy.risk ? 'Â· ' + taxonomy.risk : ''}`.trim() : '';
+  const desc = taxonomy ? `${taxonomy.category || ''} ${taxonomy.risk ? '¡¤ ' + taxonomy.risk : ''}`.trim() : '';
   if (type === 'bool' || type === 'boolean') {
     return `\n      <div class="field">\n        <label>${key}</label>\n        <select data-param="${key}">\n          <option value="true">${t('on')}</option>\n          <option value="false">${t('off')}</option>\n        </select>\n        ${desc ? `<small>${desc}</small>` : ''}\n      </div>`;
   }
@@ -498,7 +498,7 @@ function showModal(title, body) {
   const modal = $('modal');
   $('modal_title').textContent = title;
   $('modal_body').textContent = body;
-  $('modal_close').textContent = langSelect.value === 'zh' ? 'çŸ¥é“äº†' : 'OK';
+  $('modal_close').textContent = langSelect.value === 'zh' ? 'ÖªµÀÁË' : 'OK';
   modal.classList.remove('hidden');
 }
 
@@ -513,7 +513,7 @@ async function saveState() {
 }
 
 async function runAction(path) {
-  output.textContent = langSelect.value === 'zh' ? 'è¿è¡Œä¸­...' : 'Running...';
+  output.textContent = langSelect.value === 'zh' ? 'ÔËĞĞÖĞ...' : 'Running...';
   const payload = gather();
   const otp = payload.otp;
   delete payload.otp;
@@ -544,7 +544,7 @@ async function checkPorts() {
   });
   const resultEl = $('port_check_result');
   if (!ports.length) {
-    resultEl.textContent = langSelect.value === 'zh' ? 'æœªå¡«å†™ç«¯å£' : 'No ports';
+    resultEl.textContent = langSelect.value === 'zh' ? 'Î´ÌîĞ´¶Ë¿Ú' : 'No ports';
     return;
   }
   const res = await fetch(`/api/wizard/ports?ports=${encodeURIComponent(ports.join(','))}`);
@@ -638,7 +638,7 @@ btnApply.onclick = async () => {
   btnApply.disabled = true;
   btnApply.classList.add('btn-disabled');
   const original = btnApply.textContent;
-  btnApply.textContent = langSelect.value === 'zh' ? 'æ‰§è¡Œä¸­...' : 'Applying...';
+  btnApply.textContent = langSelect.value === 'zh' ? 'Ö´ĞĞÖĞ...' : 'Applying...';
   const progress = startProgress();
   if (applyHangTimer) clearTimeout(applyHangTimer);
   applyHangTimer = setTimeout(showHangAlert, 180000);

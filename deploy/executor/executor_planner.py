@@ -224,7 +224,7 @@ def _build_template_context(
     docker_image = params.get("docker.image", DEFAULT_DOCKER_IMAGE)
     docker_tag = params.get("docker.tag", DEFAULT_DOCKER_TAG)
 
-    map_port = ports.get("map_port") or _parse_int(params.get("map.plugin_port")) or 8123
+    map_port = ports.get("map_port") or _parse_int(params.get("map.plugin_port")) or 8100
     render_interval = _parse_int(params.get("map.render_interval")) or 5
     render_interval_seconds = render_interval * 60
     panel_enabled = str(params.get("panel.enable", "false")).lower() in ("true", "1", "yes", "y")
@@ -357,7 +357,7 @@ def build_execution_plan(
     plugin_dir = None
     map_port = _parse_int(params.get("map.plugin_port"))
     if map_plugin or map_port is not None:
-        map_port = map_port or 8123
+        map_port = map_port or 8100
         resolved_ports["map_port"] = _resolve_port(map_port, label="Map", notes=port_notes)
         preconditions.append(Precondition(type="port_free", value=resolved_ports["map_port"], required=True))
 
