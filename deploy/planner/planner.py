@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Set
 
@@ -467,6 +468,53 @@ def _performance_advice(params: dict) -> tuple[List[PlanMessage], List[PlanRecom
     return warnings, recommendations
 
 
+def _focus_perf_messages(
+    warnings: List[PlanMessage],
+    blocks: List[PlanMessage],
+    recommendations: List[PlanRecommendation],
+) -> tuple[List[PlanMessage], List[PlanMessage], List[PlanRecommendation]]:
+    mode = os.environ.get("MC_PANEL_FOCUS_PERF", "1").strip().lower()
+    if mode in ("0", "false", "no", "off"):
+        return warnings, blocks, recommendations
+
+    def is_perf_msg(msg: PlanMessage) -> bool:
+        tax = msg.taxonomy or {}
+        if isinstance(tax, dict):
+            if tax.get("capacity") is not None:
+                return True
+            if tax.get("category") == "performance":
+                return True
+        if msg.code in ("capacity_warn", "capacity_block"):
+            return True
+        return False
+
+    def is_perf_rec(rec: PlanRecommendation) -> bool:
+        tax = rec.taxonomy or {}
+        if isinstance(tax, dict):
+            if tax.get("capacity") is not None:
+                return True
+            if tax.get("category") == "performance":
+                return True
+        if rec.param == "docker.env.MEMORY":
+            return True
+        return False
+
+    perf_warnings = [msg for msg in warnings if is_perf_msg(msg)]
+    perf_blocks = [msg for msg in blocks if is_perf_msg(msg)]
+    perf_recs = [rec for rec in recommendations if is_perf_rec(rec)]
+
+    other_blocks = [msg for msg in blocks if not is_perf_msg(msg)]
+    if other_blocks:
+        perf_blocks.append(
+            PlanMessage(
+                code="non_perf_blocked",
+                message="Non-performance validation failed. Set MC_PANEL_FOCUS_PERF=0 to see details.",
+            )
+        )
+
+    return perf_warnings, perf_blocks, perf_recs
+
+
 def _parse_bool(value) -> bool | None:
     if isinstance(value, bool):
         return value
@@ -901,6 +949,8 @@ def plan(claims) -> ApplyPlan:
         perf_warnings, perf_recs = _performance_advice(claims.params)
         warnings.extend(perf_warnings)
         recommendations.extend(perf_recs)
+
+    warnings, blocks, recommendations = _focus_perf_messages(warnings, blocks, recommendations)
 
     level = "block" if blocks else ("warn" if warnings else "allow")
     summary = PlanSummary(level=level)
