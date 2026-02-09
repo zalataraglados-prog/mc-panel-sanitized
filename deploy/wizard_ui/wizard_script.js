@@ -1,689 +1,689 @@
-const $ = (id) => document.getElementById(id);
-const output = $('output');
-const panelLink = $('panel_link');
-const catalogContainer = $('catalog_sections');
-const langSelect = $('lang');
-const profileSelect = $('profile');
-const versionInput = $('version');
-const btnApply = $('btn_apply');
-const btnPlan = $('btn_plan');
-const btnSave = $('btn_save');
-let catalogBundle = null;
-let progressTimer = null;
-let applyHangTimer = null;
-let catalogDefaults = {};
-
-const PROFILE_DEFAULTS = {
-  beginner: {
-    "max-players": "3",
-    "view-distance": "4",
-    "simulation-distance": "4",
-    "docker.env.MEMORY": "2G",
-    "online-mode": "true",
-    "enable-rcon": "true",
-    "enable-query": "false"
-  },
-  normal: {
-    "max-players": "20",
-    "view-distance": "8",
-    "simulation-distance": "6",
-    "docker.env.MEMORY": "2G",
-    "online-mode": "true",
-    "enable-rcon": "true",
-    "enable-query": "false"
-  },
-  advanced: {
-    "max-players": "20",
-    "view-distance": "10",
-    "simulation-distance": "8",
-    "docker.env.MEMORY": "3G",
-    "online-mode": "true",
-    "enable-rcon": "true",
-    "enable-query": "true"
-  }
-};
-
-const UI_DEFAULTS = {
-  "panel.enable": "false",
-  "panel.port": "15000",
-  "server-port": "25565",
-  "rcon.port": "25575",
-  "map.plugin": "none",
-  "map.plugin_port": "8100",
-  "map.render_interval": "5",
-  "inventory.plugin": "none"
-};
-
-const translations = {
-  zh: {
-    title: 'MCIC Òýµ¼Ïòµ¼',
-    language: 'ÓïÑÔ',
-    basic: '»ù´¡ÉèÖÃ',
-    versionLabel: '°æ±¾£¨Ä¬ÈÏ 1.21.11£©',
-    versionPlaceholder: '1.21.11',
-    profile: 'ÅäÖÃµµÎ»',
-    profileBeginner: 'ÐÂÊÖ',
-    profileNormal: '±ê×¼',
-    profileAdvanced: '¸ß¼¶',
-    otpLabel: 'Ò»´ÎÐÔ¿ÚÁî£¨OTP£©',
-    otpPlaceholder: '',
-    otpHint: 'Plan / Apply / ±£´æÐèÒª OTP¡£',
-    importMode: 'µ¼Èë·½Ê½',
-    importNone: '²»µ¼Èë',
-    importPaste: 'Õ³ÌùÅäÖÃ´®',
-    importFile: '´ÓÎÄ¼þÂ·¾¶µ¼Èë',
-    importValue: 'ÅäÖÃ´® / ÎÄ¼þÂ·¾¶',
-    importPlaceholder: 'Õ³ÌùÅäÖÃ´®£¬»òÌîÐ´ÎÄ¼þÂ·¾¶',
-    importHint: 'ÈôÑ¡Ôñ¡°´ÓÎÄ¼þÂ·¾¶µ¼Èë¡±£¬ÇëÌîÐ´·þÎñÆ÷ÉÏµÄÎÄ¼þÂ·¾¶¡£',
-    beginner: 'ÐÂÊÖÑ¡Ïî',
-    keepInventory: 'ËÀÍö²»µôÂä',
-    allowCheats: 'ÔÊÐí×÷±×£¨ÃüÁî·½¿é£©',
-    core: 'ºËÐÄ²ÎÊý',
-    expectedPlayers: 'Ô¤ÆÚÈËÊý',
-    expectedPlayersPh: 'ÀýÈç 3',
-    maxPlayers: '×î´óÈËÊý',
-    maxPlayersPh: 'ÀýÈç 20',
-    difficulty: 'ÄÑ¶È',
-    difficultyPeaceful: 'ºÍÆ½',
-    difficultyEasy: '¼òµ¥',
-    difficultyNormal: 'ÆÕÍ¨',
-    difficultyHard: 'À§ÄÑ',
-    gamemode: 'ÓÎÏ·Ä£Ê½',
-    gmSurvival: 'Éú´æ',
-    gmCreative: '´´Ôì',
-    gmAdventure: 'Ã°ÏÕ',
-    gmSpectator: 'ÅÔ¹Û',
-    onlineMode: 'ÔÚÏßÄ£Ê½',
-    pvp: 'PVP',
-    whitelist: '°×Ãûµ¥',
-    spawnProtection: '³öÉú±£»¤',
-    spawnProtectionPh: 'ÀýÈç 16',
-    performance: 'ÐÔÄÜ²ÎÊý',
-    memory: 'ÄÚ´æ£¨docker.env.MEMORY£©',
-    memoryPh: 'ÀýÈç 2G / 2048M',
-    viewDistance: 'ÊÓ¾à',
-    viewDistancePh: 'ÀýÈç 6',
-    simulationDistance: 'Ä£Äâ¾àÀë',
-    simulationDistancePh: 'ÀýÈç 4',
-    randomTick: 'Ëæ»ú¿ÌËÙ¶È',
-    randomTickPh: 'ÀýÈç 3',
-    maxEntityCramming: '×î´óÊµÌå¼·Ñ¹',
-    maxEntityCrammingPh: 'ÀýÈç 24',
-    panel: 'Ãæ°å / ÍøÂç / RCON',
-    portCheck: '¶Ë¿ÚÕ¼ÓÃ¼ì²â',
-    portCheckBtn: '¼ì²â¶Ë¿Ú',
-    portCheckHint: 'µã»÷¼ì²â³£ÓÃ¶Ë¿ÚÊÇ·ñ±»Õ¼ÓÃ¡£',
-    portCheckOk: '¿ÉÓÃ',
-    portCheckBusy: 'Õ¼ÓÃ',
-    portCheckFail: '¼ì²âÊ§°Ü',
-    panelEnable: 'ÆôÓÃÃæ°å',
-    panelPort: 'Ãæ°å¶Ë¿Ú',
-    panelPortPh: '15000',
-    serverPort: 'MC ¶Ë¿Ú',
-    serverPortPh: '25565',
-    rconEnable: 'ÆôÓÃ RCON',
-    rconPort: 'RCON ¶Ë¿Ú',
-    rconPortPh: '25575',
-    map: 'µØÍ¼ / ²å¼þ',
-    mapPlugin: 'µØÍ¼²å¼þ',
-    installBluemap: '°²×° BlueMap',
-    installInvsee: '°²×° InvSee++',
-    skipInstall: '²»°²×°',
-    mapPort: 'µØÍ¼¶Ë¿Ú',
-    mapPortPh: '8100',
-    mapInterval: 'äÖÈ¾¼ä¸ô',
-    mapIntervalPh: '5',
-    inventoryPlugin: '±³°ü²å¼þ',
-    advanced: '¸ß¼¶²ÎÊý£¨Ä¿Â¼£©',
-    custom: '×Ô¶¨Òå²ÎÊý',
-    customHint: '¶îÍâ key=value£¨Ã¿ÐÐÒ»Ìõ£©',
-    customPlaceholder: 'max-players=3\nview-distance=4\nkeepInventory=true',
-    customHint2: '½«¸²¸ÇÉÏ·½Óëµ¼ÈëÅäÖÃÖÐµÄÖµ¡£',
-    btnPlan: 'ÔËÐÐ Plan£¨ÆÀÉó£©',
-    btnApply: 'Ö´ÐÐ Apply',
-    btnSave: '±£´æÅäÖÃ',
-    applyNotice: 'Ö´ÐÐ¿ÉÄÜÐèÒª¼¸·ÖÖÓµ½¼¸Ê®·ÖÖÓ£¬ÇëÄÍÐÄµÈ´ý£»Èô³¤Ê±¼äÎÞ½ø¶È»áÌáÊ¾ÈÕÖ¾¡£',
-    output: 'Êä³ö',
-    panelHint: 'ÈçÒÑ°²×°Ö÷Ãæ°å£º',
-    panelLink: '´ò¿ªÃæ°å',
-    default: 'Ä¬ÈÏ',
-    on: '¿ªÆô',
-    off: '¹Ø±Õ',
-    catalogLoading: 'ÕýÔÚ¼ÓÔØ²ÎÊý...',
-    applySuccessTitle: '²¿ÊðÒÑÌá½»',
-    applySuccessBody: '·þÎñÆ÷ÒÑ¾­½ÓÊÕµ½²¿ÊðÃüÁî¡£',
-    applyFailTitle: 'Ö´ÐÐÊ§°Ü',
-    applyFailBody: 'Ö´ÐÐÊ§°Ü£¬Çë²é¿´Êä³ö¡£',
-    applyWarnTitle: 'Ö´ÐÐ³¬Ê±ÌáÐÑ',
-    applyWarnBody: 'Ö´ÐÐÊ±¼ä¹ý³¤£¬Çë¼ì²éÊä³ö»ò SSH ÈÕÖ¾¡£',
-    progressRunning: 'Ö´ÐÐÖÐ',
-    progressDone: 'ÒÑÍê³É',
-    progressFailed: 'Ê§°Ü'
-  },
-  en: {
-    title: 'MCIC Wizard',
-    language: 'Language',
-    basic: 'Basics',
-    versionLabel: 'Version (default 1.21.11)',
-    versionPlaceholder: '1.21.11',
-    profile: 'Profile',
-    profileBeginner: 'Beginner',
-    profileNormal: 'Standard',
-    profileAdvanced: 'Advanced',
-    otpLabel: 'One-time token (OTP)',
-    otpPlaceholder: '',
-    otpHint: 'OTP is required for Plan / Apply / Save.',
-    importMode: 'Import',
-    importNone: 'None',
-    importPaste: 'Paste claims string',
-    importFile: 'From file path',
-    importValue: 'Claims / Path',
-    importPlaceholder: 'Paste claims or input file path',
-    importHint: 'For file import, use a server-side file path.',
-    beginner: 'Beginner',
-    keepInventory: 'Keep inventory on death',
-    allowCheats: 'Allow cheats (command blocks)',
-    core: 'Core',
-    expectedPlayers: 'Expected players',
-    expectedPlayersPh: 'e.g. 3',
-    maxPlayers: 'Max players',
-    maxPlayersPh: 'e.g. 20',
-    difficulty: 'Difficulty',
-    difficultyPeaceful: 'Peaceful',
-    difficultyEasy: 'Easy',
-    difficultyNormal: 'Normal',
-    difficultyHard: 'Hard',
-    gamemode: 'Game mode',
-    gmSurvival: 'Survival',
-    gmCreative: 'Creative',
-    gmAdventure: 'Adventure',
-    gmSpectator: 'Spectator',
-    onlineMode: 'Online mode',
-    pvp: 'PVP',
-    whitelist: 'Whitelist',
-    spawnProtection: 'Spawn protection',
-    spawnProtectionPh: 'e.g. 16',
-    performance: 'Performance',
-    memory: 'Memory (docker.env.MEMORY)',
-    memoryPh: 'e.g. 2G / 2048M',
-    viewDistance: 'View distance',
-    viewDistancePh: 'e.g. 6',
-    simulationDistance: 'Simulation distance',
-    simulationDistancePh: 'e.g. 4',
-    randomTick: 'Random tick speed',
-    randomTickPh: 'e.g. 3',
-    maxEntityCramming: 'Max entity cramming',
-    maxEntityCrammingPh: 'e.g. 24',
-    panel: 'Panel / Network / RCON',
-    portCheck: 'Port availability',
-    portCheckBtn: 'Check ports',
-    portCheckHint: 'Check common ports for conflicts.',
-    portCheckOk: 'available',
-    portCheckBusy: 'in use',
-    portCheckFail: 'check failed',
-    panelEnable: 'Enable panel',
-    panelPort: 'Panel port',
-    panelPortPh: '15000',
-    serverPort: 'MC port',
-    serverPortPh: '25565',
-    rconEnable: 'Enable RCON',
-    rconPort: 'RCON port',
-    rconPortPh: '25575',
-    map: 'Map / Plugins',
-    mapPlugin: 'Map plugin',
-    installBluemap: 'Install BlueMap',
-    installInvsee: 'Install InvSee++',
-    skipInstall: 'Do not install',
-    mapPort: 'Map port',
-    mapPortPh: '8100',
-    mapInterval: 'Render interval',
-    mapIntervalPh: '5',
-    inventoryPlugin: 'Inventory plugin',
-    advanced: 'Advanced (catalog)',
-    custom: 'Custom params',
-    customHint: 'Extra key=value lines (one per line)',
-    customPlaceholder: 'max-players=3\nview-distance=4\nkeepInventory=true',
-    customHint2: 'These override values above and imported claims.',
-    btnPlan: 'Run Plan (review)',
-    btnApply: 'Run Apply',
-    btnSave: 'Save state',
-    output: 'Output',
-    applyNotice: 'Apply may take minutes to tens of minutes. Please wait.',
-    panelHint: 'If panel is installed:',
-    panelLink: 'Open panel',
-    default: 'Default',
-    on: 'On',
-    off: 'Off',
-    catalogLoading: 'Loading parameters...',
-    applySuccessTitle: 'Apply submitted',
-    applySuccessBody: 'Server has received the deployment command.',
-    applyFailTitle: 'Apply failed',
-    applyFailBody: 'Apply failed. Check output for details.',
-    applyWarnTitle: 'Apply warning',
-    applyWarnBody: 'Apply is taking longer than expected. Check output/logs via SSH.',
-    progressRunning: 'Running',
-    progressDone: 'Completed',
-    progressFailed: 'Failed'
-  }
-};
-
-function t(key) {
-  const lang = langSelect.value || 'zh';
-  return (translations[lang] && translations[lang][key]) || translations.zh[key] || key;
-}
-
-function applyLang(lang) {
-  document.documentElement.lang = lang;
-  document.title = t('title');
-  document.querySelectorAll('[data-i18n]').forEach((el) => {
-    const key = el.getAttribute('data-i18n');
-    if (t(key)) el.textContent = t(key);
-  });
-  document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
-    const key = el.getAttribute('data-i18n-placeholder');
-    if (t(key)) el.setAttribute('placeholder', t(key));
-  });
-}
-
-async function getNonce() {
-  const res = await fetch('/api/wizard/nonce');
-  if (!res.ok) throw new Error('nonce failed');
-  return await res.json();
-}
-
-function toHex(buffer) {
-  return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-async function signOtp(otp, nonce, host) {
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    enc.encode(otp),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  const data = enc.encode(`${nonce}:${host}`);
-  const sig = await crypto.subtle.sign('HMAC', key, data);
-  return toHex(sig);
-}
-
-function applyProfileDefaults(profile, force = false) {
-  const defaults = {
-    ...catalogDefaults,
-    ...UI_DEFAULTS,
-    ...(PROFILE_DEFAULTS[profile] || {})
-  };
-  document.querySelectorAll('[data-param]').forEach((el) => {
-    const key = el.getAttribute('data-param');
-    if (!key || defaults[key] === undefined) return;
-    const val = String(defaults[key]);
-    el.dataset.default = val;
-    if (!force && (el.value || '').trim() !== '') return;
-    el.value = val;
-  });
-}
-
-function normalizeSensitivity(sensitivity) {
-  if (!sensitivity) return '';
-  const s = String(sensitivity).toLowerCase();
-  if (['novice', 'beginner', 'basic', 'low'].includes(s)) return 'novice';
-  if (['normal', 'standard', 'intermediate', 'medium'].includes(s)) return 'normal';
-  if (['advanced', 'expert', 'pro', 'high'].includes(s)) return 'expert';
-  return s;
-}
-
-function sensitivityAllowed(sensitivity, profile) {
-  const s = normalizeSensitivity(sensitivity);
-  if (!s) return true;
-  if (profile === 'beginner') return s === 'novice';
-  if (profile === 'normal') return s !== 'expert';
-  return true;
-}
-
-function buildFieldHtml(key, meta, hint, taxonomy) {
-  const type = (meta && meta.type) || 'string';
-  const desc = taxonomy ? `${taxonomy.category || ''} ${taxonomy.risk ? '¡¤ ' + taxonomy.risk : ''}`.trim() : '';
-  if (type === 'bool' || type === 'boolean') {
-    return `\n      <div class="field">\n        <label>${key}</label>\n        <select data-param="${key}">\n          <option value="true">${t('on')}</option>\n          <option value="false">${t('off')}</option>\n        </select>\n        ${desc ? `<small>${desc}</small>` : ''}\n      </div>`;
-  }
-  const ph = hint !== undefined && hint !== null ? String(hint) : '';
-  return `\n    <div class="field">\n      <label>${key}</label>\n      <input data-param="${key}" placeholder="${ph}" />\n      ${desc ? `<small>${desc}</small>` : ''}\n    </div>`;
-}
-
-function renderCatalog() {
-  if (!catalogContainer) return;
-  catalogContainer.innerHTML = '';
-  if (!catalogBundle || !catalogBundle.catalog) {
-    catalogContainer.innerHTML = `<div class="hint">${t('catalogLoading')}</div>`;
-    return;
-  }
-  const catalog = catalogBundle.catalog || {};
-  const taxonomy = catalogBundle.taxonomy || {};
-  const usability = catalogBundle.usability || {};
-  const profile = profileSelect.value || 'normal';
-  const baseKeys = new Set();
-  document.querySelectorAll('[data-param]').forEach((el) => {
-    if (el.closest('#catalog_sections')) return;
-    baseKeys.add(el.getAttribute('data-param'));
-  });
-
-  const sectionOrder = ['server_properties', 'gamerule'];
-  sectionOrder.forEach((sectionKey) => {
-    const section = catalog[sectionKey];
-    if (!section || !section.entries) return;
-    const entries = section.entries;
-    const rows = [];
-    Object.keys(entries).forEach((key) => {
-      if (baseKeys.has(key)) return;
-      const entryMeta = entries[key] || {};
-      const use = (((usability[sectionKey] || {}).entries || {})[key] || {}).usability || {};
-      if (use.exposed === false) return;
-      const tax = ((taxonomy[sectionKey] || {}).entries || {})[key] || {};
-      if (!sensitivityAllowed(tax.sensitivity, profile)) return;
-      const hint = (use.default_hint !== undefined ? use.default_hint : entryMeta.default);
-      rows.push(buildFieldHtml(key, entryMeta, hint, tax));
-    });
-    if (!rows.length) return;
-    const title = sectionKey;
-    const html = `<details open><summary>${title}</summary><div class="grid">${rows.join('')}</div></details>`;
-    catalogContainer.innerHTML += html;
-  });
-  applyProfileDefaults(profileSelect.value || 'normal', false);
-}
-
-async function loadCatalog(force = false) {
-  const version = (versionInput.value || '1.21.11').trim();
-  if (!force && catalogBundle && catalogBundle.version === version) {
-    renderCatalog();
-    return;
-  }
-  catalogContainer.innerHTML = `<div class="hint">${t('catalogLoading')}</div>`;
-  try {
-    const res = await fetch(`/api/wizard/catalog?version=${encodeURIComponent(version)}`);
-    if (res.ok) {
-      catalogBundle = await res.json();
-      catalogDefaults = {};
-      Object.values(catalogBundle.catalog || {}).forEach((section) => {
-        const entries = (section && section.entries) || {};
-        Object.entries(entries).forEach(([key, meta]) => {
-          if (!meta || meta.default === undefined || meta.default === null) return;
-          const type = (meta && meta.type) || '';
-          let value = meta.default;
-          if (type === 'bool' || type === 'boolean') {
-            if (typeof value === 'string') {
-              const normalized = value.trim().toLowerCase();
-              if (['true', '1', 'yes', 'y', 'on'].includes(normalized)) {
-                value = 'true';
-              } else if (['false', '0', 'no', 'n', 'off'].includes(normalized)) {
-                value = 'false';
-              } else {
-                value = normalized;
-              }
-            } else {
-              value = value ? 'true' : 'false';
-            }
-          }
-          catalogDefaults[key] = String(value);
-        });
-      });
-    } else {
-      catalogBundle = null;
-      catalogDefaults = {};
-    }
-  } catch (_) {
-    catalogBundle = null;
-    catalogDefaults = {};
-  }
-  renderCatalog();
-}
-
-async function loadState() {
-  const res = await fetch('/api/wizard/state');
-  if (!res.ok) return;
-  const data = await res.json();
-  versionInput.value = data.version || '1.21.11';
-  profileSelect.value = data.profile || 'normal';
-  $('import_mode').value = data.import_mode || 'none';
-  $('import_value').value = data.import_value || '';
-  $('params_extra').value = data.params_text || '';
-  if (data.panel_url) panelLink.href = data.panel_url;
-  if (data.lang) {
-    langSelect.value = data.lang;
-  }
-  applyLang(langSelect.value || 'zh');
-  await loadCatalog(true);
-  applyProfileDefaults(profileSelect.value, false);
-}
-
-function gather() {
-  const params = {};
-  document.querySelectorAll('[data-param]').forEach((el) => {
-    const key = el.getAttribute('data-param');
-    const val = (el.value || '').trim();
-    if (val === '') return;
-    const def = (el.dataset.default || '').trim();
-    if (def && def === val) return;
-    params[key] = val;
-  });
-  return {
-    version: (versionInput.value || '1.21.11').trim(),
-    profile: profileSelect.value,
-    otp: $('otp').value.trim(),
-    import_mode: $('import_mode').value,
-    import_value: $('import_value').value.trim(),
-    params: params,
-    params_text: $('params_extra').value,
-    lang: langSelect.value
-  };
-}
-
-async function buildHeaders(otp) {
-  const headers = { 'Content-Type': 'application/json' };
-  const cleanOtp = (otp || '').trim();
-  if (!cleanOtp) return headers;
-  try {
-    const meta = await getNonce();
-    const sig = await signOtp(cleanOtp, meta.nonce, meta.host || location.host);
-    headers['X-MCIC-NONCE'] = meta.nonce;
-    headers['X-MCIC-OTP-SIG'] = sig;
-  } catch (_) {
-    headers['X-MCIC-OTP'] = cleanOtp;
-  }
-  return headers;
-}
-
-function showModal(title, body) {
-  const modal = $('modal');
-  $('modal_title').textContent = title;
-  $('modal_body').textContent = body;
-  $('modal_close').textContent = langSelect.value === 'zh' ? 'ÖªµÀÁË' : 'OK';
-  modal.classList.remove('hidden');
-}
-
-$('modal_close').onclick = () => $('modal').classList.add('hidden');
-
-async function saveState() {
-  const payload = gather();
-  const otp = payload.otp;
-  delete payload.otp;
-  const headers = await buildHeaders(otp);
-  await fetch('/api/wizard/state', { method: 'POST', headers, body: JSON.stringify(payload) });
-}
-
-async function runAction(path) {
-  output.textContent = langSelect.value === 'zh' ? 'ÔËÐÐÖÐ...' : 'Running...';
-  const payload = gather();
-  const otp = payload.otp;
-  delete payload.otp;
-  const headers = await buildHeaders(otp);
-  const res = await fetch(path, { method: 'POST', headers, body: JSON.stringify(payload) });
-  const txt = await res.text();
-  let data = null;
-  try {
-    data = JSON.parse(txt);
-  } catch (_) {
-    data = { error: txt };
-  }
-  output.textContent = data.output || data.error || txt;
-  return { res, data };
-}
-
-async function checkPorts() {
-  const pick = (el) => {
-    const v = (el.value || '').trim();
-    if (v) return v;
-    const ph = (el.getAttribute('placeholder') || '').trim();
-    return ph || '';
-  };
-  const ports = [];
-  document.querySelectorAll('input[data-param="panel.port"],input[data-param="server-port"],input[data-param="rcon.port"],input[data-param="map.plugin_port"]').forEach((el) => {
-    const v = pick(el);
-    if (v) ports.push(v);
-  });
-  const resultEl = $('port_check_result');
-  if (!ports.length) {
-    resultEl.textContent = langSelect.value === 'zh' ? 'Î´ÌîÐ´¶Ë¿Ú' : 'No ports';
-    return;
-  }
-  const res = await fetch(`/api/wizard/ports?ports=${encodeURIComponent(ports.join(','))}`);
-  if (!res.ok) {
-    resultEl.textContent = t('portCheckFail');
-    return;
-  }
-  const data = await res.json();
-  const free = [];
-  const busy = [];
-  Object.entries(data.ports || {}).forEach(([p, info]) => {
-    if (info && info.free) free.push(p); else busy.push(p);
-  });
-  resultEl.textContent = `${t('portCheckOk')} ${free.length ? free.join(', ') : '-'} | ${t('portCheckBusy')} ${busy.length ? busy.join(', ') : '-'}`;
-}
-
-async function fetchProgress() {
-  try {
-    const res = await fetch('/api/wizard/progress');
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (_) {
-    return null;
-  }
-}
-
-async function waitForProgressDone(timeoutMs = 60000) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    const data = await fetchProgress();
-    if (data && (data.status === 'done' || data.status === 'failed')) {
-      return data.status;
-    }
-    await new Promise((r) => setTimeout(r, 800));
-  }
-  return null;
-}
-
-
-function startProgress() {
-  const wrap = $('apply_progress');
-  const fill = $('apply_progress_fill');
-  const pct = $('apply_progress_pct');
-  const label = $('apply_progress_label');
-  wrap.classList.remove('hidden');
-  label.textContent = t('progressRunning');
-  fill.style.width = '1%';
-  pct.textContent = '1%';
-
-  const tick = async () => {
-    const data = await fetchProgress();
-    if (!data) return;
-    const percent = typeof data.percent === 'number' ? data.percent : null;
-    if (percent !== null) {
-      fill.style.width = `${percent}%`;
-      pct.textContent = `${percent}%`;
-    }
-    const detail = data.detail || data.message;
-    if (detail) label.textContent = detail;
-  };
-  tick();
-  progressTimer = setInterval(tick, 1200);
-  return {
-    stop: (ok) => {
-      clearInterval(progressTimer);
-      const final = ok ? 100 : 95;
-      fill.style.width = `${final}%`;
-      pct.textContent = `${final}%`;
-      label.textContent = ok ? t('progressDone') : t('progressFailed');
-    }
-  };
-}
-
-async function showHangAlert() {
-  let body = t('applyWarnBody');
-  try {
-    const res = await fetch('/api/wizard/logs?tail=80');
-    if (res.ok) {
-      const data = await res.json();
-      const lines = data.lines || [];
-      if (lines.length) body = body + '\n\n' + lines.join('\n');
-    }
-  } catch (_) {
-  }
-  showModal(t('applyWarnTitle'), body);
-}
-
-$('port_check_btn').onclick = async () => { await checkPorts(); };
-btnPlan.onclick = async () => { await runAction('/api/wizard/plan'); };
-btnApply.onclick = async () => {
-  btnApply.disabled = true;
-  btnApply.classList.add('btn-disabled');
-  const original = btnApply.textContent;
-  btnApply.textContent = langSelect.value === 'zh' ? 'Ö´ÐÐÖÐ...' : 'Applying...';
-  const progress = startProgress();
-  if (applyHangTimer) clearTimeout(applyHangTimer);
-  applyHangTimer = setTimeout(showHangAlert, 180000);
-  let allowReenable = false;
-  try {
-    const result = await runAction('/api/wizard/apply');
-    const data = result ? result.data : null;
-    const ok = data && (data.ok === true || data.ok === 'true');
-    if (applyHangTimer) {
-      clearTimeout(applyHangTimer);
-      applyHangTimer = null;
-    }
-    progress.stop(ok);
-    if (ok) {
-      showModal(t('applySuccessTitle'), t('applySuccessBody'));
-      const status = await waitForProgressDone(60000);
-      if (status === 'done') {
-        allowReenable = true;
-      }
-    } else {
-      showModal(t('applyFailTitle'), t('applyFailBody'));
-      allowReenable = true;
-    }
-  } catch (_) {
-    if (applyHangTimer) {
-      clearTimeout(applyHangTimer);
-      applyHangTimer = null;
-    }
-    progress.stop(false);
-    showModal(t('applyFailTitle'), t('applyFailBody'));
-    allowReenable = true;
-  } finally {
-    if (allowReenable) {
-      btnApply.disabled = false;
-      btnApply.classList.remove('btn-disabled');
-      btnApply.textContent = original;
-    }
-  }
-};
-btnSave.onclick = async () => { await saveState(); output.textContent = 'OK'; };
-
-langSelect.onchange = () => { applyLang(langSelect.value); renderCatalog(); };
-profileSelect.onchange = () => { renderCatalog(); applyProfileDefaults(profileSelect.value, true); };
-versionInput.onchange = async () => { await loadCatalog(true); };
-
-applyLang('zh');
-loadState();
-
+const $ = (id) => document.getElementById(id);
+const output = $('output');
+const panelLink = $('panel_link');
+const catalogContainer = $('catalog_sections');
+const langSelect = $('lang');
+const profileSelect = $('profile');
+const versionInput = $('version');
+const btnApply = $('btn_apply');
+const btnPlan = $('btn_plan');
+const btnSave = $('btn_save');
+let catalogBundle = null;
+let progressTimer = null;
+let applyHangTimer = null;
+let catalogDefaults = {};
+
+const PROFILE_DEFAULTS = {
+  beginner: {
+    "max-players": "3",
+    "view-distance": "4",
+    "simulation-distance": "4",
+    "docker.env.MEMORY": "2G",
+    "online-mode": "true",
+    "enable-rcon": "true",
+    "enable-query": "false"
+  },
+  normal: {
+    "max-players": "20",
+    "view-distance": "8",
+    "simulation-distance": "6",
+    "docker.env.MEMORY": "2G",
+    "online-mode": "true",
+    "enable-rcon": "true",
+    "enable-query": "false"
+  },
+  advanced: {
+    "max-players": "20",
+    "view-distance": "10",
+    "simulation-distance": "8",
+    "docker.env.MEMORY": "3G",
+    "online-mode": "true",
+    "enable-rcon": "true",
+    "enable-query": "true"
+  }
+};
+
+const UI_DEFAULTS = {
+  "panel.enable": "false",
+  "panel.port": "15000",
+  "server-port": "25565",
+  "rcon.port": "25575",
+  "map.plugin": "none",
+  "map.plugin_port": "8100",
+  "map.render_interval": "5",
+  "inventory.plugin": "none"
+};
+
+const translations = {
+  zh: {
+    title: 'MCIC å¼•å¯¼å‘å¯¼',
+    language: 'è¯­è¨€',
+    basic: 'åŸºç¡€è®¾ç½®',
+    versionLabel: 'ç‰ˆæœ¬ï¼ˆé»˜è®¤ 1.21.11ï¼‰',
+    versionPlaceholder: '1.21.11',
+    profile: 'é…ç½®æ¡£ä½',
+    profileBeginner: 'æ–°æ‰‹',
+    profileNormal: 'æ ‡å‡†',
+    profileAdvanced: 'é«˜çº§',
+    otpLabel: 'ä¸€æ¬¡æ€§å£ä»¤ï¼ˆOTPï¼‰',
+    otpPlaceholder: '',
+    otpHint: 'Plan / Apply / ä¿å­˜éœ€è¦ OTPã€‚',
+    importMode: 'å¯¼å…¥æ–¹å¼',
+    importNone: 'ä¸å¯¼å…¥',
+    importPaste: 'ç²˜è´´é…ç½®ä¸²',
+    importFile: 'ä»Žæ–‡ä»¶è·¯å¾„å¯¼å…¥',
+    importValue: 'é…ç½®ä¸² / æ–‡ä»¶è·¯å¾„',
+    importPlaceholder: 'ç²˜è´´é…ç½®ä¸²ï¼Œæˆ–å¡«å†™æ–‡ä»¶è·¯å¾„',
+    importHint: 'è‹¥é€‰æ‹©â€œä»Žæ–‡ä»¶è·¯å¾„å¯¼å…¥â€ï¼Œè¯·å¡«å†™æœåŠ¡å™¨ä¸Šçš„æ–‡ä»¶è·¯å¾„ã€‚',
+    beginner: 'æ–°æ‰‹é€‰é¡¹',
+    keepInventory: 'æ­»äº¡ä¸æŽ‰è½',
+    allowCheats: 'å…è®¸ä½œå¼Šï¼ˆå‘½ä»¤æ–¹å—ï¼‰',
+    core: 'æ ¸å¿ƒå‚æ•°',
+    expectedPlayers: 'é¢„æœŸäººæ•°',
+    expectedPlayersPh: 'ä¾‹å¦‚ 3',
+    maxPlayers: 'æœ€å¤§äººæ•°',
+    maxPlayersPh: 'ä¾‹å¦‚ 20',
+    difficulty: 'éš¾åº¦',
+    difficultyPeaceful: 'å’Œå¹³',
+    difficultyEasy: 'ç®€å•',
+    difficultyNormal: 'æ™®é€š',
+    difficultyHard: 'å›°éš¾',
+    gamemode: 'æ¸¸æˆæ¨¡å¼',
+    gmSurvival: 'ç”Ÿå­˜',
+    gmCreative: 'åˆ›é€ ',
+    gmAdventure: 'å†’é™©',
+    gmSpectator: 'æ—è§‚',
+    onlineMode: 'åœ¨çº¿æ¨¡å¼',
+    pvp: 'PVP',
+    whitelist: 'ç™½åå•',
+    spawnProtection: 'å‡ºç”Ÿä¿æŠ¤',
+    spawnProtectionPh: 'ä¾‹å¦‚ 16',
+    performance: 'æ€§èƒ½å‚æ•°',
+    memory: 'å†…å­˜ï¼ˆdocker.env.MEMORYï¼‰',
+    memoryPh: 'ä¾‹å¦‚ 2G / 2048M',
+    viewDistance: 'è§†è·',
+    viewDistancePh: 'ä¾‹å¦‚ 6',
+    simulationDistance: 'æ¨¡æ‹Ÿè·ç¦»',
+    simulationDistancePh: 'ä¾‹å¦‚ 4',
+    randomTick: 'éšæœºåˆ»é€Ÿåº¦',
+    randomTickPh: 'ä¾‹å¦‚ 3',
+    maxEntityCramming: 'æœ€å¤§å®žä½“æŒ¤åŽ‹',
+    maxEntityCrammingPh: 'ä¾‹å¦‚ 24',
+    panel: 'é¢æ¿ / ç½‘ç»œ / RCON',
+    portCheck: 'ç«¯å£å ç”¨æ£€æµ‹',
+    portCheckBtn: 'æ£€æµ‹ç«¯å£',
+    portCheckHint: 'ç‚¹å‡»æ£€æµ‹å¸¸ç”¨ç«¯å£æ˜¯å¦è¢«å ç”¨ã€‚',
+    portCheckOk: 'å¯ç”¨',
+    portCheckBusy: 'å ç”¨',
+    portCheckFail: 'æ£€æµ‹å¤±è´¥',
+    panelEnable: 'å¯ç”¨é¢æ¿',
+    panelPort: 'é¢æ¿ç«¯å£',
+    panelPortPh: '15000',
+    serverPort: 'MC ç«¯å£',
+    serverPortPh: '25565',
+    rconEnable: 'å¯ç”¨ RCON',
+    rconPort: 'RCON ç«¯å£',
+    rconPortPh: '25575',
+    map: 'åœ°å›¾ / æ’ä»¶',
+    mapPlugin: 'åœ°å›¾æ’ä»¶',
+    installBluemap: 'å®‰è£… BlueMap',
+    installInvsee: 'å®‰è£… InvSee++',
+    skipInstall: 'ä¸å®‰è£…',
+    mapPort: 'åœ°å›¾ç«¯å£',
+    mapPortPh: '8100',
+    mapInterval: 'æ¸²æŸ“é—´éš”',
+    mapIntervalPh: '5',
+    inventoryPlugin: 'èƒŒåŒ…æ’ä»¶',
+    advanced: 'é«˜çº§å‚æ•°ï¼ˆç›®å½•ï¼‰',
+    custom: 'è‡ªå®šä¹‰å‚æ•°',
+    customHint: 'é¢å¤– key=valueï¼ˆæ¯è¡Œä¸€æ¡ï¼‰',
+    customPlaceholder: 'max-players=3\nview-distance=4\nkeepInventory=true',
+    customHint2: 'å°†è¦†ç›–ä¸Šæ–¹ä¸Žå¯¼å…¥é…ç½®ä¸­çš„å€¼ã€‚',
+    btnPlan: 'è¿è¡Œ Planï¼ˆè¯„å®¡ï¼‰',
+    btnApply: 'æ‰§è¡Œ Apply',
+    btnSave: 'ä¿å­˜é…ç½®',
+    applyNotice: 'æ‰§è¡Œå¯èƒ½éœ€è¦å‡ åˆ†é’Ÿåˆ°å‡ ååˆ†é’Ÿï¼Œè¯·è€å¿ƒç­‰å¾…ï¼›è‹¥é•¿æ—¶é—´æ— è¿›åº¦ä¼šæç¤ºæ—¥å¿—ã€‚',
+    output: 'è¾“å‡º',
+    panelHint: 'å¦‚å·²å®‰è£…ä¸»é¢æ¿ï¼š',
+    panelLink: 'æ‰“å¼€é¢æ¿',
+    default: 'é»˜è®¤',
+    on: 'å¼€å¯',
+    off: 'å…³é—­',
+    catalogLoading: 'æ­£åœ¨åŠ è½½å‚æ•°...',
+    applySuccessTitle: 'éƒ¨ç½²å·²æäº¤',
+    applySuccessBody: 'æœåŠ¡å™¨å·²ç»æŽ¥æ”¶åˆ°éƒ¨ç½²å‘½ä»¤ã€‚',
+    applyFailTitle: 'æ‰§è¡Œå¤±è´¥',
+    applyFailBody: 'æ‰§è¡Œå¤±è´¥ï¼Œè¯·æŸ¥çœ‹è¾“å‡ºã€‚',
+    applyWarnTitle: 'æ‰§è¡Œè¶…æ—¶æé†’',
+    applyWarnBody: 'æ‰§è¡Œæ—¶é—´è¿‡é•¿ï¼Œè¯·æ£€æŸ¥è¾“å‡ºæˆ– SSH æ—¥å¿—ã€‚',
+    progressRunning: 'æ‰§è¡Œä¸­',
+    progressDone: 'å·²å®Œæˆ',
+    progressFailed: 'å¤±è´¥'
+  },
+  en: {
+    title: 'MCIC Wizard',
+    language: 'Language',
+    basic: 'Basics',
+    versionLabel: 'Version (default 1.21.11)',
+    versionPlaceholder: '1.21.11',
+    profile: 'Profile',
+    profileBeginner: 'Beginner',
+    profileNormal: 'Standard',
+    profileAdvanced: 'Advanced',
+    otpLabel: 'One-time token (OTP)',
+    otpPlaceholder: '',
+    otpHint: 'OTP is required for Plan / Apply / Save.',
+    importMode: 'Import',
+    importNone: 'None',
+    importPaste: 'Paste claims string',
+    importFile: 'From file path',
+    importValue: 'Claims / Path',
+    importPlaceholder: 'Paste claims or input file path',
+    importHint: 'For file import, use a server-side file path.',
+    beginner: 'Beginner',
+    keepInventory: 'Keep inventory on death',
+    allowCheats: 'Allow cheats (command blocks)',
+    core: 'Core',
+    expectedPlayers: 'Expected players',
+    expectedPlayersPh: 'e.g. 3',
+    maxPlayers: 'Max players',
+    maxPlayersPh: 'e.g. 20',
+    difficulty: 'Difficulty',
+    difficultyPeaceful: 'Peaceful',
+    difficultyEasy: 'Easy',
+    difficultyNormal: 'Normal',
+    difficultyHard: 'Hard',
+    gamemode: 'Game mode',
+    gmSurvival: 'Survival',
+    gmCreative: 'Creative',
+    gmAdventure: 'Adventure',
+    gmSpectator: 'Spectator',
+    onlineMode: 'Online mode',
+    pvp: 'PVP',
+    whitelist: 'Whitelist',
+    spawnProtection: 'Spawn protection',
+    spawnProtectionPh: 'e.g. 16',
+    performance: 'Performance',
+    memory: 'Memory (docker.env.MEMORY)',
+    memoryPh: 'e.g. 2G / 2048M',
+    viewDistance: 'View distance',
+    viewDistancePh: 'e.g. 6',
+    simulationDistance: 'Simulation distance',
+    simulationDistancePh: 'e.g. 4',
+    randomTick: 'Random tick speed',
+    randomTickPh: 'e.g. 3',
+    maxEntityCramming: 'Max entity cramming',
+    maxEntityCrammingPh: 'e.g. 24',
+    panel: 'Panel / Network / RCON',
+    portCheck: 'Port availability',
+    portCheckBtn: 'Check ports',
+    portCheckHint: 'Check common ports for conflicts.',
+    portCheckOk: 'available',
+    portCheckBusy: 'in use',
+    portCheckFail: 'check failed',
+    panelEnable: 'Enable panel',
+    panelPort: 'Panel port',
+    panelPortPh: '15000',
+    serverPort: 'MC port',
+    serverPortPh: '25565',
+    rconEnable: 'Enable RCON',
+    rconPort: 'RCON port',
+    rconPortPh: '25575',
+    map: 'Map / Plugins',
+    mapPlugin: 'Map plugin',
+    installBluemap: 'Install BlueMap',
+    installInvsee: 'Install InvSee++',
+    skipInstall: 'Do not install',
+    mapPort: 'Map port',
+    mapPortPh: '8100',
+    mapInterval: 'Render interval',
+    mapIntervalPh: '5',
+    inventoryPlugin: 'Inventory plugin',
+    advanced: 'Advanced (catalog)',
+    custom: 'Custom params',
+    customHint: 'Extra key=value lines (one per line)',
+    customPlaceholder: 'max-players=3\nview-distance=4\nkeepInventory=true',
+    customHint2: 'These override values above and imported claims.',
+    btnPlan: 'Run Plan (review)',
+    btnApply: 'Run Apply',
+    btnSave: 'Save state',
+    output: 'Output',
+    applyNotice: 'Apply may take minutes to tens of minutes. Please wait.',
+    panelHint: 'If panel is installed:',
+    panelLink: 'Open panel',
+    default: 'Default',
+    on: 'On',
+    off: 'Off',
+    catalogLoading: 'Loading parameters...',
+    applySuccessTitle: 'Apply submitted',
+    applySuccessBody: 'Server has received the deployment command.',
+    applyFailTitle: 'Apply failed',
+    applyFailBody: 'Apply failed. Check output for details.',
+    applyWarnTitle: 'Apply warning',
+    applyWarnBody: 'Apply is taking longer than expected. Check output/logs via SSH.',
+    progressRunning: 'Running',
+    progressDone: 'Completed',
+    progressFailed: 'Failed'
+  }
+};
+
+function t(key) {
+  const lang = langSelect.value || 'zh';
+  return (translations[lang] && translations[lang][key]) || translations.zh[key] || key;
+}
+
+function applyLang(lang) {
+  document.documentElement.lang = lang;
+  document.title = t('title');
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const key = el.getAttribute('data-i18n');
+    if (t(key)) el.textContent = t(key);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (t(key)) el.setAttribute('placeholder', t(key));
+  });
+}
+
+async function getNonce() {
+  const res = await fetch('/api/wizard/nonce');
+  if (!res.ok) throw new Error('nonce failed');
+  return await res.json();
+}
+
+function toHex(buffer) {
+  return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function signOtp(otp, nonce, host) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(otp),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const data = enc.encode(`${nonce}:${host}`);
+  const sig = await crypto.subtle.sign('HMAC', key, data);
+  return toHex(sig);
+}
+
+function applyProfileDefaults(profile, force = false) {
+  const defaults = {
+    ...catalogDefaults,
+    ...UI_DEFAULTS,
+    ...(PROFILE_DEFAULTS[profile] || {})
+  };
+  document.querySelectorAll('[data-param]').forEach((el) => {
+    const key = el.getAttribute('data-param');
+    if (!key || defaults[key] === undefined) return;
+    const val = String(defaults[key]);
+    el.dataset.default = val;
+    if (!force && (el.value || '').trim() !== '') return;
+    el.value = val;
+  });
+}
+
+function normalizeSensitivity(sensitivity) {
+  if (!sensitivity) return '';
+  const s = String(sensitivity).toLowerCase();
+  if (['novice', 'beginner', 'basic', 'low'].includes(s)) return 'novice';
+  if (['normal', 'standard', 'intermediate', 'medium'].includes(s)) return 'normal';
+  if (['advanced', 'expert', 'pro', 'high'].includes(s)) return 'expert';
+  return s;
+}
+
+function sensitivityAllowed(sensitivity, profile) {
+  const s = normalizeSensitivity(sensitivity);
+  if (!s) return true;
+  if (profile === 'beginner') return s === 'novice';
+  if (profile === 'normal') return s !== 'expert';
+  return true;
+}
+
+function buildFieldHtml(key, meta, hint, taxonomy) {
+  const type = (meta && meta.type) || 'string';
+  const desc = taxonomy ? `${taxonomy.category || ''} ${taxonomy.risk ? 'Â· ' + taxonomy.risk : ''}`.trim() : '';
+  if (type === 'bool' || type === 'boolean') {
+    return `\n      <div class="field">\n        <label>${key}</label>\n        <select data-param="${key}">\n          <option value="true">${t('on')}</option>\n          <option value="false">${t('off')}</option>\n        </select>\n        ${desc ? `<small>${desc}</small>` : ''}\n      </div>`;
+  }
+  const ph = hint !== undefined && hint !== null ? String(hint) : '';
+  return `\n    <div class="field">\n      <label>${key}</label>\n      <input data-param="${key}" placeholder="${ph}" />\n      ${desc ? `<small>${desc}</small>` : ''}\n    </div>`;
+}
+
+function renderCatalog() {
+  if (!catalogContainer) return;
+  catalogContainer.innerHTML = '';
+  if (!catalogBundle || !catalogBundle.catalog) {
+    catalogContainer.innerHTML = `<div class="hint">${t('catalogLoading')}</div>`;
+    return;
+  }
+  const catalog = catalogBundle.catalog || {};
+  const taxonomy = catalogBundle.taxonomy || {};
+  const usability = catalogBundle.usability || {};
+  const profile = profileSelect.value || 'normal';
+  const baseKeys = new Set();
+  document.querySelectorAll('[data-param]').forEach((el) => {
+    if (el.closest('#catalog_sections')) return;
+    baseKeys.add(el.getAttribute('data-param'));
+  });
+
+  const sectionOrder = ['server_properties', 'gamerule'];
+  sectionOrder.forEach((sectionKey) => {
+    const section = catalog[sectionKey];
+    if (!section || !section.entries) return;
+    const entries = section.entries;
+    const rows = [];
+    Object.keys(entries).forEach((key) => {
+      if (baseKeys.has(key)) return;
+      const entryMeta = entries[key] || {};
+      const use = (((usability[sectionKey] || {}).entries || {})[key] || {}).usability || {};
+      if (use.exposed === false) return;
+      const tax = ((taxonomy[sectionKey] || {}).entries || {})[key] || {};
+      if (!sensitivityAllowed(tax.sensitivity, profile)) return;
+      const hint = (use.default_hint !== undefined ? use.default_hint : entryMeta.default);
+      rows.push(buildFieldHtml(key, entryMeta, hint, tax));
+    });
+    if (!rows.length) return;
+    const title = sectionKey;
+    const html = `<details open><summary>${title}</summary><div class="grid">${rows.join('')}</div></details>`;
+    catalogContainer.innerHTML += html;
+  });
+  applyProfileDefaults(profileSelect.value || 'normal', false);
+}
+
+async function loadCatalog(force = false) {
+  const version = (versionInput.value || '1.21.11').trim();
+  if (!force && catalogBundle && catalogBundle.version === version) {
+    renderCatalog();
+    return;
+  }
+  catalogContainer.innerHTML = `<div class="hint">${t('catalogLoading')}</div>`;
+  try {
+    const res = await fetch(`/api/wizard/catalog?version=${encodeURIComponent(version)}`);
+    if (res.ok) {
+      catalogBundle = await res.json();
+      catalogDefaults = {};
+      Object.values(catalogBundle.catalog || {}).forEach((section) => {
+        const entries = (section && section.entries) || {};
+        Object.entries(entries).forEach(([key, meta]) => {
+          if (!meta || meta.default === undefined || meta.default === null) return;
+          const type = (meta && meta.type) || '';
+          let value = meta.default;
+          if (type === 'bool' || type === 'boolean') {
+            if (typeof value === 'string') {
+              const normalized = value.trim().toLowerCase();
+              if (['true', '1', 'yes', 'y', 'on'].includes(normalized)) {
+                value = 'true';
+              } else if (['false', '0', 'no', 'n', 'off'].includes(normalized)) {
+                value = 'false';
+              } else {
+                value = normalized;
+              }
+            } else {
+              value = value ? 'true' : 'false';
+            }
+          }
+          catalogDefaults[key] = String(value);
+        });
+      });
+    } else {
+      catalogBundle = null;
+      catalogDefaults = {};
+    }
+  } catch (_) {
+    catalogBundle = null;
+    catalogDefaults = {};
+  }
+  renderCatalog();
+}
+
+async function loadState() {
+  const res = await fetch('/api/wizard/state');
+  if (!res.ok) return;
+  const data = await res.json();
+  versionInput.value = data.version || '1.21.11';
+  profileSelect.value = data.profile || 'normal';
+  $('import_mode').value = data.import_mode || 'none';
+  $('import_value').value = data.import_value || '';
+  $('params_extra').value = data.params_text || '';
+  if (data.panel_url) panelLink.href = data.panel_url;
+  if (data.lang) {
+    langSelect.value = data.lang;
+  }
+  applyLang(langSelect.value || 'zh');
+  await loadCatalog(true);
+  applyProfileDefaults(profileSelect.value, false);
+}
+
+function gather() {
+  const params = {};
+  document.querySelectorAll('[data-param]').forEach((el) => {
+    const key = el.getAttribute('data-param');
+    const val = (el.value || '').trim();
+    if (val === '') return;
+    const def = (el.dataset.default || '').trim();
+    if (def && def === val) return;
+    params[key] = val;
+  });
+  return {
+    version: (versionInput.value || '1.21.11').trim(),
+    profile: profileSelect.value,
+    otp: $('otp').value.trim(),
+    import_mode: $('import_mode').value,
+    import_value: $('import_value').value.trim(),
+    params: params,
+    params_text: $('params_extra').value,
+    lang: langSelect.value
+  };
+}
+
+async function buildHeaders(otp) {
+  const headers = { 'Content-Type': 'application/json' };
+  const cleanOtp = (otp || '').trim();
+  if (!cleanOtp) return headers;
+  try {
+    const meta = await getNonce();
+    const sig = await signOtp(cleanOtp, meta.nonce, meta.host || location.host);
+    headers['X-MCIC-NONCE'] = meta.nonce;
+    headers['X-MCIC-OTP-SIG'] = sig;
+  } catch (_) {
+    headers['X-MCIC-OTP'] = cleanOtp;
+  }
+  return headers;
+}
+
+function showModal(title, body) {
+  const modal = $('modal');
+  $('modal_title').textContent = title;
+  $('modal_body').textContent = body;
+  $('modal_close').textContent = langSelect.value === 'zh' ? 'çŸ¥é“äº†' : 'OK';
+  modal.classList.remove('hidden');
+}
+
+$('modal_close').onclick = () => $('modal').classList.add('hidden');
+
+async function saveState() {
+  const payload = gather();
+  const otp = payload.otp;
+  delete payload.otp;
+  const headers = await buildHeaders(otp);
+  await fetch('/api/wizard/state', { method: 'POST', headers, body: JSON.stringify(payload) });
+}
+
+async function runAction(path) {
+  output.textContent = langSelect.value === 'zh' ? 'è¿è¡Œä¸­...' : 'Running...';
+  const payload = gather();
+  const otp = payload.otp;
+  delete payload.otp;
+  const headers = await buildHeaders(otp);
+  const res = await fetch(path, { method: 'POST', headers, body: JSON.stringify(payload) });
+  const txt = await res.text();
+  let data = null;
+  try {
+    data = JSON.parse(txt);
+  } catch (_) {
+    data = { error: txt };
+  }
+  output.textContent = data.output || data.error || txt;
+  return { res, data };
+}
+
+async function checkPorts() {
+  const pick = (el) => {
+    const v = (el.value || '').trim();
+    if (v) return v;
+    const ph = (el.getAttribute('placeholder') || '').trim();
+    return ph || '';
+  };
+  const ports = [];
+  document.querySelectorAll('input[data-param="panel.port"],input[data-param="server-port"],input[data-param="rcon.port"],input[data-param="map.plugin_port"]').forEach((el) => {
+    const v = pick(el);
+    if (v) ports.push(v);
+  });
+  const resultEl = $('port_check_result');
+  if (!ports.length) {
+    resultEl.textContent = langSelect.value === 'zh' ? 'æœªå¡«å†™ç«¯å£' : 'No ports';
+    return;
+  }
+  const res = await fetch(`/api/wizard/ports?ports=${encodeURIComponent(ports.join(','))}`);
+  if (!res.ok) {
+    resultEl.textContent = t('portCheckFail');
+    return;
+  }
+  const data = await res.json();
+  const free = [];
+  const busy = [];
+  Object.entries(data.ports || {}).forEach(([p, info]) => {
+    if (info && info.free) free.push(p); else busy.push(p);
+  });
+  resultEl.textContent = `${t('portCheckOk')} ${free.length ? free.join(', ') : '-'} | ${t('portCheckBusy')} ${busy.length ? busy.join(', ') : '-'}`;
+}
+
+async function fetchProgress() {
+  try {
+    const res = await fetch('/api/wizard/progress');
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (_) {
+    return null;
+  }
+}
+
+async function waitForProgressDone(timeoutMs = 60000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const data = await fetchProgress();
+    if (data && (data.status === 'done' || data.status === 'failed')) {
+      return data.status;
+    }
+    await new Promise((r) => setTimeout(r, 800));
+  }
+  return null;
+}
+
+
+function startProgress() {
+  const wrap = $('apply_progress');
+  const fill = $('apply_progress_fill');
+  const pct = $('apply_progress_pct');
+  const label = $('apply_progress_label');
+  wrap.classList.remove('hidden');
+  label.textContent = t('progressRunning');
+  fill.style.width = '1%';
+  pct.textContent = '1%';
+
+  const tick = async () => {
+    const data = await fetchProgress();
+    if (!data) return;
+    const percent = typeof data.percent === 'number' ? data.percent : null;
+    if (percent !== null) {
+      fill.style.width = `${percent}%`;
+      pct.textContent = `${percent}%`;
+    }
+    const detail = data.detail || data.message;
+    if (detail) label.textContent = detail;
+  };
+  tick();
+  progressTimer = setInterval(tick, 1200);
+  return {
+    stop: (ok) => {
+      clearInterval(progressTimer);
+      const final = ok ? 100 : 95;
+      fill.style.width = `${final}%`;
+      pct.textContent = `${final}%`;
+      label.textContent = ok ? t('progressDone') : t('progressFailed');
+    }
+  };
+}
+
+async function showHangAlert() {
+  let body = t('applyWarnBody');
+  try {
+    const res = await fetch('/api/wizard/logs?tail=80');
+    if (res.ok) {
+      const data = await res.json();
+      const lines = data.lines || [];
+      if (lines.length) body = body + '\n\n' + lines.join('\n');
+    }
+  } catch (_) {
+  }
+  showModal(t('applyWarnTitle'), body);
+}
+
+$('port_check_btn').onclick = async () => { await checkPorts(); };
+btnPlan.onclick = async () => { await runAction('/api/wizard/plan'); };
+btnApply.onclick = async () => {
+  btnApply.disabled = true;
+  btnApply.classList.add('btn-disabled');
+  const original = btnApply.textContent;
+  btnApply.textContent = langSelect.value === 'zh' ? 'æ‰§è¡Œä¸­...' : 'Applying...';
+  const progress = startProgress();
+  if (applyHangTimer) clearTimeout(applyHangTimer);
+  applyHangTimer = setTimeout(showHangAlert, 180000);
+  let allowReenable = false;
+  try {
+    const result = await runAction('/api/wizard/apply');
+    const data = result ? result.data : null;
+    const ok = data && (data.ok === true || data.ok === 'true');
+    if (applyHangTimer) {
+      clearTimeout(applyHangTimer);
+      applyHangTimer = null;
+    }
+    progress.stop(ok);
+    if (ok) {
+      showModal(t('applySuccessTitle'), t('applySuccessBody'));
+      const status = await waitForProgressDone(60000);
+      if (status === 'done') {
+        allowReenable = true;
+      }
+    } else {
+      showModal(t('applyFailTitle'), t('applyFailBody'));
+      allowReenable = true;
+    }
+  } catch (_) {
+    if (applyHangTimer) {
+      clearTimeout(applyHangTimer);
+      applyHangTimer = null;
+    }
+    progress.stop(false);
+    showModal(t('applyFailTitle'), t('applyFailBody'));
+    allowReenable = true;
+  } finally {
+    if (allowReenable) {
+      btnApply.disabled = false;
+      btnApply.classList.remove('btn-disabled');
+      btnApply.textContent = original;
+    }
+  }
+};
+btnSave.onclick = async () => { await saveState(); output.textContent = 'OK'; };
+
+langSelect.onchange = () => { applyLang(langSelect.value); renderCatalog(); };
+profileSelect.onchange = () => { renderCatalog(); applyProfileDefaults(profileSelect.value, true); };
+versionInput.onchange = async () => { await loadCatalog(true); };
+
+applyLang('zh');
+loadState();
+
