@@ -1,9 +1,9 @@
-ï»¿<!doctype html>
+<!doctype html>
 <html lang="zh">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MCIC å¼•å¯¼å‘å¯¼</title>
+  <title>MCIC Òýµ¼Ïòµ¼</title>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
     .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
@@ -47,261 +47,252 @@
 <body>
   <div class="wrap">
     <div class="header">
-      <h1 data-i18n="title">MCIC å¼•å¯¼å‘å¯¼</h1>
+      <h1 data-i18n="title">MCIC Òýµ¼Ïòµ¼</h1>
       <div class="lang-switch">
-        <span data-i18n="language">è¯­è¨€</span>
+        <span data-i18n="language">ÓïÑÔ</span>
         <select id="lang">
-          <option value="zh">ä¸­æ–‡</option>
+          <option value="zh">ÖÐÎÄ</option>
           <option value="en">English</option>
         </select>
       </div>
     </div>
 
     <div class="card">
-      <h2 data-i18n="basic">åŸºç¡€è®¾ç½®</h2>
+      <h2 data-i18n="basic">»ù´¡ÉèÖÃ</h2>
       <div class="row">
         <div>
-          <label data-i18n="versionLabel">ç‰ˆæœ¬ï¼ˆé»˜è®¤ 1.21.11ï¼‰</label>
+          <label data-i18n="versionLabel">°æ±¾£¨Ä¬ÈÏ 1.21.11£©</label>
           <input id="version" data-i18n-placeholder="versionPlaceholder" placeholder="1.21.11" />
         </div>
         <div>
-          <label data-i18n="profile">é…ç½®æ¡£ä½</label>
+          <label data-i18n="profile">ÅäÖÃµµÎ»</label>
           <select id="profile">
-            <option value="beginner" data-i18n="profileBeginner">æ–°æ‰‹</option>
-            <option value="normal" selected data-i18n="profileNormal">æ ‡å‡†</option>
-            <option value="advanced" data-i18n="profileAdvanced">é«˜çº§</option>
+            <option value="beginner" data-i18n="profileBeginner">ÐÂÊÖ</option>
+            <option value="normal" selected data-i18n="profileNormal">±ê×¼</option>
+            <option value="advanced" data-i18n="profileAdvanced">¸ß¼¶</option>
           </select>
         </div>
       </div>
       <div class="row">
         <div>
-          <label data-i18n="otpLabel">ä¸€æ¬¡æ€§å£ä»¤ï¼ˆOTPï¼‰</label>
+          <label data-i18n="otpLabel">Ò»´ÎÐÔ¿ÚÁî£¨OTP£©</label>
           <input id="otp" data-i18n-placeholder="otpPlaceholder" placeholder="" />
-          <div class="hint" data-i18n="otpHint">Plan / Apply / ä¿å­˜éœ€è¦ OTPã€‚</div>
+          <div class="hint" data-i18n="otpHint">Plan / Apply / ±£´æÐèÒª OTP¡£</div>
         </div>
       </div>
-      <label data-i18n="importMode">å¯¼å…¥æ–¹å¼</label>
+      <label data-i18n="importMode">µ¼Èë·½Ê½</label>
       <select id="import_mode">
-        <option value="none" data-i18n="importNone">ä¸å¯¼å…¥</option>
-        <option value="paste" data-i18n="importPaste">ç²˜è´´é…ç½®ä¸²</option>
-        <option value="file" data-i18n="importFile">ä»Žæ–‡ä»¶è·¯å¾„å¯¼å…¥</option>
+        <option value="none" data-i18n="importNone">²»µ¼Èë</option>
+        <option value="paste" data-i18n="importPaste">Õ³ÌùÅäÖÃ´®</option>
+        <option value="file" data-i18n="importFile">´ÓÎÄ¼þÂ·¾¶µ¼Èë</option>
       </select>
-      <label data-i18n="importValue">é…ç½®ä¸² / æ–‡ä»¶è·¯å¾„</label>
-      <textarea id="import_value" data-i18n-placeholder="importPlaceholder" placeholder="ç²˜è´´é…ç½®ä¸²ï¼Œæˆ–å¡«å†™æ–‡ä»¶è·¯å¾„"></textarea>
-      <div class="hint" data-i18n="importHint">è‹¥é€‰æ‹©â€œä»Žæ–‡ä»¶è·¯å¾„å¯¼å…¥â€ï¼Œè¯·å¡«å†™æœåŠ¡å™¨ä¸Šçš„æ–‡ä»¶è·¯å¾„ã€‚</div>
+      <label data-i18n="importValue">ÅäÖÃ´® / ÎÄ¼þÂ·¾¶</label>
+      <textarea id="import_value" data-i18n-placeholder="importPlaceholder" placeholder="Õ³ÌùÅäÖÃ´®£¬»òÌîÐ´ÎÄ¼þÂ·¾¶"></textarea>
+      <div class="hint" data-i18n="importHint">ÈôÑ¡Ôñ¡°´ÓÎÄ¼þÂ·¾¶µ¼Èë¡±£¬ÇëÌîÐ´·þÎñÆ÷ÉÏµÄÎÄ¼þÂ·¾¶¡£</div>
     </div>
 
     <div class="card">
-      <h2 data-i18n="beginner">æ–°æ‰‹é€‰é¡¹</h2>
+      <h2 data-i18n="beginner">ÐÂÊÖÑ¡Ïî</h2>
       <div class="row">
         <div>
-          <label data-i18n="keepInventory">æ­»äº¡ä¸æŽ‰è½</label>
+          <label data-i18n="keepInventory">ËÀÍö²»µôÂä</label>
           <select data-param="keepInventory">
-            <option value="" data-i18n="default">é»˜è®¤</option>
-            <option value="true" data-i18n="on">å¼€å¯</option>
-            <option value="false" data-i18n="off">å…³é—­</option>
+            <option value="true" data-i18n="on">¿ªÆô</option>
+            <option value="false" data-i18n="off">¹Ø±Õ</option>
           </select>
         </div>
         <div>
-          <label data-i18n="allowCheats">å…è®¸ä½œå¼Šï¼ˆå‘½ä»¤æ–¹å—ï¼‰</label>
+          <label data-i18n="allowCheats">ÔÊÐí×÷±×£¨ÃüÁî·½¿é£©</label>
           <select data-param="enable-command-block">
-            <option value="" data-i18n="default">é»˜è®¤</option>
-            <option value="true" data-i18n="on">å¼€å¯</option>
-            <option value="false" data-i18n="off">å…³é—­</option>
+            <option value="true" data-i18n="on">¿ªÆô</option>
+            <option value="false" data-i18n="off">¹Ø±Õ</option>
           </select>
         </div>
     </div>
 
     <div class="card">
-      <h2 data-i18n="core">æ ¸å¿ƒå‚æ•°</h2>
+      <h2 data-i18n="core">ºËÐÄ²ÎÊý</h2>
       <div class="row">
         <div>
-          <label data-i18n="expectedPlayers">é¢„æœŸäººæ•°</label>
-          <input data-param="deploy.expected_players" data-i18n-placeholder="expectedPlayersPh" placeholder="ä¾‹å¦‚ 3" />
+          <label data-i18n="expectedPlayers">Ô¤ÆÚÈËÊý</label>
+          <input data-param="deploy.expected_players" data-i18n-placeholder="expectedPlayersPh" placeholder="ÀýÈç 3" />
         </div>
         <div>
-          <label data-i18n="maxPlayers">æœ€å¤§äººæ•°</label>
-          <input data-param="max-players" data-i18n-placeholder="maxPlayersPh" placeholder="ä¾‹å¦‚ 20" />
+          <label data-i18n="maxPlayers">×î´óÈËÊý</label>
+          <input data-param="max-players" data-i18n-placeholder="maxPlayersPh" placeholder="ÀýÈç 20" />
         </div>
         <div>
-          <label data-i18n="difficulty">éš¾åº¦</label>
+          <label data-i18n="difficulty">ÄÑ¶È</label>
           <select data-param="difficulty">
-            <option value="" data-i18n="default">é»˜è®¤</option>
-            <option value="peaceful" data-i18n="difficultyPeaceful">å’Œå¹³</option>
-            <option value="easy" data-i18n="difficultyEasy">ç®€å•</option>
-            <option value="normal" data-i18n="difficultyNormal">æ™®é€š</option>
-            <option value="hard" data-i18n="difficultyHard">å›°éš¾</option>
+            <option value="peaceful" data-i18n="difficultyPeaceful">ºÍÆ½</option>
+            <option value="easy" data-i18n="difficultyEasy">¼òµ¥</option>
+            <option value="normal" data-i18n="difficultyNormal">ÆÕÍ¨</option>
+            <option value="hard" data-i18n="difficultyHard">À§ÄÑ</option>
           </select>
         </div>
         <div>
-          <label data-i18n="gamemode">æ¸¸æˆæ¨¡å¼</label>
+          <label data-i18n="gamemode">ÓÎÏ·Ä£Ê½</label>
           <select data-param="gamemode">
-            <option value="" data-i18n="default">é»˜è®¤</option>
-            <option value="survival" data-i18n="gmSurvival">ç”Ÿå­˜</option>
-            <option value="creative" data-i18n="gmCreative">åˆ›é€ </option>
-            <option value="adventure" data-i18n="gmAdventure">å†’é™©</option>
-            <option value="spectator" data-i18n="gmSpectator">æ—è§‚</option>
+            <option value="survival" data-i18n="gmSurvival">Éú´æ</option>
+            <option value="creative" data-i18n="gmCreative">´´Ôì</option>
+            <option value="adventure" data-i18n="gmAdventure">Ã°ÏÕ</option>
+            <option value="spectator" data-i18n="gmSpectator">ÅÔ¹Û</option>
           </select>
         </div>
         <div>
-          <label data-i18n="onlineMode">åœ¨çº¿æ¨¡å¼</label>
+          <label data-i18n="onlineMode">ÔÚÏßÄ£Ê½</label>
           <select data-param="online-mode">
-            <option value="" data-i18n="default">é»˜è®¤</option>
-            <option value="true" data-i18n="on">å¼€å¯</option>
-            <option value="false" data-i18n="off">å…³é—­</option>
+            <option value="true" data-i18n="on">¿ªÆô</option>
+            <option value="false" data-i18n="off">¹Ø±Õ</option>
           </select>
         </div>
         <div>
           <label data-i18n="pvp">PVP</label>
           <select data-param="pvp">
-            <option value="" data-i18n="default">é»˜è®¤</option>
-            <option value="true" data-i18n="on">å¼€å¯</option>
-            <option value="false" data-i18n="off">å…³é—­</option>
+            <option value="true" data-i18n="on">¿ªÆô</option>
+            <option value="false" data-i18n="off">¹Ø±Õ</option>
           </select>
         </div>
         <div>
-          <label data-i18n="whitelist">ç™½åå•</label>
+          <label data-i18n="whitelist">°×Ãûµ¥</label>
           <select data-param="white-list">
-            <option value="" data-i18n="default">é»˜è®¤</option>
-            <option value="true" data-i18n="on">å¼€å¯</option>
-            <option value="false" data-i18n="off">å…³é—­</option>
+            <option value="true" data-i18n="on">¿ªÆô</option>
+            <option value="false" data-i18n="off">¹Ø±Õ</option>
           </select>
         </div>
         <div>
-          <label data-i18n="spawnProtection">å‡ºç”Ÿä¿æŠ¤</label>
-          <input data-param="spawn-protection" data-i18n-placeholder="spawnProtectionPh" placeholder="ä¾‹å¦‚ 16" />
+          <label data-i18n="spawnProtection">³öÉú±£»¤</label>
+          <input data-param="spawn-protection" data-i18n-placeholder="spawnProtectionPh" placeholder="ÀýÈç 16" />
         </div>
     </div>
 
     <div class="card">
-      <h2 data-i18n="performance">æ€§èƒ½å‚æ•°</h2>
+      <h2 data-i18n="performance">ÐÔÄÜ²ÎÊý</h2>
       <div class="row">
         <div>
-          <label data-i18n="memory">å†…å­˜ï¼ˆdocker.env.MEMORYï¼‰</label>
-          <input data-param="docker.env.MEMORY" data-i18n-placeholder="memoryPh" placeholder="ä¾‹å¦‚ 2G / 2048M" />
+          <label data-i18n="memory">ÄÚ´æ£¨docker.env.MEMORY£©</label>
+          <input data-param="docker.env.MEMORY" data-i18n-placeholder="memoryPh" placeholder="ÀýÈç 2G / 2048M" />
         </div>
         <div>
-          <label data-i18n="viewDistance">è§†è·</label>
-          <input data-param="view-distance" data-i18n-placeholder="viewDistancePh" placeholder="ä¾‹å¦‚ 6" />
+          <label data-i18n="viewDistance">ÊÓ¾à</label>
+          <input data-param="view-distance" data-i18n-placeholder="viewDistancePh" placeholder="ÀýÈç 6" />
         </div>
         <div>
-          <label data-i18n="simulationDistance">æ¨¡æ‹Ÿè·ç¦»</label>
-          <input data-param="simulation-distance" data-i18n-placeholder="simulationDistancePh" placeholder="ä¾‹å¦‚ 4" />
+          <label data-i18n="simulationDistance">Ä£Äâ¾àÀë</label>
+          <input data-param="simulation-distance" data-i18n-placeholder="simulationDistancePh" placeholder="ÀýÈç 4" />
         </div>
         <div>
-          <label data-i18n="randomTick">éšæœºåˆ»é€Ÿåº¦</label>
-          <input data-param="randomTickSpeed" data-i18n-placeholder="randomTickPh" placeholder="ä¾‹å¦‚ 3" />
+          <label data-i18n="randomTick">Ëæ»ú¿ÌËÙ¶È</label>
+          <input data-param="randomTickSpeed" data-i18n-placeholder="randomTickPh" placeholder="ÀýÈç 3" />
         </div>
         <div>
-          <label data-i18n="maxEntityCramming">æœ€å¤§å®žä½“æŒ¤åŽ‹</label>
-          <input data-param="maxEntityCramming" data-i18n-placeholder="maxEntityCrammingPh" placeholder="ä¾‹å¦‚ 24" />
+          <label data-i18n="maxEntityCramming">×î´óÊµÌå¼·Ñ¹</label>
+          <input data-param="maxEntityCramming" data-i18n-placeholder="maxEntityCrammingPh" placeholder="ÀýÈç 24" />
         </div>
     </div>
 
     <div class="card">
-      <h2 data-i18n="panel">é¢æ¿ / ç½‘ç»œ / RCON</h2>
+      <h2 data-i18n="panel">Ãæ°å / ÍøÂç / RCON</h2>
       <div class="row">
         <div>
-          <label data-i18n="panelEnable">å¯ç”¨é¢æ¿</label>
+          <label data-i18n="panelEnable">ÆôÓÃÃæ°å</label>
           <select data-param="panel.enable">
-            <option value="" data-i18n="default">é»˜è®¤</option>
-            <option value="true" data-i18n="on">å¼€å¯</option>
-            <option value="false" data-i18n="off">å…³é—­</option>
+            <option value="true" data-i18n="on">¿ªÆô</option>
+            <option value="false" data-i18n="off">¹Ø±Õ</option>
           </select>
         </div>
         <div>
-          <label data-i18n="panelPort">é¢æ¿ç«¯å£</label>
+          <label data-i18n="panelPort">Ãæ°å¶Ë¿Ú</label>
           <input data-param="panel.port" data-i18n-placeholder="panelPortPh" placeholder="15000" />
         </div>
         <div>
-          <label data-i18n="serverPort">MC ç«¯å£</label>
+          <label data-i18n="serverPort">MC ¶Ë¿Ú</label>
           <input data-param="server-port" data-i18n-placeholder="serverPortPh" placeholder="25565" />
         </div>
         <div>
-          <label data-i18n="rconEnable">å¯ç”¨ RCON</label>
+          <label data-i18n="rconEnable">ÆôÓÃ RCON</label>
           <select data-param="enable-rcon">
-            <option value="" data-i18n="default">é»˜è®¤</option>
-            <option value="true" data-i18n="on">å¼€å¯</option>
-            <option value="false" data-i18n="off">å…³é—­</option>
+            <option value="true" data-i18n="on">¿ªÆô</option>
+            <option value="false" data-i18n="off">¹Ø±Õ</option>
           </select>
         </div>
         <div>
-          <label data-i18n="rconPort">RCON ç«¯å£</label>
+          <label data-i18n="rconPort">RCON ¶Ë¿Ú</label>
           <input data-param="rcon.port" data-i18n-placeholder="rconPortPh" placeholder="25575" />
         </div>
       </div>
       <div class="field" style="grid-column: 1 / -1;">
-          <label data-i18n="portCheck">ç«¯å£å ç”¨æ£€æµ‹</label>
+          <label data-i18n="portCheck">¶Ë¿ÚÕ¼ÓÃ¼ì²â</label>
           <div class="actions">
-            <button id="port_check_btn" class="secondary" data-i18n="portCheckBtn">æ£€æµ‹ç«¯å£</button>
-            <span id="port_check_result" class="hint" data-i18n="portCheckHint">ç‚¹å‡»æ£€æµ‹å¸¸ç”¨ç«¯å£æ˜¯å¦è¢«å ç”¨ã€‚</span>
+            <button id="port_check_btn" class="secondary" data-i18n="portCheckBtn">¼ì²â¶Ë¿Ú</button>
+            <span id="port_check_result" class="hint" data-i18n="portCheckHint">µã»÷¼ì²â³£ÓÃ¶Ë¿ÚÊÇ·ñ±»Õ¼ÓÃ¡£</span>
           </div>
         </div>
     </div>
 
     <div class="card">
-      <h2 data-i18n="map">åœ°å›¾ / æ’ä»¶</h2>
+      <h2 data-i18n="map">µØÍ¼ / ²å¼þ</h2>
       <div class="row">
         <div>
-          <label data-i18n="mapPlugin">åœ°å›¾æ’ä»¶</label>
+          <label data-i18n="mapPlugin">µØÍ¼²å¼þ</label>
           <select data-param="map.plugin">
-            <option value="bluemap" data-i18n="installBluemap">å®‰è£… BlueMap</option>
-            <option value="none" data-i18n="skipInstall">ä¸å®‰è£…</option>
+            <option value="bluemap" data-i18n="installBluemap">°²×° BlueMap</option>
+            <option value="none" data-i18n="skipInstall">²»°²×°</option>
           </select>
         </div>
         <div>
-          <label data-i18n="mapPort">åœ°å›¾ç«¯å£</label>
+          <label data-i18n="mapPort">µØÍ¼¶Ë¿Ú</label>
           <input data-param="map.plugin_port" data-i18n-placeholder="mapPortPh" placeholder="8100" />
         </div>
         <div>
-          <label data-i18n="mapInterval">æ¸²æŸ“é—´éš”</label>
+          <label data-i18n="mapInterval">äÖÈ¾¼ä¸ô</label>
           <input data-param="map.render_interval" data-i18n-placeholder="mapIntervalPh" placeholder="5" />
         </div>
         <div>
-          <label data-i18n="inventoryPlugin">èƒŒåŒ…æ’ä»¶</label>
+          <label data-i18n="inventoryPlugin">±³°ü²å¼þ</label>
           <select data-param="inventory.plugin">
-            <option value="invsee" data-i18n="installInvsee">å®‰è£… InvSee++</option>
-            <option value="none" data-i18n="skipInstall">ä¸å®‰è£…</option>
+            <option value="invsee" data-i18n="installInvsee">°²×° InvSee++</option>
+            <option value="none" data-i18n="skipInstall">²»°²×°</option>
           </select>
         </div>
     </div>
 
     <div class="card">
-      <h2 data-i18n="advanced">é«˜çº§å‚æ•°ï¼ˆç›®å½•ï¼‰</h2>
+      <h2 data-i18n="advanced">¸ß¼¶²ÎÊý£¨Ä¿Â¼£©</h2>
       <div id="catalog_sections"></div>
     </div>
 
     <div class="card">
-      <h2 data-i18n="custom">è‡ªå®šä¹‰å‚æ•°</h2>
-      <label data-i18n="customHint">é¢å¤– key=valueï¼ˆæ¯è¡Œä¸€æ¡ï¼‰</label>
+      <h2 data-i18n="custom">×Ô¶¨Òå²ÎÊý</h2>
+      <label data-i18n="customHint">¶îÍâ key=value£¨Ã¿ÐÐÒ»Ìõ£©</label>
       <textarea id="params_extra" data-i18n-placeholder="customPlaceholder" placeholder="max-players=3\nview-distance=4\nkeepInventory=true"></textarea>
-      <div class="hint" data-i18n="customHint2">å°†è¦†ç›–ä¸Šæ–¹ä¸Žå¯¼å…¥é…ç½®ä¸­çš„å€¼ã€‚</div>
+      <div class="hint" data-i18n="customHint2">½«¸²¸ÇÉÏ·½Óëµ¼ÈëÅäÖÃÖÐµÄÖµ¡£</div>
     </div>
 
     <div class="card">
       <div class="actions">
-        <button id="btn_plan" data-i18n="btnPlan">è¿è¡Œ Planï¼ˆè¯„å®¡ï¼‰</button>
-        <button id="btn_apply" data-i18n="btnApply">æ‰§è¡Œ Apply</button>
-        <button id="btn_save" class="secondary" data-i18n="btnSave">ä¿å­˜é…ç½®</button>
+        <button id="btn_plan" data-i18n="btnPlan">ÔËÐÐ Plan£¨ÆÀÉó£©</button>
+        <button id="btn_apply" data-i18n="btnApply">Ö´ÐÐ Apply</button>
+        <button id="btn_save" class="secondary" data-i18n="btnSave">±£´æÅäÖÃ</button>
       </div>
 
-      <div class="hint" id="apply_notice" data-i18n="applyNotice">æç¤ºï¼šApply å¯èƒ½éœ€è¦å‡ åˆ†é’Ÿåˆ°å‡ ååˆ†é’Ÿï¼Œè¯·è€å¿ƒç­‰å¾…ã€‚</div>
-      <label style="margin-top:12px;" data-i18n="output">è¾“å‡º</label>
+      <div class="hint" id="apply_notice" data-i18n="applyNotice">ÌáÊ¾£ºApply ¿ÉÄÜÐèÒª¼¸·ÖÖÓµ½¼¸Ê®·ÖÖÓ£¬ÇëÄÍÐÄµÈ´ý¡£</div>
+      <label style="margin-top:12px;" data-i18n="output">Êä³ö</label>
       <div id="apply_progress" class="progress-wrap hidden">
         <div class="progress-bar"><div id="apply_progress_fill" class="progress-fill"></div></div>
         <div class="progress-meta"><span id="apply_progress_label"></span><span id="apply_progress_pct">0%</span></div>
       </div>
       <div id="output" class="output"></div>
-      <div class="hint"><span data-i18n="panelHint">å¦‚å·²å®‰è£…ä¸»é¢æ¿ï¼š</span> <a id="panel_link" href="/" target="_blank" data-i18n="panelLink">æ‰“å¼€é¢æ¿</a></div>
+      <div class="hint"><span data-i18n="panelHint">ÈçÒÑ°²×°Ö÷Ãæ°å£º</span> <a id="panel_link" href="/" target="_blank" data-i18n="panelLink">´ò¿ªÃæ°å</a></div>
     </div>
   </div>
 
   <div id="modal" class="modal hidden">
     <div class="modal-card">
-      <h3 id="modal_title">å®Œæˆ</h3>
-      <p id="modal_body">å·²æ‰§è¡Œã€‚</p>
+      <h3 id="modal_title">Íê³É</h3>
+      <p id="modal_body">ÒÑÖ´ÐÐ¡£</p>
       <div class="actions">
-        <button id="modal_close" class="secondary">çŸ¥é“äº†</button>
+        <button id="modal_close" class="secondary">ÖªµÀÁË</button>
       </div>
     </div>
   </div>

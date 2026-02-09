@@ -11,6 +11,7 @@ const btnSave = $('btn_save');
 let catalogBundle = null;
 let progressTimer = null;
 let applyHangTimer = null;
+let catalogDefaults = {};
 
 const PROFILE_DEFAULTS = {
   beginner: {
@@ -40,6 +41,13 @@ const PROFILE_DEFAULTS = {
     "enable-rcon": "true",
     "enable-query": "true"
   }
+};
+
+const UI_DEFAULTS = {
+  "panel.enable": "false",
+  "panel.port": "15000",
+  "server-port": "25565",
+  "rcon.port": "25575"
 };
 
 const translations = {
@@ -298,12 +306,23 @@ async function signOtp(otp, nonce, host) {
 }
 
 function applyProfileDefaults(profile, force = false) {
-  const defaults = PROFILE_DEFAULTS[profile] || {};
-  Object.entries(defaults).forEach(([key, val]) => {
-    const el = document.querySelector(`[data-param="${key}"]`);
-    if (!el) return;
+  const defaults = {
+    ...catalogDefaults,
+    ...UI_DEFAULTS,
+    ...(PROFILE_DEFAULTS[profile] || {})
+  };
+  document.querySelectorAll('[data-param]').forEach((el) => {
+    const key = el.getAttribute('data-param');
+    if (!key || defaults[key] === undefined) return;
+    const val = String(defaults[key]);
+    el.dataset.default = val;
     if (!force && (el.value || '').trim() !== '') return;
     el.value = val;
+  });
+  document.querySelectorAll('[data-param]').forEach((el) => {
+    if (el.dataset.default) return;
+    const val = (el.value || '').trim();
+    if (val) el.dataset.default = val;
   });
 }
 
@@ -328,7 +347,7 @@ function buildFieldHtml(key, meta, hint, taxonomy) {
   const type = (meta && meta.type) || 'string';
   const desc = taxonomy ? `${taxonomy.category || ''} ${taxonomy.risk ? '· ' + taxonomy.risk : ''}`.trim() : '';
   if (type === 'bool' || type === 'boolean') {
-    return `\n      <div class="field">\n        <label>${key}</label>\n        <select data-param="${key}">\n          <option value="">${t('default')}</option>\n          <option value="true">${t('on')}</option>\n          <option value="false">${t('off')}</option>\n        </select>\n        ${desc ? `<small>${desc}</small>` : ''}\n      </div>`;
+    return `\n      <div class="field">\n        <label>${key}</label>\n        <select data-param="${key}">\n          <option value="true">${t('on')}</option>\n          <option value="false">${t('off')}</option>\n        </select>\n        ${desc ? `<small>${desc}</small>` : ''}\n      </div>`;
   }
   const ph = hint !== undefined && hint !== null ? String(hint) : '';
   return `\n    <div class="field">\n      <label>${key}</label>\n      <input data-param="${key}" placeholder="${ph}" />\n      ${desc ? `<small>${desc}</small>` : ''}\n    </div>`;
@@ -372,6 +391,7 @@ function renderCatalog() {
     const html = `<details open><summary>${title}</summary><div class="grid">${rows.join('')}</div></details>`;
     catalogContainer.innerHTML += html;
   });
+  applyProfileDefaults(profileSelect.value || 'normal', false);
 }
 
 async function loadCatalog(force = false) {
@@ -385,11 +405,21 @@ async function loadCatalog(force = false) {
     const res = await fetch(`/api/wizard/catalog?version=${encodeURIComponent(version)}`);
     if (res.ok) {
       catalogBundle = await res.json();
+      catalogDefaults = {};
+      Object.values(catalogBundle.catalog || {}).forEach((section) => {
+        const entries = (section && section.entries) || {};
+        Object.entries(entries).forEach(([key, meta]) => {
+          if (!meta || meta.default === undefined || meta.default === null) return;
+          catalogDefaults[key] = String(meta.default);
+        });
+      });
     } else {
       catalogBundle = null;
+      catalogDefaults = {};
     }
   } catch (_) {
     catalogBundle = null;
+    catalogDefaults = {};
   }
   renderCatalog();
 }
@@ -417,7 +447,10 @@ function gather() {
   document.querySelectorAll('[data-param]').forEach((el) => {
     const key = el.getAttribute('data-param');
     const val = (el.value || '').trim();
-    if (val !== '') params[key] = val;
+    if (val === '') return;
+    const def = (el.dataset.default || '').trim();
+    if (def && def === val) return;
+    params[key] = val;
   });
   return {
     version: (versionInput.value || '1.21.11').trim(),
@@ -633,7 +666,7 @@ btnApply.onclick = async () => {
 btnSave.onclick = async () => { await saveState(); output.textContent = 'OK'; };
 
 langSelect.onchange = () => { applyLang(langSelect.value); renderCatalog(); };
-profileSelect.onchange = () => { applyProfileDefaults(profileSelect.value, true); renderCatalog(); };
+profileSelect.onchange = () => { renderCatalog(); applyProfileDefaults(profileSelect.value, true); };
 versionInput.onchange = async () => { await loadCatalog(true); };
 
 applyLang('zh');
