@@ -543,7 +543,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=${INSTALL_DIR}
-ExecStart=/usr/bin/python3 ${INSTALL_DIR}/deploy/wizard_server.py
+ExecStart=/usr/bin/python3 -m deploy.wizard_server
 Restart=always
 RestartSec=3
 Environment=PYTHONUNBUFFERED=1
@@ -555,7 +555,7 @@ EOF
     systemctl daemon-reload || true
     systemctl enable --now mc-wizard || true
   else
-    nohup /usr/bin/python3 ${INSTALL_DIR}/deploy/wizard_server.py >/var/log/mc-wizard.log 2>&1 &
+    (cd "${INSTALL_DIR}" && nohup /usr/bin/python3 -m deploy.wizard_server >/var/log/mc-wizard.log 2>&1 &)
   fi
 
   HOST_IP=""
