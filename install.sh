@@ -2,6 +2,7 @@
 set -e
 export LANG="${LANG:-C.UTF-8}"
 export LC_ALL="${LC_ALL:-C.UTF-8}"
+export PYTHONUTF8="${PYTHONUTF8:-1}"
 echo "+======================================+"
 echo "|   MCIC - Minecraft Compiler &        |"
 echo "|   Instance Coordinator               |"
@@ -285,6 +286,9 @@ if [ "$SKIP_SETUP" != "1" ]; then
   if [ ! -f /usr/local/bin/mcic ]; then
     cat >/usr/local/bin/mcic <<'EOF'
 #!/bin/sh
+export LANG="${LANG:-C.UTF-8}"
+export LC_ALL="${LC_ALL:-C.UTF-8}"
+export PYTHONUTF8="${PYTHONUTF8:-1}"
 cd /opt/mc-panel-sanitized || exit 1
 exec python3 -m deploy.cli "$@"
 EOF
@@ -547,6 +551,9 @@ ExecStart=/usr/bin/python3 -m deploy.wizard_server
 Restart=always
 RestartSec=3
 Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONUTF8=1
+Environment=LANG=C.UTF-8
+Environment=LC_ALL=C.UTF-8
 Environment=MC_PANEL_WIZARD_PORT=${WIZARD_PORT}
 
 [Install]

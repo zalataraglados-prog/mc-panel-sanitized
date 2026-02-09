@@ -7,6 +7,9 @@ Type=simple
 WorkingDirectory={{PANEL_ROOT}}
 Environment=MC_PANEL_BASE_DIR={{BASE_DIR}}
 Environment=MC_PANEL_STATIC_DIR={{PANEL_STATIC_DIR}}
+Environment=PYTHONUTF8=1
+Environment=LANG=C.UTF-8
+Environment=LC_ALL=C.UTF-8
 ExecStartPre=/bin/sh -c 'test -f "{{PANEL_STATIC_DIR}}/index.html" || echo "[mc-panel] 前端构建缺失：{{PANEL_STATIC_DIR}}（请运行 npm install && npm run build）"'
 ExecStart={{PANEL_ROOT}}/.venv/bin/python -m uvicorn backend.main:app --host 0.0.0.0 --port {{PANEL_PORT}}
 Restart=on-failure
