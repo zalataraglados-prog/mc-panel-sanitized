@@ -31,6 +31,18 @@ NONCE_TTL_SECONDS = 120
 NONCE_LOCK = threading.Lock()
 NONCE_STORE = {}
 
+os.environ.setdefault("PYTHONUTF8", "1")
+os.environ.setdefault("LANG", "C.UTF-8")
+os.environ.setdefault("LC_ALL", "C.UTF-8")
+
+
+def _cli_env() -> dict:
+    env = os.environ.copy()
+    env.setdefault("PYTHONUTF8", "1")
+    env.setdefault("LANG", "C.UTF-8")
+    env.setdefault("LC_ALL", "C.UTF-8")
+    return env
+
 
 def _pid_alive(pid: int) -> bool:
     try:
@@ -264,7 +276,15 @@ def _run_cli(action, state):
     if action == "apply":
         cmd.append("--apply")
         cmd.append("--confirm-warn")
-    proc = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
+    proc = subprocess.run(
+        cmd,
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=_cli_env(),
+    )
     output = (proc.stdout or "") + ("\n" + proc.stderr if proc.stderr else "")
     if proc.returncode == 0 and not output.strip():
         return 1, "no output from cli"
@@ -299,7 +319,10 @@ def _run_cli_stream(action, state):
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         bufsize=1,
+        env=_cli_env(),
     )
 
     output_lines = []
