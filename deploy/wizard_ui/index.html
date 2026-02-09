@@ -1,303 +1,453 @@
-<!doctype html>
-<html lang="zh">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MCIC 引导向导</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
-    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
-    .header { display:flex; align-items:center; justify-content: space-between; gap:12px; margin-bottom: 12px; }
-    h1 { margin: 0; font-size: 22px; }
-    h2 { margin: 0 0 8px; font-size: 16px; }
-    .card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; margin: 12px 0; }
-    label { display: block; margin: 8px 0 6px; font-size: 13px; color: #cbd5f5; }
-    input, select, textarea { width: 100%; background: #0b1220; color: #e2e8f0; border: 1px solid #1f2937; border-radius: 8px; padding: 8px 10px; }
-    textarea { min-height: 140px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-    .row-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    button { background: #2563eb; color: #fff; border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; }
-    button.secondary { background: #334155; }
-    .output { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #0b1220; border-radius: 8px; padding: 12px; border: 1px solid #1f2937; min-height: 120px; }
-    .hint { font-size: 12px; color: #94a3b8; }
-    a { color: #93c5fd; }
-    details { border: 1px dashed #334155; border-radius: 10px; padding: 10px 12px; margin: 10px 0; background: #0b1220; }
-    summary { cursor: pointer; font-weight: 600; color: #e2e8f0; }
-    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-    .field { background: #0f172a; border: 1px solid #1f2937; border-radius: 8px; padding: 8px; }
-    .field small { color: #94a3b8; display: block; margin-top: 6px; }
-    .lang-switch { display:flex; align-items:center; gap:8px; font-size:12px; color:#cbd5f5; }
-  
-    .modal { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.7); display: flex; align-items: center; justify-content: center; z-index: 50; }
-    .modal.hidden { display: none; }
-    .modal-card { width: min(520px, 92vw); background: #0b1220; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
-    .modal-card h3 { margin: 0 0 8px; font-size: 16px; }
-    .modal-card p { margin: 0 0 12px; color: #cbd5f5; line-height: 1.5; }
-    .modal-card .actions { justify-content: flex-end; }
-    .btn-disabled { opacity: 0.6; cursor: not-allowed; }
-
-    .progress-wrap { margin-top: 12px; }
-    .progress-bar { width: 100%; height: 10px; background: #0b1220; border: 1px solid #1f2937; border-radius: 999px; overflow: hidden; }
-    .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #2563eb, #22d3ee); transition: width 0.3s ease; }
-    .progress-meta { display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; margin-top: 6px; }
-    .hidden { display: none !important; }
-</style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="header">
-      <h1 data-i18n="title">MCIC 引导向导</h1>
-      <div class="lang-switch">
-        <span data-i18n="language">语言</span>
-        <select id="lang">
-          <option value="zh">中文</option>
-          <option value="en">English</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2 data-i18n="basic">基础设置</h2>
-      <div class="row">
-        <div>
-          <label data-i18n="versionLabel">版本（默认 1.21.11）</label>
-          <input id="version" data-i18n-placeholder="versionPlaceholder" placeholder="1.21.11" />
-        </div>
-        <div>
-          <label data-i18n="profile">配置档位</label>
-          <select id="profile">
-            <option value="beginner" data-i18n="profileBeginner">新手</option>
-            <option value="normal" selected data-i18n="profileNormal">标准</option>
-            <option value="advanced" data-i18n="profileAdvanced">高级</option>
-          </select>
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label data-i18n="otpLabel">一次性口令（OTP）</label>
-          <input id="otp" data-i18n-placeholder="otpPlaceholder" placeholder="" />
-          <div class="hint" data-i18n="otpHint">Plan / Apply / 保存需要 OTP。</div>
-        </div>
-      </div>
-      <label data-i18n="importMode">导入方式</label>
-      <select id="import_mode">
-        <option value="none" data-i18n="importNone">不导入</option>
-        <option value="paste" data-i18n="importPaste">粘贴配置串</option>
-        <option value="file" data-i18n="importFile">从文件路径导入</option>
-      </select>
-      <label data-i18n="importValue">配置串 / 文件路径</label>
-      <textarea id="import_value" data-i18n-placeholder="importPlaceholder" placeholder="粘贴配置串，或填写文件路径"></textarea>
-      <div class="hint" data-i18n="importHint">若选择“从文件路径导入”，请填写服务器上的文件路径。</div>
-    </div>
-
-    <div class="card">
-      <h2 data-i18n="beginner">新手选项</h2>
-      <div class="row">
-        <div>
-          <label data-i18n="keepInventory">死亡不掉落</label>
+<!doctype html>
+
+<html lang="zh">
+
+<head>
+
+  <meta charset="utf-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>MCIC 引导向导</title>
+
+  <style>
+
+    body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
+
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+    .header { display:flex; align-items:center; justify-content: space-between; gap:12px; margin-bottom: 12px; }
+
+    h1 { margin: 0; font-size: 22px; }
+
+    h2 { margin: 0 0 8px; font-size: 16px; }
+
+    .card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; margin: 12px 0; }
+
+    label { display: block; margin: 8px 0 6px; font-size: 13px; color: #cbd5f5; }
+
+    input, select, textarea { width: 100%; background: #0b1220; color: #e2e8f0; border: 1px solid #1f2937; border-radius: 8px; padding: 8px 10px; }
+
+    textarea { min-height: 140px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+
+    .row-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    button { background: #2563eb; color: #fff; border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+
+    button.secondary { background: #334155; }
+
+    .output { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #0b1220; border-radius: 8px; padding: 12px; border: 1px solid #1f2937; min-height: 120px; }
+
+    .hint { font-size: 12px; color: #94a3b8; }
+
+    a { color: #93c5fd; }
+
+    details { border: 1px dashed #334155; border-radius: 10px; padding: 10px 12px; margin: 10px 0; background: #0b1220; }
+
+    summary { cursor: pointer; font-weight: 600; color: #e2e8f0; }
+
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+
+    .field { background: #0f172a; border: 1px solid #1f2937; border-radius: 8px; padding: 8px; }
+
+    .field small { color: #94a3b8; display: block; margin-top: 6px; }
+
+    .lang-switch { display:flex; align-items:center; gap:8px; font-size:12px; color:#cbd5f5; }
+
+  
+
+    .modal { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.7); display: flex; align-items: center; justify-content: center; z-index: 50; }
+
+    .modal.hidden { display: none; }
+
+    .modal-card { width: min(520px, 92vw); background: #0b1220; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+
+    .modal-card.large { width: min(1100px, 96vw); max-height: 85vh; overflow: auto; }
+    .modal-card h3 { margin: 0 0 8px; font-size: 16px; }
+
+    .modal-card p { margin: 0 0 12px; color: #cbd5f5; line-height: 1.5; }
+
+    .modal-card .actions { justify-content: flex-end; }
+
+    .btn-disabled { opacity: 0.6; cursor: not-allowed; }
+
+
+
+    .progress-wrap { margin-top: 12px; }
+
+    .progress-bar { width: 100%; height: 10px; background: #0b1220; border: 1px solid #1f2937; border-radius: 999px; overflow: hidden; }
+
+    .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #2563eb, #22d3ee); transition: width 0.3s ease; }
+
+    .progress-meta { display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; margin-top: 6px; }
+
+    .hidden { display: none !important; }
+
+</style>
+
+</head>
+
+<body>
+
+  <div class="wrap">
+
+    <div class="header">
+
+      <h1 data-i18n="title">MCIC 引导向导</h1>
+
+      <div class="lang-switch">
+
+        <span data-i18n="language">语言</span>
+
+        <select id="lang">
+
+          <option value="zh">中文</option>
+
+          <option value="en">English</option>
+
+        </select>
+
+      </div>
+
+    </div>
+
+
+
+    <div class="card">
+
+      <h2 data-i18n="basic">基础设置</h2>
+
+      <div class="row">
+
+        <div>
+
+          <label data-i18n="versionLabel">版本（默认 1.21.11）</label>
+
+          <input id="version" data-i18n-placeholder="versionPlaceholder" placeholder="1.21.11" />
+
+        </div>
+
+        <div>
+
+          <label data-i18n="profile">配置档位</label>
+
+          <select id="profile">
+
+            <option value="beginner" data-i18n="profileBeginner">新手</option>
+
+            <option value="normal" selected data-i18n="profileNormal">标准</option>
+
+            <option value="advanced" data-i18n="profileAdvanced">高级</option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+      <div class="row">
+
+        <div>
+
+          <label data-i18n="otpLabel">一次性口令（OTP）</label>
+
+          <input id="otp" data-i18n-placeholder="otpPlaceholder" placeholder="" />
+
+          <div class="hint" data-i18n="otpHint">Plan / Apply / 保存需要 OTP。</div>
+
+        </div>
+
+      </div>
+
+      <label data-i18n="importMode">导入方式</label>
+
+      <select id="import_mode">
+
+        <option value="none" data-i18n="importNone">不导入</option>
+
+        <option value="paste" data-i18n="importPaste">粘贴配置串</option>
+
+        <option value="file" data-i18n="importFile">从文件路径导入</option>
+
+      </select>
+
+      <label data-i18n="importValue">配置串 / 文件路径</label>
+
+      <textarea id="import_value" data-i18n-placeholder="importPlaceholder" placeholder="粘贴配置串，或填写文件路径"></textarea>
+
+      <div class="hint" data-i18n="importHint">若选择“从文件路径导入”，请填写服务器上的文件路径。</div>
+
+    </div>
+
+
+
+        <div class="card">
+      <h2 data-i18n="beginner">????</h2>
+      <div class="row">
+        <div>
+          <label data-i18n="keepInventory">?????</label>
           <select data-param="keep_inventory">
-            <option value="true" data-i18n="on">开启</option>
-            <option value="false" data-i18n="off">关闭</option>
-          </select>
-        </div>
-        <div>
-          <label data-i18n="allowCheats">允许作弊（命令方块）</label>
+            <option value="true" data-i18n="on">??</option>
+            <option value="false" data-i18n="off">??</option>
+          </select>
+        </div>
+        <div>
+          <label data-i18n="allowCheats">??????????</label>
           <select data-param="command_blocks_work">
-            <option value="true" data-i18n="on">开启</option>
-            <option value="false" data-i18n="off">关闭</option>
-          </select>
-        </div>
-    </div>
-
-    <div class="card">
-      <h2 data-i18n="core">核心参数</h2>
-      <div class="row">
-        <div>
-          <label data-i18n="expectedPlayers">预期人数</label>
-          <input data-param="deploy.expected_players" data-i18n-placeholder="expectedPlayersPh" placeholder="例如 3" />
-        </div>
-        <div>
-          <label data-i18n="maxPlayers">最大人数</label>
-          <input data-param="max-players" data-i18n-placeholder="maxPlayersPh" placeholder="例如 20" />
-        </div>
-        <div>
-          <label data-i18n="difficulty">难度</label>
-          <select data-param="difficulty">
-            <option value="peaceful" data-i18n="difficultyPeaceful">和平</option>
-            <option value="easy" data-i18n="difficultyEasy">简单</option>
-            <option value="normal" data-i18n="difficultyNormal">普通</option>
-            <option value="hard" data-i18n="difficultyHard">困难</option>
-          </select>
-        </div>
-        <div>
-          <label data-i18n="gamemode">游戏模式</label>
-          <select data-param="gamemode">
-            <option value="survival" data-i18n="gmSurvival">生存</option>
-            <option value="creative" data-i18n="gmCreative">创造</option>
-            <option value="adventure" data-i18n="gmAdventure">冒险</option>
-            <option value="spectator" data-i18n="gmSpectator">旁观</option>
-          </select>
-        </div>
-        <div>
-          <label data-i18n="onlineMode">在线模式</label>
-          <select data-param="online-mode">
-            <option value="true" data-i18n="on">开启</option>
-            <option value="false" data-i18n="off">关闭</option>
-          </select>
-        </div>
-        <div>
-          <label data-i18n="pvp">PVP</label>
-          <select data-param="pvp">
-            <option value="true" data-i18n="on">开启</option>
-            <option value="false" data-i18n="off">关闭</option>
-          </select>
-        </div>
-        <div>
-          <label data-i18n="whitelist">白名单</label>
-          <select data-param="white-list">
-            <option value="true" data-i18n="on">开启</option>
-            <option value="false" data-i18n="off">关闭</option>
-          </select>
-        </div>
-        <div>
-          <label data-i18n="spawnProtection">出生保护</label>
-          <input data-param="spawn-protection" data-i18n-placeholder="spawnProtectionPh" placeholder="例如 16" />
-        </div>
-    </div>
-
-    <div class="card">
-      <h2 data-i18n="performance">性能参数</h2>
-      <div class="row">
-        <div>
-          <label data-i18n="memory">内存（docker.env.MEMORY）</label>
-          <input data-param="docker.env.MEMORY" data-i18n-placeholder="memoryPh" placeholder="例如 2G / 2048M" />
-        </div>
-        <div>
-          <label data-i18n="viewDistance">视距</label>
-          <input data-param="view-distance" data-i18n-placeholder="viewDistancePh" placeholder="例如 6" />
-        </div>
-        <div>
-          <label data-i18n="simulationDistance">模拟距离</label>
-          <input data-param="simulation-distance" data-i18n-placeholder="simulationDistancePh" placeholder="例如 4" />
-        </div>
-        <div>
-          <label data-i18n="randomTick">随机刻速度</label>
-          <input data-param="randomTickSpeed" data-i18n-placeholder="randomTickPh" placeholder="例如 3" />
-        </div>
-        <div>
-          <label data-i18n="maxEntityCramming">最大实体挤压</label>
-          <input data-param="maxEntityCramming" data-i18n-placeholder="maxEntityCrammingPh" placeholder="例如 24" />
-        </div>
-    </div>
-
-    <div class="card">
-      <h2 data-i18n="panel">面板 / 网络 / RCON</h2>
-      <div class="row">
-        <div>
-          <label data-i18n="panelEnable">启用面板</label>
-          <select data-param="panel.enable">
-            <option value="true" data-i18n="on">开启</option>
-            <option value="false" data-i18n="off">关闭</option>
-          </select>
-        </div>
-        <div>
-          <label data-i18n="panelPort">面板端口</label>
-          <input data-param="panel.port" data-i18n-placeholder="panelPortPh" placeholder="15000" />
-        </div>
-        <div>
-          <label data-i18n="serverPort">MC 端口</label>
-          <input data-param="server-port" data-i18n-placeholder="serverPortPh" placeholder="25565" />
-        </div>
-        <div>
-          <label data-i18n="rconEnable">启用 RCON</label>
-          <select data-param="enable-rcon">
-            <option value="true" data-i18n="on">开启</option>
-            <option value="false" data-i18n="off">关闭</option>
-          </select>
-        </div>
-        <div>
-          <label data-i18n="rconPort">RCON 端口</label>
-          <input data-param="rcon.port" data-i18n-placeholder="rconPortPh" placeholder="25575" />
-        </div>
-      </div>
-      <div class="field" style="grid-column: 1 / -1;">
-          <label data-i18n="portCheck">端口占用检测</label>
-          <div class="actions">
-            <button id="port_check_btn" class="secondary" data-i18n="portCheckBtn">检测端口</button>
-            <span id="port_check_result" class="hint" data-i18n="portCheckHint">点击检测常用端口是否被占用。</span>
-          </div>
-        </div>
-    </div>
-
-    <div class="card">
-      <h2 data-i18n="map">地图 / 插件</h2>
-      <div class="row">
-        <div>
-          <label data-i18n="mapPlugin">地图插件</label>
-          <select data-param="map.plugin">
-            <option value="bluemap" data-i18n="installBluemap">安装 BlueMap</option>
-            <option value="none" data-i18n="skipInstall">不安装</option>
-          </select>
-        </div>
-        <div>
-          <label data-i18n="mapPort">地图端口</label>
-          <input data-param="map.plugin_port" data-i18n-placeholder="mapPortPh" placeholder="8100" />
-        </div>
-        <div>
-          <label data-i18n="mapInterval">渲染间隔</label>
-          <input data-param="map.render_interval" data-i18n-placeholder="mapIntervalPh" placeholder="5" />
-        </div>
-        <div>
-          <label data-i18n="inventoryPlugin">背包插件</label>
-          <select data-param="inventory.plugin">
-            <option value="invsee" data-i18n="installInvsee">安装 InvSee++</option>
-            <option value="none" data-i18n="skipInstall">不安装</option>
-          </select>
-        </div>
-    </div>
-
-    <div class="card">
-      <h2 data-i18n="advanced">高级参数（目录）</h2>
-      <div id="catalog_sections"></div>
-    </div>
-
-    <div class="card">
-      <h2 data-i18n="custom">自定义参数</h2>
-      <label data-i18n="customHint">额外 key=value（每行一条）</label>
-      <textarea id="params_extra" data-i18n-placeholder="customPlaceholder" placeholder="max-players=3\nview-distance=4\nkeepInventory=true"></textarea>
-      <div class="hint" data-i18n="customHint2">将覆盖上方与导入配置中的值。</div>
-    </div>
-
-    <div class="card">
-      <div class="actions">
-        <button id="btn_plan" data-i18n="btnPlan">运行 Plan（评审）</button>
-        <button id="btn_apply" data-i18n="btnApply">执行 Apply</button>
-        <button id="btn_save" class="secondary" data-i18n="btnSave">保存配置</button>
-      </div>
-
-      <div class="hint" id="apply_notice" data-i18n="applyNotice">提示：Apply 可能需要几分钟到几十分钟，请耐心等待。</div>
-      <label style="margin-top:12px;" data-i18n="output">输出</label>
-      <div id="apply_progress" class="progress-wrap hidden">
-        <div class="progress-bar"><div id="apply_progress_fill" class="progress-fill"></div></div>
-        <div class="progress-meta"><span id="apply_progress_label"></span><span id="apply_progress_pct">0%</span></div>
-      </div>
-      <div id="output" class="output"></div>
-      <div class="hint"><span data-i18n="panelHint">如已安装主面板：</span> <a id="panel_link" href="/" target="_blank" data-i18n="panelLink">打开面板</a></div>
-    </div>
-  </div>
-
-  <div id="modal" class="modal hidden">
-    <div class="modal-card">
-      <h3 id="modal_title">完成</h3>
-      <p id="modal_body">已执行。</p>
-      <div class="actions">
-        <button id="modal_close" class="secondary">知道了</button>
-      </div>
-    </div>
-  </div>
-<script src="wizard_script.js"></script>
-</body>
-</html>
-
-
+            <option value="true" data-i18n="on">??</option>
+            <option value="false" data-i18n="off">??</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="core">????</h2>
+      <div class="row">
+        <div>
+          <label data-i18n="expectedPlayers">????</label>
+          <input data-param="deploy.expected_players" data-i18n-placeholder="expectedPlayersPh" placeholder="?? 3" />
+        </div>
+        <div>
+          <label data-i18n="maxPlayers">????</label>
+          <input data-param="max-players" data-i18n-placeholder="maxPlayersPh" placeholder="?? 20" />
+        </div>
+        <div>
+          <label data-i18n="difficulty">??</label>
+          <select data-param="difficulty">
+            <option value="peaceful" data-i18n="difficultyPeaceful">??</option>
+            <option value="easy" data-i18n="difficultyEasy">??</option>
+            <option value="normal" data-i18n="difficultyNormal">??</option>
+            <option value="hard" data-i18n="difficultyHard">??</option>
+          </select>
+        </div>
+        <div>
+          <label data-i18n="gamemode">????</label>
+          <select data-param="gamemode">
+            <option value="survival" data-i18n="gmSurvival">??</option>
+            <option value="creative" data-i18n="gmCreative">??</option>
+            <option value="adventure" data-i18n="gmAdventure">??</option>
+            <option value="spectator" data-i18n="gmSpectator">??</option>
+          </select>
+        </div>
+        <div>
+          <label data-i18n="onlineMode">????</label>
+          <select data-param="online-mode">
+            <option value="true" data-i18n="on">??</option>
+            <option value="false" data-i18n="off">??</option>
+          </select>
+        </div>
+        <div>
+          <label data-i18n="pvp">PVP</label>
+          <select data-param="pvp">
+            <option value="true" data-i18n="on">??</option>
+            <option value="false" data-i18n="off">??</option>
+          </select>
+        </div>
+        <div>
+          <label data-i18n="whitelist">???</label>
+          <select data-param="white-list">
+            <option value="true" data-i18n="on">??</option>
+            <option value="false" data-i18n="off">??</option>
+          </select>
+        </div>
+        <div>
+          <label data-i18n="spawnProtection">????</label>
+          <input data-param="spawn-protection" data-i18n-placeholder="spawnProtectionPh" placeholder="?? 16" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="performance">????</h2>
+      <div class="row">
+        <div>
+          <label data-i18n="memory">???docker.env.MEMORY?</label>
+          <input data-param="docker.env.MEMORY" data-i18n-placeholder="memoryPh" placeholder="?? 2G / 2048M" />
+        </div>
+        <div>
+          <label data-i18n="viewDistance">??</label>
+          <input data-param="view-distance" data-i18n-placeholder="viewDistancePh" placeholder="?? 6" />
+        </div>
+        <div>
+          <label data-i18n="simulationDistance">????</label>
+          <input data-param="simulation-distance" data-i18n-placeholder="simulationDistancePh" placeholder="?? 4" />
+        </div>
+        <div>
+          <label data-i18n="randomTick">?????</label>
+          <input data-param="randomTickSpeed" data-i18n-placeholder="randomTickPh" placeholder="?? 3" />
+        </div>
+        <div>
+          <label data-i18n="maxEntityCramming">??????</label>
+          <input data-param="maxEntityCramming" data-i18n-placeholder="maxEntityCrammingPh" placeholder="?? 24" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="panel">?? / ?? / RCON</h2>
+      <div class="row">
+        <div>
+          <label data-i18n="panelEnable">????</label>
+          <select data-param="panel.enable">
+            <option value="true" data-i18n="on">??</option>
+            <option value="false" data-i18n="off">??</option>
+          </select>
+        </div>
+        <div>
+          <label data-i18n="panelPort">????</label>
+          <input data-param="panel.port" data-i18n-placeholder="panelPortPh" placeholder="15000" />
+        </div>
+        <div>
+          <label data-i18n="serverPort">MC ??</label>
+          <input data-param="server-port" data-i18n-placeholder="serverPortPh" placeholder="25565" />
+        </div>
+        <div>
+          <label data-i18n="rconEnable">?? RCON</label>
+          <select data-param="enable-rcon">
+            <option value="true" data-i18n="on">??</option>
+            <option value="false" data-i18n="off">??</option>
+          </select>
+        </div>
+        <div>
+          <label data-i18n="rconPort">RCON ??</label>
+          <input data-param="rcon.port" data-i18n-placeholder="rconPortPh" placeholder="25575" />
+        </div>
+      </div>
+      <div class="field" style="grid-column: 1 / -1;">
+          <label data-i18n="portCheck">??????</label>
+          <div class="actions">
+            <button id="port_check_btn" class="secondary" data-i18n="portCheckBtn">????</button>
+            <span id="port_check_result" class="hint" data-i18n="portCheckHint">??????????????</span>
+          </div>
+        </div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="map">?? / ??</h2>
+      <div class="row">
+        <div>
+          <label data-i18n="mapPlugin">????</label>
+          <select data-param="map.plugin">
+            <option value="bluemap" data-i18n="installBluemap">?? BlueMap</option>
+            <option value="none" data-i18n="skipInstall">???</option>
+          </select>
+        </div>
+        <div>
+          <label data-i18n="mapPort">????</label>
+          <input data-param="map.plugin_port" data-i18n-placeholder="mapPortPh" placeholder="8100" />
+        </div>
+        <div>
+          <label data-i18n="mapInterval">????</label>
+          <input data-param="map.render_interval" data-i18n-placeholder="mapIntervalPh" placeholder="5" />
+        </div>
+        <div>
+          <label data-i18n="inventoryPlugin">????</label>
+          <select data-param="inventory.plugin">
+            <option value="invsee" data-i18n="installInvsee">?? InvSee++</option>
+            <option value="none" data-i18n="skipInstall">???</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="advanced_card">
+      <h2 data-i18n="advanced">????????</h2>
+      <div class="actions">
+        <button id="btn_advanced" class="secondary" data-i18n="advancedOpen">??????</button>
+      </div>
+    </div>
+
+<div class="card">
+
+      <h2 data-i18n="custom">自定义参数</h2>
+
+      <label data-i18n="customHint">额外 key=value（每行一条）</label>
+
+      <textarea id="params_extra" data-i18n-placeholder="customPlaceholder" placeholder="max-players=3\nview-distance=4\nkeepInventory=true"></textarea>
+
+      <div class="hint" data-i18n="customHint2">将覆盖上方与导入配置中的值。</div>
+
+    </div>
+
+
+
+    <div class="card">
+
+      <div class="actions">
+
+        <button id="btn_plan" data-i18n="btnPlan">运行 Plan（评审）</button>
+
+        <button id="btn_apply" data-i18n="btnApply">执行 Apply</button>
+
+        <button id="btn_save" class="secondary" data-i18n="btnSave">保存配置</button>
+
+      </div>
+
+
+
+      <div class="hint" id="apply_notice" data-i18n="applyNotice">提示：Apply 可能需要几分钟到几十分钟，请耐心等待。</div>
+
+      <label style="margin-top:12px;" data-i18n="output">输出</label>
+
+      <div id="apply_progress" class="progress-wrap hidden">
+
+        <div class="progress-bar"><div id="apply_progress_fill" class="progress-fill"></div></div>
+
+        <div class="progress-meta"><span id="apply_progress_label"></span><span id="apply_progress_pct">0%</span></div>
+
+      </div>
+
+      <div id="output" class="output"></div>
+
+      <div class="hint"><span data-i18n="panelHint">如已安装主面板：</span> <a id="panel_link" href="/" target="_blank" data-i18n="panelLink">打开面板</a></div>
+
+    </div>
+
+  </div>
+
+
+
+  <div id="modal" class="modal hidden">
+
+    <div class="modal-card">
+
+      <h3 id="modal_title">完成</h3>
+
+      <p id="modal_body">已执行。</p>
+
+      <div class="actions">
+
+        <button id="modal_close" class="secondary">知道了</button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <div id="advanced_modal" class="modal hidden">
+    <div class="modal-card large">
+      <h3 data-i18n="advanced">????????</h3>
+      <div id="catalog_sections"></div>
+      <div class="actions">
+        <button id="advanced_close" class="secondary" data-i18n="close">??</button>
+      </div>
+    </div>
+  </div>
+
+
+<script src="wizard_script.js"></script>
+
+</body>
+
+</html>
+
+
+
+
+

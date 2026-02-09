@@ -1,17 +1,20 @@
 const $ = (id) => document.getElementById(id);
 const output = $('output');
 const panelLink = $('panel_link');
-const catalogContainer = $('catalog_sections');
-const langSelect = $('lang');
-const profileSelect = $('profile');
-const versionInput = $('version');
-const btnApply = $('btn_apply');
-const btnPlan = $('btn_plan');
-const btnSave = $('btn_save');
-let catalogBundle = null;
-let progressTimer = null;
-let applyHangTimer = null;
-let catalogDefaults = {};
+const catalogContainer = $('catalog_sections');
+const langSelect = $('lang');
+const profileSelect = $('profile');
+const versionInput = $('version');
+const btnApply = $('btn_apply');
+const btnPlan = $('btn_plan');
+const btnSave = $('btn_save');
+const advancedBtn = $('btn_advanced');
+const advancedModal = $('advanced_modal');
+const advancedClose = $('advanced_close');
+let catalogBundle = null;
+let progressTimer = null;
+let applyHangTimer = null;
+let catalogDefaults = {};
 
 const PROFILE_DEFAULTS = {
   beginner: {
@@ -133,9 +136,10 @@ const translations = {
     mapPortPh: '8100',
     mapInterval: '渲染间隔',
     mapIntervalPh: '5',
-    inventoryPlugin: '背包插件',
-    advanced: '高级参数（目录）',
-    custom: '自定义参数',
+    inventoryPlugin: '背包插件',
+    advanced: '高级参数（目录）',
+    advancedOpen: '打开高级参数',
+    custom: '自定义参数',
     customHint: '额外 key=value（每行一条）',
     customPlaceholder: 'max-players=3\nview-distance=4\nkeepInventory=true',
     customHint2: '将覆盖上方与导入配置中的值。',
@@ -156,11 +160,12 @@ const translations = {
     applyFailBody: '执行失败，请查看输出。',
     applyWarnTitle: '执行超时提醒',
     applyWarnBody: '执行时间过长，请检查输出或 SSH 日志。',
-    progressRunning: '执行中',
-    progressDone: '已完成',
-    progressFailed: '失败'
-  },
-  en: {
+    progressRunning: '执行中',
+    progressDone: '已完成',
+    progressFailed: '失败',
+    close: '关闭'
+  },
+  en: {
     title: 'MCIC Wizard',
     language: 'Language',
     basic: 'Basics',
@@ -238,9 +243,10 @@ const translations = {
     mapPortPh: '8100',
     mapInterval: 'Render interval',
     mapIntervalPh: '5',
-    inventoryPlugin: 'Inventory plugin',
-    advanced: 'Advanced (catalog)',
-    custom: 'Custom params',
+    inventoryPlugin: 'Inventory plugin',
+    advanced: 'Advanced (catalog)',
+    advancedOpen: 'Open advanced parameters',
+    custom: 'Custom params',
     customHint: 'Extra key=value lines (one per line)',
     customPlaceholder: 'max-players=3\nview-distance=4\nkeepInventory=true',
     customHint2: 'These override values above and imported claims.',
@@ -261,11 +267,12 @@ const translations = {
     applyFailBody: 'Apply failed. Check output for details.',
     applyWarnTitle: 'Apply warning',
     applyWarnBody: 'Apply is taking longer than expected. Check output/logs via SSH.',
-    progressRunning: 'Running',
-    progressDone: 'Completed',
-    progressFailed: 'Failed'
-  }
-};
+    progressRunning: 'Running',
+    progressDone: 'Completed',
+    progressFailed: 'Failed',
+    close: 'Close'
+  }
+};
 
 function t(key) {
   const lang = langSelect.value || 'zh';
@@ -309,7 +316,7 @@ async function signOtp(otp, nonce, host) {
   return toHex(sig);
 }
 
-function applyProfileDefaults(profile, force = false) {
+function applyProfileDefaults(profile, force = false) {
   const defaults = {
     ...catalogDefaults,
     ...UI_DEFAULTS,
@@ -323,8 +330,14 @@ function applyProfileDefaults(profile, force = false) {
     if (!force && (el.value || '').trim() !== '') return;
     el.value = val;
   });
-}
-
+}
+
+function updateAdvancedVisibility() {
+  if (!advancedBtn) return;
+  const isBeginner = (profileSelect.value || 'normal') === 'beginner';
+  advancedBtn.classList.toggle('hidden', isBeginner);
+}
+
 function normalizeSensitivity(sensitivity) {
   if (!sensitivity) return '';
   const s = String(sensitivity).toLowerCase();
@@ -387,11 +400,11 @@ function renderCatalog() {
     });
     if (!rows.length) return;
     const title = sectionKey;
-    const html = `<details open><summary>${title}</summary><div class="grid">${rows.join('')}</div></details>`;
-    catalogContainer.innerHTML += html;
-  });
-  applyProfileDefaults(profileSelect.value || 'normal', false);
-}
+    const html = `<details><summary>${title}</summary><div class="grid">${rows.join('')}</div></details>`;
+    catalogContainer.innerHTML += html;
+  });
+  applyProfileDefaults(profileSelect.value || 'normal', false);
+}
 
 async function loadCatalog(force = false) {
   const version = (versionInput.value || '1.21.11').trim();
@@ -449,13 +462,14 @@ async function loadState() {
   $('import_value').value = data.import_value || '';
   $('params_extra').value = data.params_text || '';
   if (data.panel_url) panelLink.href = data.panel_url;
-  if (data.lang) {
-    langSelect.value = data.lang;
-  }
-  applyLang(langSelect.value || 'zh');
-  await loadCatalog(true);
-  applyProfileDefaults(profileSelect.value, false);
-}
+  if (data.lang) {
+    langSelect.value = data.lang;
+  }
+  applyLang(langSelect.value || 'zh');
+  await loadCatalog(true);
+  applyProfileDefaults(profileSelect.value, false);
+  updateAdvancedVisibility();
+}
 
 function gather() {
   const params = {};
@@ -502,7 +516,20 @@ function showModal(title, body) {
   modal.classList.remove('hidden');
 }
 
-$('modal_close').onclick = () => $('modal').classList.add('hidden');
+$('modal_close').onclick = () => $('modal').classList.add('hidden');
+if (advancedBtn && advancedModal) {
+  advancedBtn.onclick = () => advancedModal.classList.remove('hidden');
+}
+if (advancedClose && advancedModal) {
+  advancedClose.onclick = () => advancedModal.classList.add('hidden');
+}
+if (advancedModal) {
+  advancedModal.onclick = (ev) => {
+    if (ev.target === advancedModal) {
+      advancedModal.classList.add('hidden');
+    }
+  };
+}
 
 async function saveState() {
   const payload = gather();
@@ -680,9 +707,9 @@ btnApply.onclick = async () => {
 };
 btnSave.onclick = async () => { await saveState(); output.textContent = 'OK'; };
 
-langSelect.onchange = () => { applyLang(langSelect.value); renderCatalog(); };
-profileSelect.onchange = () => { renderCatalog(); applyProfileDefaults(profileSelect.value, true); };
-versionInput.onchange = async () => { await loadCatalog(true); };
+langSelect.onchange = () => { applyLang(langSelect.value); renderCatalog(); };
+profileSelect.onchange = () => { renderCatalog(); applyProfileDefaults(profileSelect.value, true); updateAdvancedVisibility(); };
+versionInput.onchange = async () => { await loadCatalog(true); };
 
 applyLang('zh');
 loadState();
