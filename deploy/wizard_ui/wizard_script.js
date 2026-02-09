@@ -47,7 +47,11 @@ const UI_DEFAULTS = {
   "panel.enable": "false",
   "panel.port": "15000",
   "server-port": "25565",
-  "rcon.port": "25575"
+  "rcon.port": "25575",
+  "map.plugin": "none",
+  "map.plugin_port": "8123",
+  "map.render_interval": "5",
+  "inventory.plugin": "none"
 };
 
 const translations = {
@@ -126,7 +130,7 @@ const translations = {
     installInvsee: '安装 InvSee++',
     skipInstall: '不安装',
     mapPort: '地图端口',
-    mapPortPh: '8100',
+    mapPortPh: '8123',
     mapInterval: '渲染间隔',
     mapIntervalPh: '5',
     inventoryPlugin: '背包插件',
@@ -231,7 +235,7 @@ const translations = {
     installInvsee: 'Install InvSee++',
     skipInstall: 'Do not install',
     mapPort: 'Map port',
-    mapPortPh: '8100',
+    mapPortPh: '8123',
     mapInterval: 'Render interval',
     mapIntervalPh: '5',
     inventoryPlugin: 'Inventory plugin',
@@ -319,11 +323,6 @@ function applyProfileDefaults(profile, force = false) {
     if (!force && (el.value || '').trim() !== '') return;
     el.value = val;
   });
-  document.querySelectorAll('[data-param]').forEach((el) => {
-    if (el.dataset.default) return;
-    const val = (el.value || '').trim();
-    if (val) el.dataset.default = val;
-  });
 }
 
 function normalizeSensitivity(sensitivity) {
@@ -410,7 +409,23 @@ async function loadCatalog(force = false) {
         const entries = (section && section.entries) || {};
         Object.entries(entries).forEach(([key, meta]) => {
           if (!meta || meta.default === undefined || meta.default === null) return;
-          catalogDefaults[key] = String(meta.default);
+          const type = (meta && meta.type) || '';
+          let value = meta.default;
+          if (type === 'bool' || type === 'boolean') {
+            if (typeof value === 'string') {
+              const normalized = value.trim().toLowerCase();
+              if (['true', '1', 'yes', 'y', 'on'].includes(normalized)) {
+                value = 'true';
+              } else if (['false', '0', 'no', 'n', 'off'].includes(normalized)) {
+                value = 'false';
+              } else {
+                value = normalized;
+              }
+            } else {
+              value = value ? 'true' : 'false';
+            }
+          }
+          catalogDefaults[key] = String(value);
         });
       });
     } else {
