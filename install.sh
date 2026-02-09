@@ -278,6 +278,20 @@ if [ "$SKIP_SETUP" != "1" ]; then
   fi
 fi
 
+# ------------------------------
+# Ensure mcic wrapper
+# ------------------------------
+if [ "$SKIP_SETUP" != "1" ]; then
+  if [ ! -f /usr/local/bin/mcic ]; then
+    cat >/usr/local/bin/mcic <<'EOF'
+#!/bin/sh
+cd /opt/mc-panel-sanitized || exit 1
+exec python3 -m deploy.cli "$@"
+EOF
+    chmod +x /usr/local/bin/mcic
+  fi
+fi
+
 INSTALL_DIR="${MC_PANEL_ROOT:-/opt/mc-panel-sanitized}"
 BRANCH="${MC_PANEL_BRANCH:-demon1.3}"
 
