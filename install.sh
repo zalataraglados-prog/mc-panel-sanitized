@@ -493,6 +493,59 @@ if [ "$PANEL_MAINT" = "1" ] || [ "$PANEL_MAINT" = "2" ]; then
   exit 0
 fi
 
+WIZARD_PORT="${MC_PANEL_WIZARD_PORT:-15001}"
+WIZARD_MODE="${MC_PANEL_USE_CLI:-0}"
+if [ "$WIZARD_MODE" != "1" ]; then
+  if [ "$AUTO_MODE" != "1" ]; then
+    WIZARD_CHOICE=$(read_tty "Launch wizard UI now? (default) Press Enter, or type 'cli' to use SSH fallback: ")
+    WIZARD_CHOICE="$(echo "$WIZARD_CHOICE" | tr '[:upper:]' '[:lower:]' | xargs)"
+    if [ "$WIZARD_CHOICE" = "cli" ]; then
+      WIZARD_MODE="1"
+    fi
+  fi
+fi
+
+if [ "$WIZARD_MODE" != "1" ]; then
+  if command -v systemctl >/dev/null 2>&1; then
+    cat >/etc/systemd/system/mc-wizard.service <<EOF
+[Unit]
+Description=MC Wizard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=${INSTALL_DIR}
+ExecStart=/usr/bin/python3 ${INSTALL_DIR}/deploy/wizard_server.py
+Restart=always
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+Environment=MC_PANEL_WIZARD_PORT=${WIZARD_PORT}
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl daemon-reload || true
+    systemctl enable --now mc-wizard || true
+  else
+    nohup /usr/bin/python3 ${INSTALL_DIR}/deploy/wizard_server.py >/var/log/mc-wizard.log 2>&1 &
+  fi
+
+  HOST_IP=""
+  if command -v hostname >/dev/null 2>&1; then
+    HOST_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+  fi
+  if [ -z "$HOST_IP" ]; then
+    HOST_IP="127.0.0.1"
+  fi
+  echo ""
+  echo "[INFO] Wizard UI is the default flow."
+  echo "[INFO] Open: http://${HOST_IP}:${WIZARD_PORT}/"
+  echo "[INFO] OTP: mcic otp  (or cat ${INSTALL_DIR}/deploy/wizard_token.txt)"
+  echo "[INFO] If wizard is unavailable, re-run with MC_PANEL_USE_CLI=1 for SSH fallback."
+  exit 0
+fi
+
 echo ""
 if [ "$AUTO_MODE" = "1" ]; then
   if [ -n "${MC_PANEL_IMPORT_FILE:-}" ]; then

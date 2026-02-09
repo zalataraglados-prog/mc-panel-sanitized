@@ -25,6 +25,25 @@ This project is a configuration decision engine for Minecraft deployments with a
 ```
 curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/v1.0.2/install.sh | sudo bash
 ```
+
+The installer starts the Wizard UI by default. Open:
+
+```
+http://<server-ip>:15001/
+```
+
+Get OTP:
+
+```
+mcic otp
+```
+
+If the wizard is unavailable, use SSH fallback (CLI):
+
+```
+MC_PANEL_USE_CLI=1 curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/v1.0.2/install.sh | sudo bash
+```
+
 After the first install, you can use the short CLI (Linux only):
 安装完成后可使用简写 CLI（仅 Linux）：
 
