@@ -232,7 +232,13 @@ def _cleanup_failed(instance_dir: str | None = None) -> None:
 
 def _check_service_health(instance_dir: str) -> tuple[bool, str]:
     instance_name = _read_instance_name(instance_dir)
-    service = f"instance-{instance_name}.service"
+    service_name = instance_name
+    if service_name.endswith(".service"):
+        service_name = service_name[:-8]
+    if service_name.startswith("instance-"):
+        service = f"{service_name}.service"
+    else:
+        service = f"instance-{service_name}.service"
     try:
         state = subprocess.run(["systemctl", "is-active", service], capture_output=True, text=True).stdout.strip()
     except Exception:
