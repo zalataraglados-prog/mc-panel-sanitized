@@ -18,7 +18,7 @@
 - 说明：见 `RELEASE_DRAFT_v1.0.2.md`
 
 This project is a configuration decision engine for Minecraft deployments with an optional runtime panel.
-本项目是一个 Minecraft 部署前的配置裁决引擎，运行期面板为可选组件。
+本项目是一个 Minecraft 部署前的配置推荐引擎，运行期面板为可选组件。
 
 ## Quick start (plan + dry-run) / 快速开始
 
