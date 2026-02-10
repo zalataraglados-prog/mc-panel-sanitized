@@ -9,13 +9,13 @@
 
 ## Release / 当前发布
 
-- Current release: `v1.0.2`
-- Tag: `https://github.com/zalataraglados-prog/mc-panel-sanitized/releases/tag/v1.0.2`
-- Notes: see `RELEASE_DRAFT_v1.0.2.md`
+- Current release: `v1.0.3`
+- Tag: `https://github.com/zalataraglados-prog/mc-panel-sanitized/releases/tag/v1.0.3`
+- Notes: see `RELEASE_DRAFT_v1.0.3.md`
 
-- 当前版本：`v1.0.2`
-- 标签：`https://github.com/zalataraglados-prog/mc-panel-sanitized/releases/tag/v1.0.2`
-- 说明：见 `RELEASE_DRAFT_v1.0.2.md`
+- 当前版本：`v1.0.3`
+- 标签：`https://github.com/zalataraglados-prog/mc-panel-sanitized/releases/tag/v1.0.3`
+- 说明：见 `RELEASE_DRAFT_v1.0.3.md`
 
 This project is a configuration decision engine for Minecraft deployments with an optional runtime panel.
 本项目是一个 Minecraft 部署前的配置推荐引擎，运行期面板为可选组件。
@@ -23,7 +23,7 @@ This project is a configuration decision engine for Minecraft deployments with a
 ## Quick start (plan + dry-run) / 快速开始
 
 ```
-curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/v1.0.2/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/v1.0.3/install.sh | sudo bash
 ```
 
 The installer starts the Wizard UI by default. Open:
@@ -41,7 +41,7 @@ mcic otp
 If the wizard is unavailable, use SSH fallback (CLI):
 
 ```
-MC_PANEL_USE_CLI=1 curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/v1.0.2/install.sh | sudo bash
+MC_PANEL_USE_CLI=1 curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/v1.0.3/install.sh | sudo bash
 ```
 
 After the first install, you can use the short CLI (Linux only):
