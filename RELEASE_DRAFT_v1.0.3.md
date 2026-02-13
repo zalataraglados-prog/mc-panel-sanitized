@@ -5,6 +5,8 @@ Deployment now actually executes actions; wizard waiting/health logic hardened t
 部署器开始真实执行 Actions；导引等待与健康检查逻辑加固，避免假成功或无限等待。
 CLI and installer reliability improved: CLI entry restored, mcic wrapper installed, wizard-first default with CLI fallback.
 CLI/安装可靠性提升：修复 CLI 入口，安装 mcic wrapper，默认走导引网页，CLI 作为备用路线。
+Packaging cleanup: removed legacy setup.py from deploy to avoid confusion.
+打包清理：移除 deploy 目录下的旧 setup.py，避免混淆。
 
 Technical Notes / 技术说明
 This release focuses on stability of the wizard + deployment pipeline and reduces operator confusion.
