@@ -7,6 +7,8 @@ CLI and installer reliability improved: CLI entry restored, mcic wrapper install
 CLI/安装可靠性提升：修复 CLI 入口，安装 mcic wrapper，默认走导引网页，CLI 作为备用路线。
 Packaging cleanup: removed legacy setup.py from deploy to avoid confusion.
 打包清理：移除 deploy 目录下的旧 setup.py，避免混淆。
+Documentation cleanup: removed outdated release drafts/announcement and a one-off deploy report.
+文档清理：移除过期的发布草稿/公告和一次性的部署报告。
 
 Technical Notes / 技术说明
 This release focuses on stability of the wizard + deployment pipeline and reduces operator confusion.
