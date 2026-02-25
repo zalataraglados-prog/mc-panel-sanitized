@@ -6,26 +6,7 @@ from typing import Dict
 
 from backend.runtime.log_paths import resolve_latest_log
 from backend.runtime.rcon_client import RCONClient
-
-
-def _read_server_properties(instance_dir: Path) -> dict:
-    path = instance_dir / "data" / "server.properties"
-    if not path.exists():
-        return {}
-    result = {}
-    for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        result[key.strip()] = _clean_value(value)
-    return result
-
-
-def _clean_value(raw: str) -> str:
-    value = raw.strip()
-    if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
-        return value[1:-1]
-    return value
+from backend.runtime.server_properties import read_server_properties
 
 
 def _log_recent(log_path: Path, max_age_seconds: int = 300) -> bool:
@@ -45,7 +26,7 @@ class MCClient:
         """
         log_path = resolve_latest_log(str(self.instance_dir))
         running = False
-        props = _read_server_properties(self.instance_dir)
+        props = read_server_properties(self.instance_dir)
         rcon_enabled = props.get("enable-rcon", "false").lower() == "true"
         if rcon_enabled:
             client = RCONClient.from_instance_dir(str(self.instance_dir))

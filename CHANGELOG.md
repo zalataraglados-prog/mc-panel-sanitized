@@ -1,6 +1,15 @@
 ﻿# Changelog / 更新日志
 
 ## [Unreleased] / 未发布
+### Changed / 调整
+- Auth token lookup now uses an in-memory cache with mtime-based reload and token index, avoiding per-request JSON parse and full user scan.
+  - 鉴权 token 查询改为内存缓存 + 文件 mtime 热更新 + token 索引，避免每次请求都解析 JSON 并遍历全部用户。
+- Shared `server.properties` parser extracted to `backend/runtime/server_properties.py`, and reused by metrics/mc_client/rcon_client.
+  - 抽取 `server.properties` 公共解析模块并复用于 metrics/mc_client/rcon_client，消除三处重复实现。
+
+### Added / 新增
+- Auth lifecycle logging for key events: missing/invalid auth, role-denied access, and user create/update/delete persistence.
+  - 增加鉴权关键路径日志：缺失/非法认证、权限拒绝、用户增删改与持久化事件。
 
 ## [2026-01-30]
 ### Added / 新增

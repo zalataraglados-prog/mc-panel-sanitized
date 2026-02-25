@@ -8,6 +8,7 @@ from pathlib import Path
 from backend.runtime.ansi import strip_ansi
 from backend.runtime.cache import TTLCache
 from backend.runtime.rcon_client import RCONClient
+from backend.runtime.server_properties import read_server_properties
 
 _METRICS_CACHE = TTLCache(ttl_seconds=2.0)
 
@@ -61,26 +62,6 @@ def _parse_tps_response(response: str) -> tuple[float | None, float | None]:
     return tps, mspt
 
 
-def _read_server_properties(instance_dir: Path) -> dict:
-    path = instance_dir / "data" / "server.properties"
-    if not path.exists():
-        return {}
-    result = {}
-    for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        result[key.strip()] = _clean_value(value)
-    return result
-
-
-def _clean_value(raw: str) -> str:
-    value = raw.strip()
-    if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
-        return value[1:-1]
-    return value
-
-
 def _ping_latency(host: str, port: int, timeout: float = 1.5) -> float:
     start = time.time()
     try:
@@ -117,7 +98,7 @@ def gather_metrics(instance_dir: str | None = None) -> dict:
         tps_response = client.execute("tps")
         tps, mspt = _parse_tps_response(tps_response)
         players = len(client.list_players())
-        props = _read_server_properties(instance_path)
+        props = read_server_properties(instance_path)
         port = int(props.get("server-port", "25565"))
         ping = _ping_latency("127.0.0.1", port)
 

@@ -9,6 +9,7 @@ from typing import List
 import re
 
 from backend.runtime.ansi import strip_ansi
+from backend.runtime.server_properties import read_server_properties
 
 @dataclass
 class RCONResponse:
@@ -69,7 +70,7 @@ class RCONClient:
     @classmethod
     def from_instance_dir(cls, instance_dir: str) -> "RCONClient":
         base_dir = Path(instance_dir)
-        props = _read_server_properties(base_dir)
+        props = read_server_properties(base_dir)
         enabled = props.get("enable-rcon", "false").lower() == "true"
         host = "127.0.0.1"
         config = _read_instance_config(base_dir)
@@ -125,26 +126,6 @@ def _parse_player_list(response: str) -> List[str]:
         return []
     names = [name.strip() for name in parts[1].split(",") if name.strip()]
     return names
-
-
-def _read_server_properties(instance_dir: Path) -> dict:
-    path = instance_dir / "data" / "server.properties"
-    if not path.exists():
-        return {}
-    result = {}
-    for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        result[key.strip()] = _clean_value(value)
-    return result
-
-
-def _clean_value(raw: str) -> str:
-    value = raw.strip()
-    if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
-        return value[1:-1]
-    return value
 
 
 def _read_instance_config(instance_dir: Path) -> dict:
