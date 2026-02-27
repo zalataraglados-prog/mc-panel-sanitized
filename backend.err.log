@@ -1,0 +1,6 @@
+INFO backend.static: Static candidate missing: \opt\mc-panel-sanitized\frontend\dist (index=\opt\mc-panel-sanitized\frontend\dist\index.html)
+INFO backend.static: Mounted panel static dir: I:\files\mc-panel-sanitized\v1.0.2\frontend\dist
+INFO:     Started server process [16020]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
