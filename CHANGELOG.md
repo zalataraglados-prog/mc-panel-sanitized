@@ -11,6 +11,10 @@
 - Auth lifecycle logging for key events: missing/invalid auth, role-denied access, and user create/update/delete persistence.
   - 增加鉴权关键路径日志：缺失/非法认证、权限拒绝、用户增删改与持久化事件。
 
+### Fixed / 修复
+- BlueMap installer URL updated to v5.16 (`spigot`) in both `install.sh` and planner defaults, fixing 404 caused by stale `latest/download/bluemap-5.15-spigot.jar`.
+  - 同步更新 `install.sh` 与规划器默认 BlueMap 下载地址到 v5.16（`spigot`），修复旧 `latest/download/bluemap-5.15-spigot.jar` 导致的 404。
+
 ## [2026-01-30]
 ### Added / 新增
 - Web wizard (port 15001) with plan/apply UI, OTP protection, apply progress bar, and modal feedback.

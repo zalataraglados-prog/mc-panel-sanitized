@@ -9,6 +9,8 @@ Packaging cleanup: removed legacy setup.py from deploy to avoid confusion.
 打包清理：移除 deploy 目录下的旧 setup.py，避免混淆。
 Documentation cleanup: removed outdated release drafts/announcement and a one-off deploy report.
 文档清理：移除过期的发布草稿/公告和一次性的部署报告。
+BlueMap download link hotfix: replaced stale `latest/download/bluemap-5.15-spigot.jar` with the valid v5.16 asset URL.
+BlueMap 下载链接热修复：将失效的 `latest/download/bluemap-5.15-spigot.jar` 替换为有效的 v5.16 资源地址。
 
 Technical Notes / 技术说明
 This release focuses on stability of the wizard + deployment pipeline and reduces operator confusion.

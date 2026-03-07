@@ -23,7 +23,7 @@ MAP_PLUGIN_URLS = {
         "filename": "Dynmap.jar",
     },
     "bluemap": {
-        "url": "https://github.com/BlueMap-Minecraft/BlueMap/releases/latest/download/bluemap-5.15-spigot.jar",
+        "url": "https://github.com/BlueMap-Minecraft/BlueMap/releases/download/v5.16/bluemap-5.16-spigot.jar",
         "filename": "BlueMap.jar",
     },
 }
