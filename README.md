@@ -20,7 +20,7 @@
 This project is a configuration decision engine for Minecraft deployments with an optional runtime panel.
 本项目是一个 Minecraft 部署前的配置推荐引擎，运行期面板为可选组件。
 
-## Quick start (plan + dry-run) / 快速开始
+## Quick start / 快速开始
 
 ```
 curl -fsSL https://raw.githubusercontent.com/zalataraglados-prog/mc-panel-sanitized/v1.0.3/install.sh | sudo bash
