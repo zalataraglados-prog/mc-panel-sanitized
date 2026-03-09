@@ -22,6 +22,8 @@
   - 安全默认值加固：RCON 默认仅绑定本机（`127.0.0.1`），仅在显式设置 `security.rcon_public=true` 时才对外暴露。
 - Initial credentials are now randomized by default (RCON password + panel secret key), and execution logs now mask secret fields.
   - 初始凭据默认随机化（RCON 密码 + panel secret_key），并在执行日志中对密钥字段做脱敏处理。
+- Legacy compose generation and CLI JSONL event logging were aligned with the same security baseline (RCON binding + payload masking).
+  - 遗留 compose 生成链路与 CLI JSONL 事件日志已对齐同一安全基线（RCON 绑定策略 + 负载脱敏）。
 
 ## [2026-01-30]
 ### Added / 新增
