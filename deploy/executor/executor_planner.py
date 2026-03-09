@@ -401,14 +401,6 @@ def build_execution_plan(
                 "context": context,
             },
         ),
-        Action(
-            type="systemd_enable_now",
-            params={
-                "service": f"{instance_name}.service",
-                "compose_dir": instance_dir,
-                "compose_service": "minecraft",
-            },
-        ),
     ]
     if panel_enabled:
         actions.append(
@@ -428,16 +420,6 @@ def build_execution_plan(
                     "path": "/etc/systemd/system/mc-panel.service",
                     "template": "mc-panel.service.tpl",
                     "context": context,
-                },
-            )
-        )
-        actions.append(
-            Action(
-                type="systemd_enable_now",
-                params={
-                    "service": "mc-panel.service",
-                    "panel_root": context["PANEL_ROOT"],
-                    "panel_port": context["PANEL_PORT"],
                 },
             )
         )
@@ -589,6 +571,29 @@ def build_execution_plan(
                     "source": map_file,
                     "target": target,
                     "overwrite": overwrite,
+                },
+            )
+        )
+
+    # Start services after plugin/map actions to avoid partial-live instances on download failure.
+    actions.append(
+        Action(
+            type="systemd_enable_now",
+            params={
+                "service": f"{instance_name}.service",
+                "compose_dir": instance_dir,
+                "compose_service": "minecraft",
+            },
+        )
+    )
+    if panel_enabled and not panel_installed:
+        actions.append(
+            Action(
+                type="systemd_enable_now",
+                params={
+                    "service": "mc-panel.service",
+                    "panel_root": context["PANEL_ROOT"],
+                    "panel_port": context["PANEL_PORT"],
                 },
             )
         )

@@ -14,6 +14,10 @@
 ### Fixed / 修复
 - BlueMap installer URL updated to v5.16 (`spigot`) in both `install.sh` and planner defaults, fixing 404 caused by stale `latest/download/bluemap-5.15-spigot.jar`.
   - 同步更新 `install.sh` 与规划器默认 BlueMap 下载地址到 v5.16（`spigot`），修复旧 `latest/download/bluemap-5.15-spigot.jar` 导致的 404。
+- Execution order now starts MC service after plugin/map download actions, reducing partial-live deployments when plugin download fails.
+  - 执行动作顺序调整为“插件/地图下载完成后再启动 MC 服务”，降低下载失败时出现“半成功实例”的概率。
+- Wizard apply failure detail now surfaces concrete CLI failure lines (including download 404), and failed apply triggers service/compose teardown for the target instance.
+  - 向导失败详情改为透传 CLI 关键失败行（含下载 404）；apply 失败时会对目标实例执行 service/compose 下线，避免失败后端口持续占用。
 
 ## [2026-01-30]
 ### Added / 新增

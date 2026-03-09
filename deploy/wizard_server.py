@@ -226,6 +226,35 @@ def _collect_service_logs(service: str) -> str:
     return "\n".join([c for c in chunks if c]).strip()
 
 
+def _run_quiet(cmd: list[str], cwd: str | None = None) -> None:
+    try:
+        subprocess.run(cmd, cwd=cwd, check=False, capture_output=True, text=True)
+    except Exception:
+        return
+
+
+def _teardown_instance(instance_dir: str) -> None:
+    instance_name = _read_instance_name(instance_dir)
+    service = instance_name if instance_name.endswith(".service") else f"{instance_name}.service"
+    _run_quiet(["systemctl", "disable", "--now", service])
+    _run_quiet(["systemctl", "stop", service])
+    _run_quiet(["docker", "compose", "-p", instance_name, "-f", "docker-compose.yml", "down"], cwd=instance_dir)
+    _run_quiet(["docker-compose", "-p", instance_name, "-f", "docker-compose.yml", "down"], cwd=instance_dir)
+
+
+def _extract_cli_failure_reason(output: str | None) -> str:
+    if not output:
+        return "apply failed"
+    lines = [line.strip() for line in output.splitlines() if line.strip()]
+    for line in reversed(lines):
+        if line.startswith("- ") and "FAIL" in line:
+            return line
+    for line in reversed(lines):
+        if "HTTP Error" in line or "Not Found" in line or "download" in line.lower():
+            return line
+    return lines[-1]
+
+
 def _cleanup_failed(instance_dir: str | None = None) -> None:
     try:
         if Path("/tmp/mcic.lock").exists():
@@ -237,6 +266,10 @@ def _cleanup_failed(instance_dir: str | None = None) -> None:
             lock_path = Path(instance_dir) / ".mcic.lock"
             if lock_path.exists():
                 lock_path.unlink()
+        except Exception:
+            pass
+        try:
+            _teardown_instance(instance_dir)
         except Exception:
             pass
     _reset_progress()
@@ -393,21 +426,23 @@ def _run_cli_stream(action, state):
             )
             return 1, output.strip()
         if "Execution succeeded." not in output and "执行成功" not in output:
+            detail = _extract_cli_failure_reason(output) or "apply did not report success"
             _cleanup_failed(instance_dir)
             _write_progress(
                 {
                     "status": "failed",
                     "percent": 95,
                     "message": "failed",
-                    "detail": "apply did not report success",
+                    "detail": detail,
                 }
             )
             return 1, output.strip()
 
     # ===== Patch 1: CLI 本身失败才算失败 =====
     if not ok:
+        detail = _extract_cli_failure_reason(output)
         _cleanup_failed(instance_dir)
-        _write_progress({"status": "failed", "percent": 95, "message": "failed"})
+        _write_progress({"status": "failed", "percent": 95, "message": "failed", "detail": detail})
         return 1, output.strip()
 
     # ===== Patch 2: RCON banner 不出现 → waiting，不立刻 fail =====

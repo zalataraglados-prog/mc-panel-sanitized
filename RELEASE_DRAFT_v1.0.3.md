@@ -11,6 +11,10 @@ Documentation cleanup: removed outdated release drafts/announcement and a one-of
 文档清理：移除过期的发布草稿/公告和一次性的部署报告。
 BlueMap download link hotfix: replaced stale `latest/download/bluemap-5.15-spigot.jar` with the valid v5.16 asset URL.
 BlueMap 下载链接热修复：将失效的 `latest/download/bluemap-5.15-spigot.jar` 替换为有效的 v5.16 资源地址。
+Apply failure handling improved: wizard now reports concrete CLI failure lines and performs service/compose teardown for failed instances.
+Apply 失败处理增强：向导会显示更具体的 CLI 失败行，并对失败实例执行 service/compose 下线。
+Execution order adjusted: plugin/map downloads are executed before MC service startup to avoid partial-live state on download failures.
+执行顺序调整：插件/地图下载前置到 MC 服务启动之前，避免下载失败时进入半成功运行态。
 
 Technical Notes / 技术说明
 This release focuses on stability of the wizard + deployment pipeline and reduces operator confusion.
