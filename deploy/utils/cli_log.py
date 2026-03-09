@@ -13,6 +13,35 @@ def _resolve_log_dir() -> str:
     return os.path.join(os.getcwd(), "logs")
 
 
+def _sanitize_payload(value: Any) -> Any:
+    secret_keys = {
+        "RCON_PASSWORD",
+        "PANEL_SECRET_KEY",
+        "rcon_password",
+        "secret_key",
+        "api_key",
+        "password",
+    }
+    if isinstance(value, dict):
+        sanitized: Dict[str, Any] = {}
+        for key, item in value.items():
+            if str(key) in secret_keys:
+                sanitized[key] = "***"
+            else:
+                sanitized[key] = _sanitize_payload(item)
+        return sanitized
+    if isinstance(value, list):
+        return [_sanitize_payload(item) for item in value]
+    if isinstance(value, str):
+        masked = value
+        for token in ("RCON_PASSWORD=", "SECRET_KEY=", "API_KEY="):
+            if token in masked:
+                prefix = masked.split(token, 1)[0]
+                masked = f"{prefix}{token}***"
+        return masked
+    return value
+
+
 def log_event(event: str, payload: Dict[str, Any]) -> None:
     enabled = str(os.environ.get("MC_PANEL_CLI_LOG", "")).lower() in ("1", "true", "yes")
     if not enabled:
@@ -23,7 +52,7 @@ def log_event(event: str, payload: Dict[str, Any]) -> None:
     entry = {
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "event": event,
-        "payload": payload,
+        "payload": _sanitize_payload(payload),
     }
     try:
         with open(log_path, "a", encoding="utf-8") as handle:

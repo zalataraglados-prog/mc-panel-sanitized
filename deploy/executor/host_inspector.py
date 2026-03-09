@@ -78,7 +78,7 @@ class HostInspector:
         ok = "Status: inactive" in output
         details = output.splitlines()[0] if output else "ufw status unavailable"
         if not ok:
-            details = f"{details} (ensure ports 25565/15000/8100/25575 open)"
+            details = f"{details} (ensure required ports are open: 25565/15000/8100; RCON 25575 only if remote access is enabled)"
         return {"check": "ufw_active", "ok": ok, "details": details}
 
     def check_dns_configured(self) -> Dict[str, Any]:

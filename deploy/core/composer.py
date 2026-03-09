@@ -51,7 +51,16 @@ class Composer:
         docker = self.cfg.data["docker"]
         minecraft = self.cfg.data["minecraft"]
         network = self.cfg.data["network"]
+        security = self.cfg.data.get("security", {})
         paths = self.cfg.data["paths"]
+
+        rcon_bind = str(network.get("rcon_bind", "127.0.0.1") or "").strip()
+        rcon_public = bool(security.get("rcon_public", False))
+        if rcon_public or rcon_bind in ("", "0.0.0.0", "*"):
+            rcon_mapping = f'{network["rcon_port"]}:25575'
+        else:
+            rcon_mapping = f'{rcon_bind}:{network["rcon_port"]}:25575'
+        rcon_password = str(security.get("rcon_password", "") or "").strip()
 
         env_extra = self._generate_env_block(docker.get("extra_env", {}))
         vol_extra = self._generate_volumes_block(docker.get("volumes", {}))
@@ -66,12 +75,15 @@ services:
     restart: {docker["restart_policy"]}
     ports:
       - "{network["mc_port"]}:25565"
-      - "{network["rcon_port"]}:25575"
+      - "{rcon_mapping}"
     environment:
       - EULA=TRUE
       - VERSION={minecraft["version"]}
       - MEMORY={minecraft["jvm"]["memory"]}
-{env_extra}
+      - ENABLE_RCON=TRUE
+      - RCON_PASSWORD={rcon_password}
+      - RCON_PORT={network["rcon_port"]}
+ {env_extra}
     volumes:
 {vol_extra}
     networks:
