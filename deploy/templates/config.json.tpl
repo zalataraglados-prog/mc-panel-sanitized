@@ -26,6 +26,7 @@
     "mc_port": {{MC_PORT}},
     "panel_port": {{PANEL_PORT}},
     "rcon_port": {{RCON_PORT}},
+    "rcon_bind": "{{RCON_BIND}}",
     "query_port": {{MC_PORT}},
     "use_https": false
   },
@@ -59,7 +60,7 @@
     "enabled": {{PANEL_ENABLED}},
     "port": {{PANEL_PORT}},
     "public_url": "",
-    "secret_key": "",
+    "secret_key": "{{PANEL_SECRET_KEY}}",
     "auth_enabled": false
   },
 
@@ -91,6 +92,7 @@
 
   "security": {
     "rcon_enabled": true,
+    "rcon_public": {{RCON_PUBLIC}},
     "rcon_password": "{{RCON_PASSWORD}}",
     "api_key": "",
     "allowed_ips": [],

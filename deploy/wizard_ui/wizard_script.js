@@ -46,16 +46,17 @@ const PROFILE_DEFAULTS = {
   }
 };
 
-const UI_DEFAULTS = {
-  "panel.enable": "false",
-  "panel.port": "15000",
-  "server-port": "25565",
-  "rcon.port": "25575",
-  "map.plugin": "none",
-  "map.plugin_port": "8100",
-  "map.render_interval": "5",
-  "inventory.plugin": "none"
-};
+const UI_DEFAULTS = {
+  "panel.enable": "false",
+  "panel.port": "15000",
+  "server-port": "25565",
+  "rcon.port": "25575",
+  "security.rcon_public": "false",
+  "map.plugin": "none",
+  "map.plugin_port": "8100",
+  "map.render_interval": "5",
+  "inventory.plugin": "none"
+};
 
 const translations = {
   zh: {
@@ -122,12 +123,13 @@ const translations = {
     panelEnable: '启用面板',
     panelPort: '面板端口',
     panelPortPh: '15000',
-    serverPort: 'MC 端口',
-    serverPortPh: '25565',
-    rconEnable: '启用 RCON',
-    rconPort: 'RCON 端口',
-    rconPortPh: '25575',
-    map: '地图 / 插件',
+    serverPort: 'MC 端口',
+    serverPortPh: '25565',
+    rconEnable: '启用 RCON',
+    rconPort: 'RCON 端口',
+    rconPortPh: '25575',
+    rconPublic: 'RCON 公网访问',
+    map: '地图 / 插件',
     mapPlugin: '地图插件',
     installBluemap: '安装 BlueMap',
     installInvsee: '安装 InvSee++',
@@ -229,12 +231,13 @@ const translations = {
     panelEnable: 'Enable panel',
     panelPort: 'Panel port',
     panelPortPh: '15000',
-    serverPort: 'MC port',
-    serverPortPh: '25565',
-    rconEnable: 'Enable RCON',
-    rconPort: 'RCON port',
-    rconPortPh: '25575',
-    map: 'Map / Plugins',
+    serverPort: 'MC port',
+    serverPortPh: '25565',
+    rconEnable: 'Enable RCON',
+    rconPort: 'RCON port',
+    rconPortPh: '25575',
+    rconPublic: 'Expose RCON publicly',
+    map: 'Map / Plugins',
     mapPlugin: 'Map plugin',
     installBluemap: 'Install BlueMap',
     installInvsee: 'Install InvSee++',

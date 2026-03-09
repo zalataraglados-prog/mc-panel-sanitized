@@ -82,7 +82,9 @@ class RCONClient:
         if port is None:
             port = props.get("rcon.port", "25575")
         port = int(port)
-        password = props.get("rcon.password", "change-me")
+        password = str(props.get("rcon.password", "")).strip()
+        if not password and isinstance(config.get("security"), dict):
+            password = str(config["security"].get("rcon_password", "")).strip()
         return cls(host, port, password, enabled=enabled)
 
     @staticmethod
@@ -142,7 +144,7 @@ def _read_compose_rcon_port(instance_dir: Path) -> int | None:
     path = instance_dir / "docker-compose.yml"
     if not path.exists():
         return None
-    pattern = re.compile(r'^\s*-\s*"?(\d+):25575"?')
+    pattern = re.compile(r'^\s*-\s*"?(?:[^":]+:)?(\d+):25575"?')
     for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
         match = pattern.match(line)
         if match:

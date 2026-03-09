@@ -5,6 +5,7 @@ import json
 import math
 import os
 import posixpath
+import secrets
 import socket
 from typing import Any, Dict, List
 
@@ -156,9 +157,17 @@ def _build_volume_block(params: dict) -> str:
 
 
 def _build_ports_block(params: dict, ports: Dict[str, int]) -> str:
+    rcon_public = str(params.get("security.rcon_public", "false")).lower() in ("true", "1", "yes", "y")
+    rcon_bind = str(params.get("network.rcon_bind", "") or "").strip()
+    if not rcon_public and not rcon_bind:
+        rcon_bind = "127.0.0.1"
+    if rcon_bind and rcon_bind not in ("0.0.0.0", "*"):
+        rcon_mapping = f"{rcon_bind}:{ports['rcon_port']}:25575"
+    else:
+        rcon_mapping = f"{ports['rcon_port']}:25575"
     lines = [
         f"      - \"{ports['mc_port']}:25565\"",
-        f"      - \"{ports['rcon_port']}:25575\"",
+        f"      - \"{rcon_mapping}\"",
     ]
     map_plugin = params.get("map.plugin")
     has_map_port = "map_port" in ports or _parse_int(params.get("map.plugin_port")) is not None
@@ -228,6 +237,16 @@ def _build_template_context(
     render_interval = _parse_int(params.get("map.render_interval")) or 5
     render_interval_seconds = render_interval * 60
     panel_enabled = str(params.get("panel.enable", "false")).lower() in ("true", "1", "yes", "y")
+    rcon_password = str(
+        params.get("rcon.password")
+        or params.get("security.rcon_password")
+        or ""
+    ).strip() or secrets.token_urlsafe(24)
+    panel_secret_key = str(params.get("panel.secret_key") or "").strip() or secrets.token_hex(32)
+    rcon_public = str(params.get("security.rcon_public", "false")).lower() in ("true", "1", "yes", "y")
+    rcon_bind = str(params.get("network.rcon_bind", "") or "").strip()
+    if not rcon_public and not rcon_bind:
+        rcon_bind = "127.0.0.1"
     panel_root = os.environ.get("MC_PANEL_ROOT", DEFAULT_PANEL_ROOT)
     panel_static_dir = posixpath.join(panel_root, "frontend", "dist")
 
@@ -247,7 +266,10 @@ def _build_template_context(
         "VOLUME_BLOCK": _build_volume_block(params),
         "CREATED_AT": "1970-01-01T00:00:00Z",
         "DEPLOYER_VERSION": "phase12",
-        "RCON_PASSWORD": "change-me",
+        "RCON_PASSWORD": rcon_password,
+        "RCON_PUBLIC": "true" if rcon_public else "false",
+        "RCON_BIND": rcon_bind or "0.0.0.0",
+        "PANEL_SECRET_KEY": panel_secret_key,
         "MAP_PORT": map_port,
         "MAP_RENDER_INTERVAL": render_interval,
         "MAP_RENDER_INTERVAL_SECONDS": render_interval_seconds,

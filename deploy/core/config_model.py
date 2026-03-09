@@ -1,5 +1,6 @@
 import json
 import os
+import secrets
 from datetime import datetime
 from deploy.utils.logger import log_info, log_error
 class ConfigModel:
@@ -74,6 +75,7 @@ class ConfigModel:
                 "mc_port": mc_port,
                 "panel_port": panel_port,
                 "rcon_port": mc_port + 10,
+                "rcon_bind": "127.0.0.1",
                 "query_port": mc_port,
                 "use_https": False
             },
@@ -107,7 +109,7 @@ class ConfigModel:
                 "enabled": True,
                 "port": panel_port,
                 "public_url": "",
-                "secret_key": "",
+                "secret_key": secrets.token_hex(32),
                 "auth_enabled": False
             },
 
@@ -139,7 +141,8 @@ class ConfigModel:
 
             "security": {
                 "rcon_enabled": True,
-                "rcon_password": "changeme",
+                "rcon_public": False,
+                "rcon_password": secrets.token_urlsafe(24),
                 "api_key": "",
                 "allowed_ips": [],
                 "allow_remote_panel": True

@@ -599,6 +599,34 @@ class ExecutionPlanExecutor:
         except Exception:
             return
 
+    def _sanitize_plan(self, value: Any) -> Any:
+        secret_keys = {
+            "RCON_PASSWORD",
+            "PANEL_SECRET_KEY",
+            "rcon_password",
+            "secret_key",
+            "api_key",
+            "password",
+        }
+        if isinstance(value, dict):
+            sanitized: Dict[str, Any] = {}
+            for key, item in value.items():
+                if str(key) in secret_keys:
+                    sanitized[key] = "***"
+                else:
+                    sanitized[key] = self._sanitize_plan(item)
+            return sanitized
+        if isinstance(value, list):
+            return [self._sanitize_plan(item) for item in value]
+        if isinstance(value, str):
+            masked = value
+            for token in ("RCON_PASSWORD=", "SECRET_KEY=", "API_KEY="):
+                if token in masked:
+                    prefix = masked.split(token, 1)[0]
+                    masked = f"{prefix}{token}***"
+            return masked
+        return value
+
     def execute(self, plan: ExecutionPlan) -> ExecutionResult:
         steps: List[ExecutionStep] = []
         executed_actions: List[ExecutionStep] = []
@@ -666,7 +694,7 @@ class ExecutionPlanExecutor:
                     {"name": step.name, "ok": step.ok, "details": step.details}
                     for step in result.steps
                 ],
-                "plan": plan.to_dict(),
+                "plan": self._sanitize_plan(plan.to_dict()),
             }
             with open(log_path, "w", encoding="utf-8") as handle:
                 json.dump(payload, handle, indent=2, ensure_ascii=True)

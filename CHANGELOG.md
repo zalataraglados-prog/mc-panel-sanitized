@@ -18,6 +18,10 @@
   - 执行动作顺序调整为“插件/地图下载完成后再启动 MC 服务”，降低下载失败时出现“半成功实例”的概率。
 - Wizard apply failure detail now surfaces concrete CLI failure lines (including download 404), and failed apply triggers service/compose teardown for the target instance.
   - 向导失败详情改为透传 CLI 关键失败行（含下载 404）；apply 失败时会对目标实例执行 service/compose 下线，避免失败后端口持续占用。
+- Security defaults hardened: RCON is now localhost-bound by default (`127.0.0.1`) and requires explicit `security.rcon_public=true` to expose publicly.
+  - 安全默认值加固：RCON 默认仅绑定本机（`127.0.0.1`），仅在显式设置 `security.rcon_public=true` 时才对外暴露。
+- Initial credentials are now randomized by default (RCON password + panel secret key), and execution logs now mask secret fields.
+  - 初始凭据默认随机化（RCON 密码 + panel secret_key），并在执行日志中对密钥字段做脱敏处理。
 
 ## [2026-01-30]
 ### Added / 新增
