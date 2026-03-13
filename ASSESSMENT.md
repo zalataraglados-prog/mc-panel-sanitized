@@ -15,9 +15,9 @@
 | 项目组织 | ⭐⭐⭐⭐☆ (4/5) | 层次分明，有结构文档，dist 提交入库略有争议 |
 | Git 规范 | ⭐⭐⭐⭐☆ (4/5) | 基本遵循 Conventional Commits，偶有不一致 |
 | 文档完整性 | ⭐⭐⭐⭐☆ (4/5) | 中英双语，内容丰富，缺少贡献指南与 API 文档 |
-| 开发流程 | ⭐⭐☆☆☆ (2/5) | 无 Issue、无 PR 记录、无 CI/CD |
+| 开发流程 | ⭐⭐⭐☆☆ (3/5) | 单人项目 PR 审查非必须；已补充 CI/CD 工作流 |
 | 最佳实践 | ⭐⭐⭐☆☆ (3/5) | 安全意识尚可，密码明文存储与缺少测试是主要缺口 |
-| **综合** | **⭐⭐⭐½☆ (3.5/5)** | 中级偏上水平，具备工程化意识，流程规范待补强 |
+| **综合** | **⭐⭐⭐½☆ (3.5/5)** | 中级偏上水平，具备工程化意识；CI/CD 已补充 |
 
 ---
 
@@ -173,37 +173,51 @@ chore: remove legacy release drafts and report
 
 ## 5. 开发流程 / Development Workflow
 
-### 5.1 Issue 管理 ❌
+### ❓ 单人开发者必须遵守 PR 流程吗？
 
-- 仓库 **0 个 Issue**。
-- 所有已知问题均直接提交修复，无公开的 Issue 追踪。这意味着无法从仓库外部了解当前 Bug 状态和未来规划，对协作和透明度不利。
+**简答：PR 的"人工审查"部分不强制，但 CI/CD 和变更记录的价值跟团队规模无关。**
 
-### 5.2 Pull Request 实践 ❌
+PR 流程包含两个独立的价值：
 
-- 仅有当前这一个 PR（由 Copilot 自动创建）。
-- 所有代码变更均直接推送到功能分支或主分支，无同行评审（peer review）流程。
-- 无 PR 模板（`.github/PULL_REQUEST_TEMPLATE.md`）。
+| PR 的功能 | 团队必须 | 单人必须 | 说明 |
+|-----------|----------|----------|------|
+| **同行代码审查（Peer Review）** | ✅ 是 | ❌ 否 | 单人没有"同行"，这条确实不适用 |
+| **触发 CI/CD 自动化** | ✅ 是 | ✅ 是 | 不需要有人审查，CI 照样能帮你发现 lint 错误、类型错误 |
+| **diff 自我复查** | 建议 | 建议 | 打开 PR diff 强迫自己以"旁观者视角"重看变更，常能发现遗漏 |
+| **变更记录与决策存档** | 建议 | 建议 | PR 描述比提交历史更易检索，对未来的自己也有价值 |
 
-### 5.3 CI/CD 配置 ❌
+**结论**：
 
-- **无 `.github/` 目录**，即无 GitHub Actions 工作流。
-- 没有自动化的测试、Lint、构建、或部署流程。
-- 这是本仓库最明显的短板：版本升级、Bug 修复全靠手动操作，质量保障完全依赖开发者自律。
+- ✅ **建议保留**：CI/CD（每次 push 触发，无需开 PR 也能跑），以及 Conventional Commits 习惯
+- 🟡 **视情况使用**：大功能/安全变更开 PR 做自我复查；小改动和文档直接 push 完全合理
+- ❌ **不强制**：等待他人批准、Issue 追踪（如果你自己清楚问题在哪）
 
-**建议添加的 CI 工作流**：
-```yaml
-# .github/workflows/ci.yml 示例
-on: [push, pull_request]
-jobs:
-  lint-and-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.11" }
-      - run: pip install -r backend/requirements.txt
-      - run: python -m pytest tests/ -v  # 当前无测试，待补充
-```
+已为本仓库添加（见本 PR 变更）：
+- `.github/workflows/ci.yml` — 每次 push 自动运行 lint + type-check，无需开 PR
+- `.github/PULL_REQUEST_TEMPLATE.md` — 单人自检清单（可选使用）
+- `CONTRIBUTING.md` — 单人工作流说明与建议
+
+---
+
+### 5.1 Issue 管理 ⚠️ （单人语境下可接受）
+
+- 仓库 **0 个 Issue**。单人开发时，如果你能在代码注释或 TODO 中清晰追踪问题，不开 Issue 是可接受的实践。
+- **但如果项目有外部用户**，Issue 仍然是收集反馈和公开 Bug 状态的最佳渠道。
+- 当前项目是工具类开源项目，若有用户部署，建议开启 Issue 供用户反馈。
+
+### 5.2 Pull Request 实践 ⚠️ （已补充基础设施）
+
+- 单人开发时无需等待他人审批；但 PR 的 CI 触发和 diff 自查价值依然存在。
+- 已添加轻量 PR 模板（`.github/PULL_REQUEST_TEMPLATE.md`），仅作自检用途，不强制。
+
+### 5.3 CI/CD 配置 ✅ （已补充）
+
+- 已添加 `.github/workflows/ci.yml`，包含：
+  - `ruff` 代码风格检查（lint）
+  - `pyright` 类型检查
+  - backend 模块导入健全性验证
+- 工作流配置为**每次 push 均触发**（包括直接推送，不依赖开 PR），适合单人开发习惯。
+- 后续补充测试后，可在此 workflow 中添加 `pytest` 步骤。
 
 ---
 
@@ -283,10 +297,10 @@ jobs:
 | 语义化版本 & Tags | ✅ 熟练 | 无需重点复习 |
 | README / CHANGELOG / 文档 | ✅ 熟练 | 略读即可 |
 | Conventional Commits | ✅ 基本掌握 | 注意一致性 |
-| GitHub Actions / CI/CD | ❌ 未使用 | **重点复习** |
-| Issue & PR 管理 | ❌ 未使用 | **重点复习** |
+| GitHub Actions / CI/CD | ✅ 已添加 | 可结合实践加深理解 |
+| Issue & PR 管理 | ⚠️ 单人项目 PR 审查非必须 | 了解 PR 审查流程概念即可 |
 | Branch Protection Rules | ❌ 未配置 | **重点复习** |
-| Pull Request 审查流程 | ❌ 未实践 | **重点复习** |
+| Pull Request 审查流程 | ⚠️ 单人已用轻量 PR 模板 | 了解团队 PR 审查概念 |
 | GitHub Security（Dependabot、Secret Scanning） | ⚠️ 未配置 | **建议了解** |
 | Fork & Upstream 协作模型 | ⚠️ 不确定 | **建议了解** |
 
@@ -297,12 +311,13 @@ jobs:
 ## 附：关键改进清单 / Action Items
 
 - [ ] 添加 `tests/` 目录，补充核心模块单元测试
-- [ ] 添加 `.github/workflows/ci.yml`，配置 lint + test 工作流
+- [x] 添加 `.github/workflows/ci.yml`，配置 lint + type-check 工作流
+- [x] 添加 `CONTRIBUTING.md`（含单人工作流说明）
+- [x] 添加 `.github/PULL_REQUEST_TEMPLATE.md`（单人自检清单）
 - [ ] 将 `users.json` 中的密码改为哈希存储（推荐 `passlib[bcrypt]`）
 - [ ] 在 `deploy/core/deployer.py` 中将 `os.system()` 替换为 `subprocess.run()`
 - [ ] 统一 Markdown 文件编码（去除 BOM）
 - [ ] 清理已合并/废弃的临时分支（`demo*`、`test-*`、`demon*`）
 - [ ] 不提交 `frontend/dist/` 到版本库，改为 CI 构建
-- [ ] 添加 `CONTRIBUTING.md` 和 `SECURITY.md`
 - [ ] 为 FastAPI 路由添加 `summary`/`description` 注解完善 API 文档
-- [ ] 配置 GitHub Branch Protection（要求 PR + CI 通过才能合并）
+- [ ] 配置 GitHub Branch Protection（可选；单人建议至少要求 CI 通过才能合并 main）

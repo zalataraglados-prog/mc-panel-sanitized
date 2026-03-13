@@ -37,7 +37,6 @@ from deploy.panel_manager import install_panel, uninstall_panel
 from deploy.planner.planner import plan as plan_apply
 from deploy.web.review_adapter import review_to_dict
 from deploy.utils.cli_log import log_event
-from backend.runtime.inventory import get_inventory, set_inventory
 
 
 DEFAULT_INSTANCE_FILE = Path.home() / ".mcic_default"
@@ -860,7 +859,6 @@ def main():
         inspector.check_path_exists(base_dir),
         inspector.check_path_writable(base_dir),
     ]
-    server_port = _resolve_server_port(claims.params)
     if any(key.startswith("docker.") for key in claims.params.keys()):
         host_facts.append(inspector.check_docker_available())
     panel_enabled = str(claims.params.get("panel.enable", "false")).lower() in ("true", "1", "yes", "y")

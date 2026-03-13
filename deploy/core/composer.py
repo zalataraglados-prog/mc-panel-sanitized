@@ -1,5 +1,5 @@
 import os
-from deploy.utils.logger import log_info, log_error
+from deploy.utils.logger import log_info
 
 
 class Composer:
@@ -52,7 +52,6 @@ class Composer:
         minecraft = self.cfg.data["minecraft"]
         network = self.cfg.data["network"]
         security = self.cfg.data.get("security", {})
-        paths = self.cfg.data["paths"]
 
         rcon_bind = str(network.get("rcon_bind", "127.0.0.1") or "").strip()
         rcon_public = bool(security.get("rcon_public", False))
