@@ -640,7 +640,7 @@ class Handler(BaseHTTPRequestHandler):
                 payload = {"lines": lines[-tail:], "count": len(lines)}
                 self._send(200, json.dumps(payload, ensure_ascii=False).encode("utf-8"))
                 return
-    
+
         if parsed.path == "/api/wizard/ports":
             qs = parse_qs(parsed.query or "")
             ports = []

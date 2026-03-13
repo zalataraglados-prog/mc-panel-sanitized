@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import io
-import json
 import shutil
 import zipfile
 from pathlib import Path
@@ -42,7 +41,6 @@ def _collect_pack_sources(instance_dir: str) -> List[Path]:
 def _index_pack_dir(base: Path) -> Dict[str, Tuple[str, Path]]:
     result: Dict[str, Tuple[str, Path]] = {}
     for texture_type in ("item", "block"):
-        pattern = f"assets/*/textures/{texture_type}/*.png"
         for texture in base.rglob("*.png"):
             try:
                 rel = texture.relative_to(base)

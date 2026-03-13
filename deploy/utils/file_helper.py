@@ -40,7 +40,7 @@ class FileHelper:
         try:
             with open(tmp_path, "w") as f:
                 f.write(content)
-        except Exception as e:
+        except Exception:
             log_error(f"写入临时文件失败：{tmp_path}")
             raise
 

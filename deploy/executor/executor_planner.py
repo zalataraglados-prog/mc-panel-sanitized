@@ -169,7 +169,6 @@ def _build_ports_block(params: dict, ports: Dict[str, int]) -> str:
         f"      - \"{ports['mc_port']}:25565\"",
         f"      - \"{rcon_mapping}\"",
     ]
-    map_plugin = params.get("map.plugin")
     has_map_port = "map_port" in ports or _parse_int(params.get("map.plugin_port")) is not None
     if has_map_port:
         lines.append(f"      - \"{ports['map_port']}:{ports['map_port']}\"")

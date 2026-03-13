@@ -4,7 +4,6 @@ from deploy.claims_codec import Claims, decode_claims
 from deploy.planner.planner import plan as plan_apply
 from deploy.deployment.model import Deployment, DeploymentStatus
 from deploy.web.schemas import (
-    DeploymentView,
     DecisionResponse,
     PlanRequest,
     PlanResponse,

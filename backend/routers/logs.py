@@ -28,7 +28,7 @@ async def logs_websocket(
     try:
         user = get_current_user(f"Bearer {token}")
         require_roles(user, ["owner", "admin", "mod", "viewer"])
-    except Exception as exc:
+    except Exception:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
     target_dir = instance_dir or resolve_instance_dir()
