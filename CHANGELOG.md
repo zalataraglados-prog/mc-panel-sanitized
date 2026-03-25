@@ -6,6 +6,10 @@
   - 鉴权 token 查询改为内存缓存 + 文件 mtime 热更新 + token 索引，避免每次请求都解析 JSON 并遍历全部用户。
 - Shared `server.properties` parser extracted to `backend/runtime/server_properties.py`, and reused by metrics/mc_client/rcon_client.
   - 抽取 `server.properties` 公共解析模块并复用于 metrics/mc_client/rcon_client，消除三处重复实现。
+- Players snapshot cache TTL is tuned to 1 second with per-instance recompute locking to reduce thundering-herd work under concurrency.
+  - 玩家快照缓存 TTL 调整为 1 秒，并增加实例级重算锁，降低高并发下缓存失效导致的并发重算。
+- RCON failure path now uses a 5-second cooldown window to avoid repeated socket dials when a target instance is unstable.
+  - RCON 失败路径增加 5 秒冷却窗口，目标实例异常时避免重复发起连接造成额外开销。
 
 ### Added / 新增
 - Auth lifecycle logging for key events: missing/invalid auth, role-denied access, and user create/update/delete persistence.

@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 import socket
 import struct
+import threading
+import time
 from typing import List
 import re
 
@@ -19,6 +21,11 @@ class RCONResponse:
 
 
 class RCONClient:
+    _FAILURE_COOLDOWN_SECONDS = 5.0
+    _cooldown_lock = threading.Lock()
+    _cooldown_until: dict[str, float] = {}
+    _cooldown_error: dict[str, str] = {}
+
     def __init__(self, host: str, port: int, password: str, enabled: bool = True, timeout: float = 2.0):
         self.host = host
         self.port = port
@@ -26,11 +33,43 @@ class RCONClient:
         self.enabled = enabled
         self.timeout = timeout
 
+    def _cooldown_key(self) -> str:
+        return f"{self.host}:{self.port}"
+
+    def _get_cooldown_error(self) -> str | None:
+        key = self._cooldown_key()
+        now = time.time()
+        with self._cooldown_lock:
+            until = self._cooldown_until.get(key)
+            if until is None:
+                return None
+            if now >= until:
+                self._cooldown_until.pop(key, None)
+                self._cooldown_error.pop(key, None)
+                return None
+            return self._cooldown_error.get(key, "RCON error: cooldown active")
+
+    def _record_failure(self, message: str) -> str:
+        key = self._cooldown_key()
+        with self._cooldown_lock:
+            self._cooldown_until[key] = time.time() + self._FAILURE_COOLDOWN_SECONDS
+            self._cooldown_error[key] = message
+        return message
+
+    def _clear_failure(self) -> None:
+        key = self._cooldown_key()
+        with self._cooldown_lock:
+            self._cooldown_until.pop(key, None)
+            self._cooldown_error.pop(key, None)
+
     def execute(self, command: str) -> str:
         if not self.enabled:
             return "RCON disabled"
         if not self.password:
             return "RCON password missing"
+        cooldown_error = self._get_cooldown_error()
+        if cooldown_error:
+            return cooldown_error
         command = (command or "").strip()
         if command.startswith("/"):
             command = command[1:]
@@ -43,14 +82,15 @@ class RCONClient:
                 self._send_packet(sock, auth_id, 3, self.password)
                 auth_resp = self._recv_packet(sock)
                 if not auth_resp or auth_resp.request_id == -1:
-                    return "RCON auth failed"
+                    return self._record_failure("RCON auth failed")
                 self._send_packet(sock, auth_id + 1, 2, command)
                 response = self._recv_packet(sock)
                 if not response:
-                    return "RCON no response"
+                    return self._record_failure("RCON no response")
+                self._clear_failure()
                 return strip_ansi(response.payload)
         except (OSError, socket.timeout) as exc:
-            return f"RCON error: {exc}"
+            return self._record_failure(f"RCON error: {exc}")
 
     def list_players(self) -> List[str]:
         if not self.enabled:
