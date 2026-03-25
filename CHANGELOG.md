@@ -28,6 +28,8 @@
   - 初始凭据默认随机化（RCON 密码 + panel secret_key），并在执行日志中对密钥字段做脱敏处理。
 - Legacy compose generation and CLI JSONL event logging were aligned with the same security baseline (RCON binding + payload masking).
   - 遗留 compose 生成链路与 CLI JSONL 事件日志已对齐同一安全基线（RCON 绑定策略 + 负载脱敏）。
+- Security dependency patch (no version bump): `python-multipart` upgraded to `0.0.22` and frontend lockfile rollup chain upgraded to `4.60.0`.
+  - 安全依赖补丁（不改版本号）：`python-multipart` 升级到 `0.0.22`，前端锁文件中的 rollup 依赖链升级到 `4.60.0`。
 
 ## [2026-01-30]
 ### Added / 新增
