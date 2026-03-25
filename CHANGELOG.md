@@ -30,6 +30,8 @@
   - 遗留 compose 生成链路与 CLI JSONL 事件日志已对齐同一安全基线（RCON 绑定策略 + 负载脱敏）。
 - Security dependency patch (no version bump): `python-multipart` upgraded to `0.0.22` and frontend lockfile rollup chain upgraded to `4.60.0`.
   - 安全依赖补丁（不改版本号）：`python-multipart` 升级到 `0.0.22`，前端锁文件中的 rollup 依赖链升级到 `4.60.0`。
+- Frontend build toolchain security patch (non-breaking): `vite` upgraded from `5.4.21` to `6.4.1` to clear remaining moderate advisory while keeping Node 18 compatibility.
+  - 前端构建工具链安全补丁（非破坏性）：`vite` 从 `5.4.21` 升级到 `6.4.1`，在保持 Node 18 兼容的前提下清除剩余中风险告警。
 
 ## [2026-01-30]
 ### Added / 新增
