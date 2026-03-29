@@ -30,7 +30,8 @@ def _resolve_instance_dir(instance_dir: str | None, base_dir: str) -> str | None
     if instance_dir:
         return instance_dir
     inspector = HostInspector()
-    result = inspector.list_instances(base_dir)
+    os.environ["MC_PANEL_BASE_DIR"] = base_dir
+    result = inspector.list_instances()
     if result.get("ok") and result.get("instances"):
         return result["instances"][0]["path"]
     return None

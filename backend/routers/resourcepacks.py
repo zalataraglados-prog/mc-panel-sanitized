@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, File, Header, Query, UploadFile
 from fastapi.responses import Response
 
 from backend.auth import get_current_user, get_user_from_optional, require_roles
+from backend.routers.instances import select_instance_dir
 from backend.runtime.resourcepacks import get_item_texture, resourcepack_status, upload_pack
 
 router = APIRouter()
@@ -16,7 +17,7 @@ def resourcepack_status_endpoint(
     token: str | None = Query(None),
 ):
     user = get_user_from_optional(authorization, token)
-    instance = instance_dir or "/opt/mc-instances"
+    instance = select_instance_dir(instance_dir)
     require_roles(user, ["owner", "admin", "mod", "viewer"])
     return resourcepack_status(instance)
 
@@ -28,7 +29,7 @@ async def resourcepack_upload_endpoint(
     user=Depends(get_current_user),
 ):
     require_roles(user, ["owner", "admin"])
-    instance = instance_dir or "/opt/mc-instances"
+    instance = select_instance_dir(instance_dir)
     content = await file.read()
     return upload_pack(instance, file.filename or "resourcepack.zip", content)
 
@@ -38,7 +39,7 @@ def resourcepack_item_endpoint(
     item_id: str = Query(...),
     instance_dir: str | None = Query(None),
 ):
-    instance = instance_dir or "/opt/mc-instances"
+    instance = select_instance_dir(instance_dir)
     texture = get_item_texture(instance, item_id)
     if not texture:
         return Response(status_code=404)

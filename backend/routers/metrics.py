@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, Query
 
 from backend.auth import get_current_user
 from backend.models import MetricsPoint
+from backend.routers.instances import select_instance_dir
 from backend.runtime import metrics as runtime_metrics
 from backend.runtime.mc_client import MCClient
-from backend.routers.instances import resolve_instance_dir
 
 router = APIRouter()
 history = []
@@ -16,7 +16,7 @@ def metrics_endpoint(
     instance_dir: str | None = Query(None),
     user=Depends(get_current_user),
 ):
-    target_dir = instance_dir or resolve_instance_dir()
+    target_dir = select_instance_dir(instance_dir)
     if not target_dir:
         return []
     if not MCClient(target_dir).status().get("running", False):

@@ -1,13 +1,13 @@
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
 from backend.auth import get_current_user, require_roles
 from backend.logging import log_action
 from backend.models import RuleEntry, RulesResponse, RulesUpdateRequest
-from backend.routers.instances import resolve_instance_dir
+from backend.routers.instances import select_instance_dir
 from backend.runtime.cache import TTLCache
-from backend.runtime.instance_paths import instance_child, normalize_instance_dir
+from backend.runtime.instance_paths import instance_child
 
 router = APIRouter()
 _RULES_CACHE = TTLCache(ttl_seconds=5.0)
@@ -33,10 +33,7 @@ def _clean_value(raw: str) -> str:
 
 
 def _safe_instance_dir(value: str | None) -> str:
-    try:
-        return str(normalize_instance_dir(value or resolve_instance_dir()))
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid instance dir") from exc
+    return select_instance_dir(value)
 
 
 @router.get("/api/rules", response_model=RulesResponse)

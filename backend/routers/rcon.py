@@ -1,12 +1,12 @@
 import json
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from backend.auth import get_current_user, require_roles
 from backend.logging import log_action
 from backend.models import CommandRequest, RconHealthResponse
-from backend.runtime.instance_paths import instance_child, normalize_instance_dir
+from backend.runtime.instance_paths import instance_child
 from backend.runtime.rcon_client import RCONClient
-from backend.routers.instances import resolve_instance_dir
+from backend.routers.instances import select_instance_dir
 
 router = APIRouter()
 
@@ -74,10 +74,7 @@ def _parse_op_with_level(command: str) -> tuple[str, int] | None:
 
 
 def _safe_instance_dir(value: str | None) -> str:
-    try:
-        return str(normalize_instance_dir(value or resolve_instance_dir()))
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid instance dir") from exc
+    return select_instance_dir(value)
 
 
 @router.post("/api/rcon")
@@ -133,4 +130,5 @@ def rcon_health(instance_dir: str | None = None, user=Depends(get_current_user))
         return RconHealthResponse(ok=False, message="RCON disabled", instance_dir=resolved)
     response = client.execute("list")
     ok = bool(response) and not response.startswith("RCON ")
-    return RconHealthResponse(ok=ok, message=response, instance_dir=resolved)
+    message = response if ok else _rcon_public_error(response)
+    return RconHealthResponse(ok=ok, message=message, instance_dir=resolved)

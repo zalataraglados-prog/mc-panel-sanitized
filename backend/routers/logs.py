@@ -3,10 +3,10 @@ import re
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 
 from backend.auth import get_current_user, require_roles
+from backend.routers.instances import select_instance_dir
 from backend.runtime.ansi import strip_ansi
 from backend.runtime.log_paths import resolve_latest_log
 from backend.runtime.log_streamer import follow_log, tail_log
-from backend.routers.instances import resolve_instance_dir
 
 router = APIRouter()
 _TIME_PREFIX = re.compile(r"^\[\d{2}:\d{2}:\d{2}\]\s*")
@@ -31,7 +31,7 @@ async def logs_websocket(
     except Exception as exc:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
-    target_dir = instance_dir or resolve_instance_dir()
+    target_dir = select_instance_dir(instance_dir)
     log_path = resolve_latest_log(target_dir)
     if not log_path.exists():
         await websocket.send_text("logs not found")

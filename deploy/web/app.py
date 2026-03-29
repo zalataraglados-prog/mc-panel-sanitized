@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI, HTTPException
 
 from deploy.claims_codec import Claims, decode_claims
@@ -68,7 +70,8 @@ def decision_endpoint(payload: PlanRequest):
 
 @app.get("/deploy/instances")
 def instances_endpoint(base_dir: str = "/opt/mc-instances"):
-    result = inspector.list_instances(base_dir)
+    os.environ["MC_PANEL_BASE_DIR"] = base_dir
+    result = inspector.list_instances()
     if not result.get("ok"):
         raise HTTPException(status_code=404, detail=result.get("details"))
     return result

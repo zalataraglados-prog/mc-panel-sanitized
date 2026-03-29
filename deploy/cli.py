@@ -716,7 +716,9 @@ def main():
 
     if args.command == "instances":
         inspector = HostInspector()
-        result = inspector.list_instances(args.base_dir)
+        if args.base_dir:
+            os.environ["MC_PANEL_BASE_DIR"] = args.base_dir
+        result = inspector.list_instances()
         print(json.dumps(result, indent=2, ensure_ascii=True))
         return 0
 

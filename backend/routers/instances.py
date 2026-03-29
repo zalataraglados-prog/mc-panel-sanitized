@@ -14,6 +14,18 @@ _INSTANCES_CACHE = TTLCache(ttl_seconds=5.0)
 DEFAULT_BASE_DIR = "/opt/mc-instances"
 
 
+def _normalize_token(value: str) -> str:
+    return value.replace("\\", "/").rstrip("/")
+
+
+def _list_known_instances() -> list[dict]:
+    inspector = HostInspector()
+    result = inspector.list_instances()
+    if not result.get("ok"):
+        return []
+    return result.get("instances", [])
+
+
 def resolve_instance_dir(base_dir: str = DEFAULT_BASE_DIR) -> str:
     """
     Pick the first instance directory if available, otherwise the base dir.
@@ -24,11 +36,27 @@ def resolve_instance_dir(base_dir: str = DEFAULT_BASE_DIR) -> str:
     base_dir = os.environ.get("MC_PANEL_BASE_DIR", base_dir)
     if not Path(base_dir).exists():
         return base_dir
-    inspector = HostInspector()
-    result = inspector.list_instances(base_dir)
-    if result.get("ok") and result.get("instances"):
-        return result["instances"][0]["path"]
+    instances = _list_known_instances()
+    if instances:
+        return instances[0]["path"]
     return base_dir
+
+
+def select_instance_dir(requested: str | None) -> str:
+    default_dir = resolve_instance_dir()
+    if not requested:
+        return default_dir
+    token = _normalize_token(str(requested).strip())
+    if not token:
+        return default_dir
+    token_name = os.path.basename(token)
+    for item in _list_known_instances():
+        path = str(item.get("path") or "")
+        name = str(item.get("name") or "")
+        norm_path = _normalize_token(path)
+        if token == norm_path or token == name or token_name == name:
+            return path
+    return default_dir
 
 
 @router.get("/api/instances", response_model=InstancesResponse)
@@ -39,10 +67,6 @@ def instances_endpoint(base_dir: str = DEFAULT_BASE_DIR, user=Depends(get_curren
     cached = _INSTANCES_CACHE.get(cache_key)
     if cached:
         return InstancesResponse(instances=cached)
-    inspector = HostInspector()
-    result = inspector.list_instances(base_dir)
-    if not result.get("ok"):
-        return InstancesResponse(instances=[])
-    instances = result.get("instances", [])
+    instances = _list_known_instances()
     _INSTANCES_CACHE.set(cache_key, instances)
     return InstancesResponse(instances=instances)

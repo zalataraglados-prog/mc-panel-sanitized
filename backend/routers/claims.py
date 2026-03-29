@@ -1,12 +1,12 @@
 import json
 import re
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
 from backend.auth import get_current_user, require_roles
 from backend.models import ClaimsExportResponse
-from backend.routers.instances import resolve_instance_dir
-from backend.runtime.instance_paths import instance_child, normalize_instance_dir
+from backend.routers.instances import select_instance_dir
+from backend.runtime.instance_paths import instance_child
 from backend.runtime.rcon_client import RCONClient
 from deploy.claims_codec import encode_claims, encode_compact, encode_minimal
 from deploy.loader import load_rules_bundle
@@ -162,10 +162,7 @@ def _read_gamerules(instance_dir: str, catalog: dict) -> dict:
 
 
 def _safe_instance_dir(value: str | None) -> str:
-    try:
-        return str(normalize_instance_dir(value or resolve_instance_dir()))
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid instance dir") from exc
+    return select_instance_dir(value)
 
 
 @router.get("/api/claims/export", response_model=ClaimsExportResponse)

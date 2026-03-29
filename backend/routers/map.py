@@ -15,8 +15,8 @@ from backend.models import (
     MapReloadResponse,
     MapStatusResponse,
 )
-from backend.routers.instances import resolve_instance_dir
-from backend.runtime.instance_paths import instance_child, normalize_instance_dir
+from backend.routers.instances import select_instance_dir
+from backend.runtime.instance_paths import instance_child
 from backend.runtime.map_provider import get_map_status, resolve_tile_path
 from backend.runtime.rcon_client import RCONClient
 
@@ -30,10 +30,7 @@ _BLUE_MAP_WEB_CANDIDATES = (
 
 
 def _safe_instance_dir(value: str | None) -> Path:
-    try:
-        return normalize_instance_dir(value or resolve_instance_dir())
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid instance dir") from exc
+    return Path(select_instance_dir(value))
 
 
 @router.get("/api/map/status", response_model=MapStatusResponse)

@@ -11,17 +11,8 @@ DEFAULT_BASE_DIR = "/opt/mc-instances"
 
 class HostInspector:
     @staticmethod
-    def _safe_base_dir(base_dir: str) -> str | None:
-        configured = os.environ.get("MC_PANEL_BASE_DIR", DEFAULT_BASE_DIR)
-        root = os.path.realpath(configured)
-        target = os.path.realpath(base_dir or configured)
-        try:
-            os.path.commonpath([root, target])
-        except ValueError:
-            return None
-        if os.path.commonpath([root, target]) != root:
-            return None
-        return target
+    def _configured_base_dir() -> str:
+        return os.path.realpath(os.environ.get("MC_PANEL_BASE_DIR", DEFAULT_BASE_DIR))
 
     def check_memory_available(self, required_gb: float) -> Dict[str, Any]:
         if not isinstance(required_gb, (int, float)) or required_gb <= 0:
@@ -302,10 +293,8 @@ class HostInspector:
         details = service_name if ok else (result.stderr.strip() or result.stdout.strip())
         return {"check": "service_exists", "ok": ok, "details": details}
 
-    def list_instances(self, base_dir: str) -> Dict[str, Any]:
-        safe_base = self._safe_base_dir(base_dir)
-        if not safe_base:
-            return {"check": "list_instances", "ok": False, "details": "invalid base dir"}
+    def list_instances(self) -> Dict[str, Any]:
+        safe_base = self._configured_base_dir()
         if not os.path.isdir(safe_base):
             return {"check": "list_instances", "ok": False, "details": "base dir missing"}
         entries = []

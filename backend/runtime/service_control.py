@@ -26,11 +26,11 @@ def control_service(instance_dir: str, action: str) -> Dict[str, str]:
 
     unit = _service_name(instance_dir)
     if action == "start":
-        cmd = ["systemctl", "start", unit]
+        cmd = ["systemctl", "start", "--", unit]
     elif action == "stop":
-        cmd = ["systemctl", "stop", unit]
+        cmd = ["systemctl", "stop", "--", unit]
     else:
-        cmd = ["systemctl", "restart", unit]
+        cmd = ["systemctl", "restart", "--", unit]
     try:
         subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         return {"status": f"{action} issued", "details": unit}

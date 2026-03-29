@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from backend.auth import get_current_user, require_roles
 from backend.logging import log_action
 from backend.models import CommandRequest
-from backend.routers.instances import resolve_instance_dir
-from backend.runtime.instance_paths import normalize_instance_dir
+from backend.routers.instances import select_instance_dir
 from backend.runtime.rcon_client import RCONClient
 
 router = APIRouter()
@@ -18,10 +17,7 @@ def _rcon_public_error(response: str) -> str:
 
 
 def _safe_instance_dir(value: str | None) -> str:
-    try:
-        return str(normalize_instance_dir(value or resolve_instance_dir()))
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid instance dir") from exc
+    return select_instance_dir(value)
 
 
 @router.post("/api/command")
