@@ -157,20 +157,21 @@ def _build_claims(state):
 
 def _safe_import_file(value: str) -> Path:
     raw = (value or "").strip()
-    path = Path(raw).expanduser().resolve()
+    path = os.path.realpath(os.path.expanduser(raw))
     allowed = False
     for root in _ALLOWED_IMPORT_ROOTS:
         try:
-            path.relative_to(root)
-            allowed = True
-            break
-        except ValueError:
+            if os.path.commonpath([path, os.path.realpath(str(root))]) == os.path.realpath(str(root)):
+                allowed = True
+                break
+        except Exception:
             continue
-    if not allowed or not path.is_file():
+    candidate = Path(path)
+    if not allowed or not candidate.is_file():
         raise ValueError("invalid import file")
-    if path.stat().st_size > 1024 * 1024:
+    if candidate.stat().st_size > 1024 * 1024:
         raise ValueError("import file too large")
-    return path
+    return candidate
 
 
 def _safe_version(value: str | None) -> str:

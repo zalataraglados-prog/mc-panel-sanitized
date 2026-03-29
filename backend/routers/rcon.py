@@ -20,6 +20,11 @@ def _rcon_public_error(response: str) -> str:
         return "RCON command failed"
     return text or "RCON command failed"
 
+def _public_response(response: str) -> str:
+    if (response or "").startswith("RCON "):
+        return "RCON command failed"
+    return response
+
 
 def _usercache_uuid(instance_dir: str, name: str) -> str | None:
     cache_path = instance_child(instance_dir, "data", "usercache.json")
@@ -97,12 +102,12 @@ def rcon_endpoint(payload: CommandRequest, user=Depends(get_current_user)):
             }
         response = client.execute(f"op {name}")
         if response.startswith("RCON "):
-            return {"response": response, "ok": False, "error": _rcon_public_error(response)}
+            return {"response": _public_response(response), "ok": False, "error": _rcon_public_error(response)}
         error = _update_ops(instance_dir, name, level, True)
         if error:
-            return {"response": error, "ok": False, "error": error}
+            return {"response": "Failed to update ops", "ok": False, "error": "ops_update_failed"}
         return {
-            "response": f"{response} (OP level set to {level})",
+            "response": f"OP level set to {level}",
             "ok": True,
             "error": None,
         }
@@ -112,10 +117,10 @@ def rcon_endpoint(payload: CommandRequest, user=Depends(get_current_user)):
         if not response.startswith("RCON "):
             _update_ops(instance_dir, name, None, False)
         error = response.startswith("RCON ")
-        return {"response": response, "ok": not error, "error": _rcon_public_error(response) if error else None}
+        return {"response": _public_response(response), "ok": not error, "error": _rcon_public_error(response) if error else None}
     response = client.execute(payload.command)
     error = response.startswith("RCON ")
-    return {"response": response, "ok": not error, "error": _rcon_public_error(response) if error else None}
+    return {"response": _public_response(response), "ok": not error, "error": _rcon_public_error(response) if error else None}
 
 
 @router.get("/api/rcon/health", response_model=RconHealthResponse)
@@ -130,5 +135,5 @@ def rcon_health(instance_dir: str | None = None, user=Depends(get_current_user))
         return RconHealthResponse(ok=False, message="RCON disabled", instance_dir=resolved)
     response = client.execute("list")
     ok = bool(response) and not response.startswith("RCON ")
-    message = response if ok else _rcon_public_error(response)
+    message = _public_response(response) if ok else _rcon_public_error(response)
     return RconHealthResponse(ok=ok, message=message, instance_dir=resolved)

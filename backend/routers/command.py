@@ -15,6 +15,11 @@ def _rcon_public_error(response: str) -> str:
         return "RCON command failed"
     return text or "RCON command failed"
 
+def _public_command_result(response: str) -> str:
+    if (response or "").startswith("RCON "):
+        return "RCON command failed"
+    return response
+
 
 def _safe_instance_dir(value: str | None) -> str:
     return select_instance_dir(value)
@@ -31,4 +36,4 @@ def command_endpoint(payload: CommandRequest, user=Depends(get_current_user)):
     except Exception:
         return {"result": "command failed", "ok": False, "error": "command_failed"}
     error = response.startswith("RCON ")
-    return {"result": response, "ok": not error, "error": _rcon_public_error(response) if error else None}
+    return {"result": _public_command_result(response), "ok": not error, "error": _rcon_public_error(response) if error else None}

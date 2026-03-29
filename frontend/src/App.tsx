@@ -1534,7 +1534,7 @@ export function App() {
   const renderPlayerCard = (p: Player, metaPrimary?: string, metaSecondary?: string) => (
     <div key={p.uuid} className="player-card">
       <img
-        src={buildAvatarUrl(p.name, p.uuid, 64, "minotar")}
+        src={avatarPlaceholder}
         alt={p.name}
         referrerPolicy="no-referrer"
         onError={(event) => handleAvatarError(event, p.name, p.uuid, 64)}

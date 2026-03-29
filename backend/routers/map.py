@@ -1,4 +1,6 @@
 import json
+import os
+import posixpath
 from pathlib import Path
 
 from backend.logging import log_action
@@ -109,9 +111,19 @@ def bluemap_web(
     base = _resolve_bluemap_web_root(_safe_instance_dir(instance_dir))
     if base is None:
         raise HTTPException(status_code=404, detail="BlueMap web not found")
-    safe_path = (base / path).resolve()
-    if not str(safe_path).startswith(str(base.resolve())):
+    normalized = posixpath.normpath("/" + (path or "")).lstrip("/")
+    if normalized.startswith("../") or "/../" in normalized:
         raise HTTPException(status_code=400, detail="Invalid path")
+    safe_path = base.joinpath(*normalized.split("/")) if normalized else base / _BLUE_MAP_WEB_INDEX
+    resolved_base = base.resolve()
+    resolved_path = safe_path.resolve()
+    try:
+        in_base = os.path.commonpath([str(resolved_base), str(resolved_path)]) == str(resolved_base)
+    except ValueError:
+        in_base = False
+    if not in_base:
+        raise HTTPException(status_code=400, detail="Invalid path")
+    safe_path = resolved_path
     if safe_path.is_dir():
         safe_path = safe_path / _BLUE_MAP_WEB_INDEX
     if not safe_path.exists():
