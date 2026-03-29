@@ -14,6 +14,13 @@ _OP_LEVEL_MIN = 1
 _OP_LEVEL_MAX = 4
 
 
+def _rcon_public_error(response: str) -> str:
+    text = (response or "").strip()
+    if text.startswith("RCON "):
+        return "RCON command failed"
+    return text or "RCON command failed"
+
+
 def _usercache_uuid(instance_dir: str, name: str) -> str | None:
     cache_path = instance_child(instance_dir, "data", "usercache.json")
     if not cache_path.exists():
@@ -93,7 +100,7 @@ def rcon_endpoint(payload: CommandRequest, user=Depends(get_current_user)):
             }
         response = client.execute(f"op {name}")
         if response.startswith("RCON "):
-            return {"response": response, "ok": False, "error": response}
+            return {"response": response, "ok": False, "error": _rcon_public_error(response)}
         error = _update_ops(instance_dir, name, level, True)
         if error:
             return {"response": error, "ok": False, "error": error}
@@ -108,10 +115,10 @@ def rcon_endpoint(payload: CommandRequest, user=Depends(get_current_user)):
         if not response.startswith("RCON "):
             _update_ops(instance_dir, name, None, False)
         error = response.startswith("RCON ")
-        return {"response": response, "ok": not error, "error": response if error else None}
+        return {"response": response, "ok": not error, "error": _rcon_public_error(response) if error else None}
     response = client.execute(payload.command)
     error = response.startswith("RCON ")
-    return {"response": response, "ok": not error, "error": response if error else None}
+    return {"response": response, "ok": not error, "error": _rcon_public_error(response) if error else None}
 
 
 @router.get("/api/rcon/health", response_model=RconHealthResponse)

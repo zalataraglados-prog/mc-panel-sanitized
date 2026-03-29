@@ -33,7 +33,8 @@ def resolve_instance_dir(base_dir: str = DEFAULT_BASE_DIR) -> str:
 
 @router.get("/api/instances", response_model=InstancesResponse)
 def instances_endpoint(base_dir: str = DEFAULT_BASE_DIR, user=Depends(get_current_user)):
-    base_dir = os.environ.get("MC_PANEL_BASE_DIR", base_dir)
+    _ = base_dir
+    base_dir = os.environ.get("MC_PANEL_BASE_DIR", DEFAULT_BASE_DIR)
     cache_key = base_dir
     cached = _INSTANCES_CACHE.get(cache_key)
     if cached:

@@ -175,7 +175,10 @@ def _safe_import_file(value: str) -> Path:
 
 def _safe_version(value: str | None) -> str:
     version = (value or "1.21.11").strip()
-    if not re.fullmatch(r"\d+\.\d+(?:\.\d+)?", version):
+    parts = version.split(".")
+    if len(parts) not in (2, 3):
+        return "1.21.11"
+    if any((not part.isdigit()) for part in parts):
         return "1.21.11"
     return version
 
@@ -366,7 +369,11 @@ def _run_cli(action, state):
     profile = _safe_profile(state.get("profile"))
     claims = _build_claims(state)
     claims_file = _write_claims_file(claims)
-    cmd = ["python3", "-m", "deploy.cli", action, "--version", version, "--profile", profile, "--import-file", str(claims_file)]
+    if action == "plan":
+        cmd = ["python3", "-m", "deploy.cli", "plan"]
+    else:
+        cmd = ["python3", "-m", "deploy.cli", "apply"]
+    cmd.extend(["--version", version, "--profile", profile, "--import-file", str(claims_file)])
     if action == "apply":
         cmd.append("--apply")
         cmd.append("--confirm-warn")
@@ -399,18 +406,11 @@ def _run_cli_stream(action, state):
     claims = _build_claims(state)
     claims_file = _write_claims_file(claims)
 
-    cmd = [
-        "python3",
-        "-m",
-        "deploy.cli",
-        action,
-        "--version",
-        version,
-        "--profile",
-        profile,
-        "--import-file",
-        str(claims_file),
-    ]
+    if action == "plan":
+        cmd = ["python3", "-m", "deploy.cli", "plan"]
+    else:
+        cmd = ["python3", "-m", "deploy.cli", "apply"]
+    cmd.extend(["--version", version, "--profile", profile, "--import-file", str(claims_file)])
 
     if action == "apply":
         cmd.append("--apply")

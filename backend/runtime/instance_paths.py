@@ -14,15 +14,23 @@ class InstancePathError(ValueError):
 
 
 def _base_dir() -> Path:
-    return Path(os.environ.get("MC_PANEL_BASE_DIR", _DEFAULT_BASE_DIR)).resolve()
+    return Path(os.environ.get("MC_PANEL_BASE_DIR", _DEFAULT_BASE_DIR))
 
 
-def _allowed_roots() -> list[Path]:
-    roots = [_base_dir()]
-    override = os.environ.get("MC_PANEL_INSTANCE_DIR", "").strip()
-    if override:
-        roots.append(Path(override).resolve())
-    return roots
+def _is_base_path(raw: str, base: Path) -> bool:
+    left = raw.replace("\\", "/").rstrip("/")
+    right = str(base).replace("\\", "/").rstrip("/")
+    return bool(left) and left == right
+
+
+def _instance_name(raw: str) -> str:
+    if os.path.isabs(raw) or "/" in raw or "\\" in raw:
+        value = os.path.basename(raw.rstrip("/\\"))
+    else:
+        value = raw
+    if not _INSTANCE_NAME_RE.fullmatch(value):
+        raise InstancePathError("invalid instance name")
+    return value
 
 
 def normalize_instance_dir(instance_dir: str | Path | None) -> Path:
@@ -32,31 +40,26 @@ def normalize_instance_dir(instance_dir: str | Path | None) -> Path:
     """
     base = _base_dir()
     if instance_dir is None:
+        override = os.environ.get("MC_PANEL_INSTANCE_DIR", "").strip()
+        if override:
+            if _is_base_path(override, base):
+                return base
+            return base / _instance_name(override)
         return base
     raw = str(instance_dir).strip()
     if not raw:
         return base
-    if os.path.isabs(raw):
-        candidate = Path(raw).resolve()
-    else:
-        if not _INSTANCE_NAME_RE.fullmatch(raw):
-            raise InstancePathError("invalid instance name")
-        candidate = (base / raw).resolve()
-    for root in _allowed_roots():
-        try:
-            candidate.relative_to(root)
-            return candidate
-        except ValueError:
-            continue
-    raise InstancePathError("instance path escapes base dir")
-    return candidate
+    if _is_base_path(raw, base):
+        return base
+    return base / _instance_name(raw)
 
 
 def instance_child(instance_dir: str | Path | None, *parts: str) -> Path:
     base = normalize_instance_dir(instance_dir)
-    candidate = (base.joinpath(*parts)).resolve()
-    try:
-        candidate.relative_to(base)
-    except ValueError as exc:
-        raise InstancePathError("instance child path escapes base dir") from exc
+    candidate = base
+    for part in parts:
+        token = str(part).strip()
+        if token in ("", ".", "..") or "/" in token or "\\" in token:
+            raise InstancePathError("instance child path escapes base dir")
+        candidate = candidate / token
     return candidate

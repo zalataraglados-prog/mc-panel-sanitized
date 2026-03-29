@@ -10,6 +10,13 @@ from backend.runtime.rcon_client import RCONClient
 router = APIRouter()
 
 
+def _rcon_public_error(response: str) -> str:
+    text = (response or "").strip()
+    if text.startswith("RCON "):
+        return "RCON command failed"
+    return text or "RCON command failed"
+
+
 def _safe_instance_dir(value: str | None) -> str:
     try:
         return str(normalize_instance_dir(value or resolve_instance_dir()))
@@ -28,4 +35,4 @@ def command_endpoint(payload: CommandRequest, user=Depends(get_current_user)):
     except Exception:
         return {"result": "command failed", "ok": False, "error": "command_failed"}
     error = response.startswith("RCON ")
-    return {"result": response, "ok": not error, "error": response if error else None}
+    return {"result": response, "ok": not error, "error": _rcon_public_error(response) if error else None}

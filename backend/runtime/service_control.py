@@ -25,7 +25,12 @@ def control_service(instance_dir: str, action: str) -> Dict[str, str]:
         return {"status": "unavailable", "details": "systemctl not found"}
 
     unit = _service_name(instance_dir)
-    cmd = ["systemctl", action, unit]
+    if action == "start":
+        cmd = ["systemctl", "start", unit]
+    elif action == "stop":
+        cmd = ["systemctl", "stop", unit]
+    else:
+        cmd = ["systemctl", "restart", unit]
     try:
         subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         return {"status": f"{action} issued", "details": unit}
