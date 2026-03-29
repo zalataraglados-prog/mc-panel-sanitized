@@ -723,6 +723,21 @@ export function App() {
     }
     return name ? `https://minotar.net/avatar/${encodeURIComponent(name)}/${size}` : `https://minotar.net/avatar/steve/${size}`;
   };
+  const sanitizeAvatarUrl = (raw: string | null | undefined, fallback: string) => {
+    const candidate = (raw || "").trim();
+    if (!candidate) {
+      return fallback;
+    }
+    try {
+      const parsed = new URL(candidate, window.location.origin);
+      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+        return fallback;
+      }
+      return parsed.toString();
+    } catch {
+      return fallback;
+    }
+  };
   const handleAvatarError = (
     event: React.SyntheticEvent<HTMLImageElement>,
     name: string,
@@ -806,7 +821,7 @@ export function App() {
               <img
                 key={`marker-${player.uuid}`}
                 className="map-marker"
-                src={player.skin_url || buildAvatarUrl(player.name, player.uuid, size, "minotar")}
+                src={sanitizeAvatarUrl(player.skin_url, buildAvatarUrl(player.name, player.uuid, size, "minotar"))}
                 title={player.name}
                 style={{ left: `${left}px`, top: `${top}px`, width: `${size}px`, height: `${size}px` }}
                 alt={player.name}
@@ -1519,7 +1534,7 @@ export function App() {
   const renderPlayerCard = (p: Player, metaPrimary?: string, metaSecondary?: string) => (
     <div key={p.uuid} className="player-card">
       <img
-        src={p.skin_url || buildAvatarUrl(p.name, p.uuid, 64, "minotar")}
+        src={sanitizeAvatarUrl(p.skin_url, buildAvatarUrl(p.name, p.uuid, 64, "minotar"))}
         alt={p.name}
         referrerPolicy="no-referrer"
         onError={(event) => handleAvatarError(event, p.name, p.uuid, 64)}
@@ -2024,7 +2039,7 @@ export function App() {
                   <div key={`ban-${entry.name}`} className="player-card">
                     {related ? (
                       <img
-                        src={related.skin_url || buildAvatarUrl(related.name, related.uuid, 64, "minotar")}
+                        src={sanitizeAvatarUrl(related.skin_url, buildAvatarUrl(related.name, related.uuid, 64, "minotar"))}
                         alt={entry.name}
                         referrerPolicy="no-referrer"
                         onError={(event) => handleAvatarError(event, related.name, related.uuid, 64)}

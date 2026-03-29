@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from backend.runtime.instance_paths import instance_child
+
 
 def clean_value(raw: str) -> str:
     value = raw.strip()
@@ -11,7 +13,7 @@ def clean_value(raw: str) -> str:
 
 
 def read_server_properties(instance_dir: Path) -> dict[str, str]:
-    path = instance_dir / "data" / "server.properties"
+    path = instance_child(instance_dir, "data", "server.properties")
     if not path.exists():
         return {}
     result: dict[str, str] = {}

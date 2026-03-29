@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 import json
 import re
 import os
 import subprocess
 import secrets
+import tempfile
 import threading
 import time
 import hmac
@@ -30,6 +32,12 @@ TOKEN_LOCK = threading.Lock()
 NONCE_TTL_SECONDS = 120
 NONCE_LOCK = threading.Lock()
 NONCE_STORE = {}
+_ALLOWED_IMPORT_ROOTS = (
+    Path("/opt/mc-instances").resolve(),
+    Path("/tmp").resolve(),
+    Path(tempfile.gettempdir()).resolve(),
+    ROOT.resolve(),
+)
 
 os.environ.setdefault("PYTHONUTF8", "1")
 os.environ.setdefault("LANG", "C.UTF-8")
@@ -112,7 +120,7 @@ def _check_ports(ports):
             import socket
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.bind(("0.0.0.0", port))
+            s.bind(("127.0.0.1", port))
             results[str(port)] = {"free": True}
         except Exception as exc:
             results[str(port)] = {"free": False, "reason": str(exc)}
@@ -141,10 +149,61 @@ def _build_claims(state):
         return import_value
     if mode == "file" and import_value:
         try:
-            return Path(import_value).read_text(encoding="utf-8").strip()
+            return _safe_import_file(import_value).read_text(encoding="utf-8").strip()
         except Exception:
             pass
     return encode_claims(params)
+
+
+def _safe_import_file(value: str) -> Path:
+    raw = (value or "").strip()
+    path = Path(raw).expanduser().resolve()
+    allowed = False
+    for root in _ALLOWED_IMPORT_ROOTS:
+        try:
+            path.relative_to(root)
+            allowed = True
+            break
+        except ValueError:
+            continue
+    if not allowed or not path.is_file():
+        raise ValueError("invalid import file")
+    if path.stat().st_size > 1024 * 1024:
+        raise ValueError("import file too large")
+    return path
+
+
+def _safe_version(value: str | None) -> str:
+    version = (value or "1.21.11").strip()
+    if not re.fullmatch(r"\d+\.\d+(?:\.\d+)?", version):
+        return "1.21.11"
+    return version
+
+
+def _safe_profile(value: str | None) -> str:
+    profile = (value or "normal").strip().lower()
+    if profile not in {"beginner", "normal", "advanced"}:
+        return "normal"
+    return profile
+
+
+def _safe_action(value: str) -> str:
+    action = (value or "").strip().lower()
+    if action not in {"plan", "apply"}:
+        raise ValueError("unsupported action")
+    return action
+
+
+def _write_claims_file(claims: str) -> Path:
+    payload = (claims or "").replace("\x00", "")
+    if len(payload) > 128 * 1024:
+        payload = payload[: 128 * 1024]
+    temp_dir = Path(tempfile.gettempdir()).resolve()
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    fd, name = tempfile.mkstemp(prefix="mcic-claims-", suffix=".txt", dir=str(temp_dir))
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        handle.write(payload)
+    return Path(name)
 
 
 def _log_event(ip, action, extra=None):
@@ -302,22 +361,31 @@ def _check_service_health(instance_dir: str) -> tuple[bool, str]:
 
 
 def _run_cli(action, state):
-    version = state.get("version") or "1.21.11"
-    profile = state.get("profile") or "normal"
+    action = _safe_action(action)
+    version = _safe_version(state.get("version"))
+    profile = _safe_profile(state.get("profile"))
     claims = _build_claims(state)
-    cmd = ["python3", "-m", "deploy.cli", action, "--version", version, "--profile", profile, "--import-string", claims]
+    claims_file = _write_claims_file(claims)
+    cmd = ["python3", "-m", "deploy.cli", action, "--version", version, "--profile", profile, "--import-file", str(claims_file)]
     if action == "apply":
         cmd.append("--apply")
         cmd.append("--confirm-warn")
-    proc = subprocess.run(
-        cmd,
-        cwd=str(ROOT),
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        env=_cli_env(),
-    )
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=_cli_env(),
+            shell=False,
+        )
+    finally:
+        try:
+            claims_file.unlink()
+        except Exception:
+            pass
     output = (proc.stdout or "") + ("\n" + proc.stderr if proc.stderr else "")
     if proc.returncode == 0 and not output.strip():
         return 1, "no output from cli"
@@ -325,9 +393,11 @@ def _run_cli(action, state):
 
 
 def _run_cli_stream(action, state):
-    version = state.get("version") or "1.21.11"
-    profile = state.get("profile") or "normal"
+    action = _safe_action(action)
+    version = _safe_version(state.get("version"))
+    profile = _safe_profile(state.get("profile"))
     claims = _build_claims(state)
+    claims_file = _write_claims_file(claims)
 
     cmd = [
         "python3",
@@ -338,8 +408,8 @@ def _run_cli_stream(action, state):
         version,
         "--profile",
         profile,
-        "--import-string",
-        claims,
+        "--import-file",
+        str(claims_file),
     ]
 
     if action == "apply":
@@ -356,139 +426,134 @@ def _run_cli_stream(action, state):
         errors="replace",
         bufsize=1,
         env=_cli_env(),
+        shell=False,
     )
 
-    output_lines = []
-    in_pre = False
-    in_actions = False
-    total_pre = 0
-    total_actions = 0
-    done = 0
+    try:
+        output_lines = []
+        in_pre = False
+        in_actions = False
+        total_pre = 0
+        total_actions = 0
+        done = 0
 
-    _write_progress({"status": "running", "percent": 1, "message": "starting"})
+        _write_progress({"status": "running", "percent": 1, "message": "starting"})
 
-    if proc.stdout:
-        for line in proc.stdout:
-            output_lines.append(line)
-            stripped = line.strip()
+        if proc.stdout:
+            for line in proc.stdout:
+                output_lines.append(line)
+                stripped = line.strip()
 
-            if stripped.startswith("Preconditions") or stripped.startswith("前置检查"):
-                in_pre = True
-                in_actions = False
-                continue
+                if stripped.startswith("Preconditions") or stripped.startswith("前置检查"):
+                    in_pre = True
+                    in_actions = False
+                    continue
 
-            if stripped.startswith("Actions") or stripped.startswith("执行动作"):
-                in_actions = True
-                in_pre = False
-                continue
+                if stripped.startswith("Actions") or stripped.startswith("执行动作"):
+                    in_actions = True
+                    in_pre = False
+                    continue
 
-            if in_pre and stripped.startswith("-"):
-                total_pre += 1
+                if in_pre and stripped.startswith("-"):
+                    total_pre += 1
 
-            if in_actions and stripped.startswith("-"):
-                total_actions += 1
+                if in_actions and stripped.startswith("-"):
+                    total_actions += 1
 
-            if stripped.startswith("- precondition:") or stripped.startswith("- action:"):
-                done += 1
-                total = max(total_pre + total_actions, done)
-                percent = int(min(95, max(1, (done * 100) // total)))
+                if stripped.startswith("- precondition:") or stripped.startswith("- action:"):
+                    done += 1
+                    total = max(total_pre + total_actions, done)
+                    percent = int(min(95, max(1, (done * 100) // total)))
+                    _write_progress(
+                        {
+                            "status": "running",
+                            "percent": percent,
+                            "message": f"{done}/{total}",
+                            "detail": stripped,
+                        }
+                    )
 
-                _write_progress(
-                    {
-                        "status": "running",
-                        "percent": percent,
-                        "message": f"{done}/{total}",
-                        "detail": stripped,
-                    }
-                )
+        proc.wait()
 
-    proc.wait()
+        output = "".join(output_lines)
+        ok = proc.returncode == 0
+        instance_dir = _extract_instance_dir(output)
 
-    output = "".join(output_lines)
-    ok = proc.returncode == 0
-    instance_dir = _extract_instance_dir(output)
-
-    if ok and not output.strip():
-        _cleanup_failed(instance_dir)
-        _write_progress({"status": "failed", "percent": 95, "message": "failed", "detail": "no output from cli"})
-        return 1, ""
-
-    if ok:
-        if instance_dir and not os.path.isdir(instance_dir):
+        if ok and not output.strip():
             _cleanup_failed(instance_dir)
-            _write_progress(
-                {
-                    "status": "failed",
-                    "percent": 95,
-                    "message": "failed",
-                    "detail": "instance dir missing (apply likely did not run)",
-                }
-            )
-            return 1, output.strip()
-        if "Execution succeeded." not in output and "执行成功" not in output:
-            detail = _extract_cli_failure_reason(output) or "apply did not report success"
-            _cleanup_failed(instance_dir)
-            _write_progress(
-                {
-                    "status": "failed",
-                    "percent": 95,
-                    "message": "failed",
-                    "detail": detail,
-                }
-            )
-            return 1, output.strip()
+            _write_progress({"status": "failed", "percent": 95, "message": "failed", "detail": "no output from cli"})
+            return 1, ""
 
-    # ===== Patch 1: CLI 本身失败才算失败 =====
-    if not ok:
-        detail = _extract_cli_failure_reason(output)
-        _cleanup_failed(instance_dir)
-        _write_progress({"status": "failed", "percent": 95, "message": "failed", "detail": detail})
-        return 1, output.strip()
-
-    # ===== Patch 2: RCON banner 不出现 → waiting，不立刻 fail =====
-    if "RCON running at" not in output:
-        _write_progress(
-            {
-                "status": "waiting",
-                "percent": 95,
-                "message": "waiting for RCON banner...",
-                "detail": "RCON not ready yet",
-            }
-        )
-
-    # ===== Patch 3: 无限轮询直到 systemd active =====
-    if instance_dir:
-        deadline = time.time() + 10 * 60
-        while True:
-            healthy, log_text = _check_service_health(instance_dir)
-            if healthy:
-                break
-
-            if time.time() > deadline:
+        if ok:
+            if instance_dir and not os.path.isdir(instance_dir):
                 _cleanup_failed(instance_dir)
                 _write_progress(
                     {
                         "status": "failed",
                         "percent": 95,
                         "message": "failed",
-                        "detail": "timeout waiting for systemd active",
+                        "detail": "instance dir missing (apply likely did not run)",
                     }
                 )
                 return 1, output.strip()
+            if "Execution succeeded." not in output and "执行成功" not in output:
+                detail = _extract_cli_failure_reason(output) or "apply did not report success"
+                _cleanup_failed(instance_dir)
+                _write_progress({"status": "failed", "percent": 95, "message": "failed", "detail": detail})
+                return 1, output.strip()
 
+        if not ok:
+            detail = _extract_cli_failure_reason(output)
+            _cleanup_failed(instance_dir)
+            _write_progress({"status": "failed", "percent": 95, "message": "failed", "detail": detail})
+            return 1, output.strip()
+
+        if "RCON running at" not in output:
             _write_progress(
                 {
                     "status": "waiting",
                     "percent": 95,
-                    "message": "waiting for systemd active...",
-                    "detail": "service not active yet",
+                    "message": "waiting for RCON banner...",
+                    "detail": "RCON not ready yet",
                 }
             )
-            time.sleep(2)
 
-    # ===== 最终成功 =====
-    _write_progress({"status": "done", "percent": 100, "message": "done"})
-    return 0, output.strip()
+        if instance_dir:
+            deadline = time.time() + 10 * 60
+            while True:
+                healthy, _ = _check_service_health(instance_dir)
+                if healthy:
+                    break
+
+                if time.time() > deadline:
+                    _cleanup_failed(instance_dir)
+                    _write_progress(
+                        {
+                            "status": "failed",
+                            "percent": 95,
+                            "message": "failed",
+                            "detail": "timeout waiting for systemd active",
+                        }
+                    )
+                    return 1, output.strip()
+
+                _write_progress(
+                    {
+                        "status": "waiting",
+                        "percent": 95,
+                        "message": "waiting for systemd active...",
+                        "detail": "service not active yet",
+                    }
+                )
+                time.sleep(2)
+
+        _write_progress({"status": "done", "percent": 100, "message": "done"})
+        return 0, output.strip()
+    finally:
+        try:
+            claims_file.unlink()
+        except Exception:
+            pass
 
 def _generate_token():
     global WIZARD_TOKEN
@@ -755,7 +820,8 @@ def main():
     _write_pid()
     rotator = threading.Thread(target=_rotate_token_loop, daemon=True)
     rotator.start()
-    server = HTTPServer(("0.0.0.0", port), Handler)
+    host = os.environ.get("MC_PANEL_WIZARD_HOST", "127.0.0.1").strip() or "127.0.0.1"
+    server = HTTPServer((host, port), Handler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

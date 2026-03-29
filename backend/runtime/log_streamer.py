@@ -4,8 +4,8 @@ import time
 from typing import AsyncIterator, List
 
 
-def tail_log(path: str, lines: int = 200) -> List[str]:
-    file_path = pathlib.Path(path)
+def tail_log(path: pathlib.Path, lines: int = 200) -> List[str]:
+    file_path = path
     if not file_path.exists():
         return []
     with file_path.open("r", encoding="utf-8", errors="ignore") as handle:
@@ -13,14 +13,14 @@ def tail_log(path: str, lines: int = 200) -> List[str]:
 
 
 async def follow_log(
-    path: str,
+    path: pathlib.Path,
     *,
     poll_interval: float = 0.5,
     flush_interval: float = 1.0,
     max_lines: int = 200,
     max_per_second: int = 50,
 ) -> AsyncIterator[str]:
-    file_path = pathlib.Path(path)
+    file_path = path
     if not file_path.exists():
         return
     with file_path.open("r", encoding="utf-8", errors="ignore") as handle:

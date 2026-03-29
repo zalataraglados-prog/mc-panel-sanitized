@@ -1,12 +1,12 @@
 import json
-from pathlib import Path
 import re
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from backend.auth import get_current_user, require_roles
 from backend.models import ClaimsExportResponse
 from backend.routers.instances import resolve_instance_dir
+from backend.runtime.instance_paths import instance_child, normalize_instance_dir
 from backend.runtime.rcon_client import RCONClient
 from deploy.claims_codec import encode_claims, encode_compact, encode_minimal
 from deploy.loader import load_rules_bundle
@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 def _read_config(instance_dir: str) -> dict:
-    path = Path(instance_dir) / "config.json"
+    path = instance_child(instance_dir, "config.json")
     if not path.exists():
         return {}
     try:
@@ -25,7 +25,7 @@ def _read_config(instance_dir: str) -> dict:
 
 
 def _read_server_properties(instance_dir: str) -> dict:
-    path = Path(instance_dir) / "data" / "server.properties"
+    path = instance_child(instance_dir, "data", "server.properties")
     if not path.exists():
         return {}
     entries: dict = {}
@@ -38,7 +38,7 @@ def _read_server_properties(instance_dir: str) -> dict:
 
 
 def _read_compose_env(instance_dir: str) -> dict:
-    path = Path(instance_dir) / "docker-compose.yml"
+    path = instance_child(instance_dir, "docker-compose.yml")
     if not path.exists():
         return {}
     env: dict = {}
@@ -161,6 +161,13 @@ def _read_gamerules(instance_dir: str, catalog: dict) -> dict:
     return values
 
 
+def _safe_instance_dir(value: str | None) -> str:
+    try:
+        return str(normalize_instance_dir(value or resolve_instance_dir()))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid instance dir") from exc
+
+
 @router.get("/api/claims/export", response_model=ClaimsExportResponse)
 def export_claims(
     instance_dir: str | None = Query(None),
@@ -168,7 +175,7 @@ def export_claims(
     user=Depends(get_current_user),
 ):
     require_roles(user, ["owner", "admin", "mod", "viewer"])
-    instance_dir = instance_dir or resolve_instance_dir()
+    instance_dir = _safe_instance_dir(instance_dir)
     config = _read_config(instance_dir)
     mc = config.get("minecraft", {}) if isinstance(config, dict) else {}
     version = mc.get("version") or "1.21.11"

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import json
 from backend.runtime.nbt import TAG_BYTE, TAG_COMPOUND, TAG_LIST, TAG_STRING, read_nbt, write_nbt
+from backend.runtime.instance_paths import normalize_instance_dir
 from backend.runtime.rcon_client import RCONClient
 
 
@@ -259,7 +260,7 @@ def _query_live_inventory(client: RCONClient, player: str, uuid: str | None = No
 
 
 def get_inventory(instance_dir: str, player: str) -> dict:
-    instance_path = Path(instance_dir)
+    instance_path = normalize_instance_dir(instance_dir)
     provider = _detect_provider(instance_path)
     props = _read_server_properties(instance_path)
     rcon_enabled = props.get("enable-rcon", "false").lower() == "true"
@@ -339,7 +340,7 @@ def get_inventory(instance_dir: str, player: str) -> dict:
 
 
 def set_inventory(instance_dir: str, player: str, items: list[dict]) -> dict:
-    instance_path = Path(instance_dir)
+    instance_path = normalize_instance_dir(instance_dir)
     props = _read_server_properties(instance_path)
     rcon_enabled = props.get("enable-rcon", "false").lower() == "true"
     provider = _detect_provider(instance_path)

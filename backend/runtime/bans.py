@@ -3,11 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from backend.runtime.instance_paths import instance_child
 from backend.runtime.rcon_client import RCONClient
 
 
 def _banlist_path(instance_dir: str) -> Path:
-    return Path(instance_dir) / "data" / "banned-players.json"
+    return instance_child(instance_dir, "data", "banned-players.json")
 
 
 def _read_banlist(instance_dir: str) -> list[dict]:

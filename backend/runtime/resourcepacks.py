@@ -10,12 +10,13 @@ from typing import Dict, List, Optional, Tuple
 from fastapi import HTTPException
 
 from backend.runtime.cache import TTLCache
+from backend.runtime.instance_paths import instance_child, normalize_instance_dir
 
 _PACK_CACHE = TTLCache(ttl_seconds=60.0)
 
 
 def _pack_root(instance_dir: str) -> Path:
-    return Path(instance_dir) / "panel" / "resourcepacks"
+    return instance_child(instance_dir, "panel", "resourcepacks")
 
 
 def _current_pack_dir(instance_dir: str) -> Path:
@@ -23,7 +24,7 @@ def _current_pack_dir(instance_dir: str) -> Path:
 
 
 def _data_pack_dir(instance_dir: str) -> Path:
-    return Path(instance_dir) / "data" / "resourcepacks"
+    return instance_child(instance_dir, "data", "resourcepacks")
 
 
 def _collect_pack_sources(instance_dir: str) -> List[Path]:
@@ -84,6 +85,7 @@ def _index_pack_zip(zip_path: Path) -> Dict[str, Tuple[str, Tuple[Path, str]]]:
 
 
 def _build_index(instance_dir: str) -> Dict[str, Tuple[str, object]]:
+    normalize_instance_dir(instance_dir)
     index: Dict[str, Tuple[str, object]] = {}
     for source in _collect_pack_sources(instance_dir):
         if source.is_dir():
@@ -109,6 +111,7 @@ def invalidate_cache(instance_dir: str) -> None:
 
 
 def get_item_texture(instance_dir: str, item_id: str) -> Optional[bytes]:
+    normalize_instance_dir(instance_dir)
     index = _get_index(instance_dir)
     entry = index.get(item_id)
     if not entry:
@@ -131,6 +134,7 @@ def get_item_texture(instance_dir: str, item_id: str) -> Optional[bytes]:
 
 
 def upload_pack(instance_dir: str, filename: str, content: bytes) -> Dict[str, str]:
+    normalize_instance_dir(instance_dir)
     root = _pack_root(instance_dir)
     root.mkdir(parents=True, exist_ok=True)
     zip_path = root / "uploaded.zip"
@@ -149,6 +153,7 @@ def upload_pack(instance_dir: str, filename: str, content: bytes) -> Dict[str, s
 
 
 def resourcepack_status(instance_dir: str) -> Dict[str, object]:
+    normalize_instance_dir(instance_dir)
     sources = _collect_pack_sources(instance_dir)
     index = _get_index(instance_dir)
     return {

@@ -1,12 +1,13 @@
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from backend.auth import get_current_user, require_roles
 from backend.logging import log_action
 from backend.models import RuleEntry, RulesResponse, RulesUpdateRequest
 from backend.routers.instances import resolve_instance_dir
 from backend.runtime.cache import TTLCache
+from backend.runtime.instance_paths import instance_child, normalize_instance_dir
 
 router = APIRouter()
 _RULES_CACHE = TTLCache(ttl_seconds=5.0)
@@ -31,11 +32,18 @@ def _clean_value(raw: str) -> str:
     return value
 
 
+def _safe_instance_dir(value: str | None) -> str:
+    try:
+        return str(normalize_instance_dir(value or resolve_instance_dir()))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid instance dir") from exc
+
+
 @router.get("/api/rules", response_model=RulesResponse)
 def rules_endpoint(instance_dir: str | None = Query(None), user=Depends(get_current_user)):
     require_roles(user, ["owner", "admin", "mod", "viewer"])
-    instance_dir = instance_dir or resolve_instance_dir()
-    server_properties = Path(instance_dir) / "data" / "server.properties"
+    instance_dir = _safe_instance_dir(instance_dir)
+    server_properties = instance_child(instance_dir, "data", "server.properties")
     cache_key = str(server_properties)
     cached = _RULES_CACHE.get(cache_key)
     if cached:
@@ -48,8 +56,8 @@ def rules_endpoint(instance_dir: str | None = Query(None), user=Depends(get_curr
 @router.put("/api/rules", response_model=RulesResponse)
 def update_rules(payload: RulesUpdateRequest, user=Depends(get_current_user)):
     require_roles(user, ["owner", "admin"])
-    instance_dir = payload.instance_dir or resolve_instance_dir()
-    server_properties = Path(instance_dir) / "data" / "server.properties"
+    instance_dir = _safe_instance_dir(payload.instance_dir)
+    server_properties = instance_child(instance_dir, "data", "server.properties")
     current = {entry.key: entry.value for entry in _read_server_properties(server_properties)}
     for entry in payload.entries:
         current[entry.key] = entry.value

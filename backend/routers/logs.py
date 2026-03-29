@@ -40,10 +40,10 @@ async def logs_websocket(
     max_lines = max(50, min(500, max_lines))
     max_per_second = max(10, min(200, max_per_second))
     try:
-        lines = tail_log(str(log_path), lines=max_lines)
+        lines = tail_log(log_path, lines=max_lines)
         for line in lines:
             await websocket.send_text(_strip_time_prefix(line.strip()))
-        async for line in follow_log(str(log_path), max_lines=max_lines, max_per_second=max_per_second):
+        async for line in follow_log(log_path, max_lines=max_lines, max_per_second=max_per_second):
             await websocket.send_text(_strip_time_prefix(line))
     except WebSocketDisconnect:
         return

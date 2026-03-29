@@ -3,10 +3,10 @@ import re
 import shutil
 import socket
 import time
-from pathlib import Path
 
 from backend.runtime.ansi import strip_ansi
 from backend.runtime.cache import TTLCache
+from backend.runtime.instance_paths import normalize_instance_dir
 from backend.runtime.rcon_client import RCONClient
 from backend.runtime.server_properties import read_server_properties
 
@@ -79,8 +79,15 @@ def gather_metrics(instance_dir: str | None = None) -> dict:
     cached = _METRICS_CACHE.get(cache_key)
     if cached:
         return cached
-    disk_path = instance_dir or "/"
-    if instance_dir and not Path(instance_dir).exists():
+    resolved_instance = None
+    if instance_dir:
+        try:
+            resolved_instance = normalize_instance_dir(instance_dir)
+        except ValueError:
+            resolved_instance = None
+
+    disk_path = str(resolved_instance) if resolved_instance else "/"
+    if instance_dir and resolved_instance is None:
         disk_path = "/"
 
     cpu = _cpu_usage()
@@ -92,9 +99,9 @@ def gather_metrics(instance_dir: str | None = None) -> dict:
     players = 0
     ping = 0.0
 
-    if instance_dir and Path(instance_dir).exists():
-        instance_path = Path(instance_dir)
-        client = RCONClient.from_instance_dir(instance_dir)
+    if resolved_instance and resolved_instance.exists():
+        instance_path = resolved_instance
+        client = RCONClient.from_instance_dir(str(resolved_instance))
         tps_response = client.execute("tps")
         tps, mspt = _parse_tps_response(tps_response)
         players = len(client.list_players())

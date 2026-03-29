@@ -6,8 +6,23 @@ import socket
 import subprocess
 from typing import Any, Dict
 
+DEFAULT_BASE_DIR = "/opt/mc-instances"
+
 
 class HostInspector:
+    @staticmethod
+    def _safe_base_dir(base_dir: str) -> str | None:
+        configured = os.environ.get("MC_PANEL_BASE_DIR", DEFAULT_BASE_DIR)
+        root = os.path.realpath(configured)
+        target = os.path.realpath(base_dir or configured)
+        try:
+            os.path.commonpath([root, target])
+        except ValueError:
+            return None
+        if os.path.commonpath([root, target]) != root:
+            return None
+        return target
+
     def check_memory_available(self, required_gb: float) -> Dict[str, Any]:
         if not isinstance(required_gb, (int, float)) or required_gb <= 0:
             return {"check": "memory_available", "ok": False, "details": "invalid required_gb"}
@@ -218,7 +233,7 @@ class HostInspector:
             return {"check": "port_free", "ok": False, "details": "invalid port"}
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            sock.bind(("0.0.0.0", port))
+            sock.bind(("127.0.0.1", port))
             return {"check": "port_free", "ok": True, "details": f"port {port} is free"}
         except OSError as exc:
             return {"check": "port_free", "ok": False, "details": str(exc)}
@@ -288,11 +303,14 @@ class HostInspector:
         return {"check": "service_exists", "ok": ok, "details": details}
 
     def list_instances(self, base_dir: str) -> Dict[str, Any]:
-        if not os.path.isdir(base_dir):
+        safe_base = self._safe_base_dir(base_dir)
+        if not safe_base:
+            return {"check": "list_instances", "ok": False, "details": "invalid base dir"}
+        if not os.path.isdir(safe_base):
             return {"check": "list_instances", "ok": False, "details": "base dir missing"}
         entries = []
-        for name in os.listdir(base_dir):
-            path = os.path.join(base_dir, name)
+        for name in os.listdir(safe_base):
+            path = os.path.join(safe_base, name)
             if not os.path.isdir(path):
                 continue
             entries.append(

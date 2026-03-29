@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 import threading
-from pathlib import Path
 
 from backend.runtime.cache import TTLCache
+from backend.runtime.instance_paths import instance_child
 from backend.runtime.log_paths import resolve_latest_log
 from backend.runtime.player_tracker import get_session_seconds
 from backend.runtime.rcon_client import RCONClient
@@ -23,7 +23,7 @@ def _get_instance_lock(instance_dir: str) -> threading.Lock:
         return lock
 
 def _load_usercache(instance_dir: str) -> list[dict]:
-    path = Path(instance_dir) / "data" / "usercache.json"
+    path = instance_child(instance_dir, "data", "usercache.json")
     if not path.exists():
         return []
     try:
@@ -36,7 +36,7 @@ def _load_usercache(instance_dir: str) -> list[dict]:
 
 
 def _load_owner_names(instance_dir: str) -> set[str]:
-    path = Path(instance_dir) / "owners.json"
+    path = instance_child(instance_dir, "owners.json")
     if not path.exists():
         return set()
     try:

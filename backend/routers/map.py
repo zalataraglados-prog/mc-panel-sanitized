@@ -16,6 +16,7 @@ from backend.models import (
     MapStatusResponse,
 )
 from backend.routers.instances import resolve_instance_dir
+from backend.runtime.instance_paths import instance_child, normalize_instance_dir
 from backend.runtime.map_provider import get_map_status, resolve_tile_path
 from backend.runtime.rcon_client import RCONClient
 
@@ -28,10 +29,17 @@ _BLUE_MAP_WEB_CANDIDATES = (
 )
 
 
+def _safe_instance_dir(value: str | None) -> Path:
+    try:
+        return normalize_instance_dir(value or resolve_instance_dir())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid instance dir") from exc
+
+
 @router.get("/api/map/status", response_model=MapStatusResponse)
 def map_status(instance_dir: str | None = Query(None), user=Depends(get_current_user)):
     require_roles(user, ["owner", "admin", "mod", "viewer"])
-    target_dir = instance_dir or resolve_instance_dir()
+    target_dir = str(_safe_instance_dir(instance_dir))
     status = get_map_status(target_dir)
     return MapStatusResponse(
         source=status.source,
@@ -45,8 +53,8 @@ def map_status(instance_dir: str | None = Query(None), user=Depends(get_current_
 @router.get("/api/map/meta", response_model=MapMetaResponse)
 def map_meta(instance_dir: str | None = Query(None), user=Depends(get_current_user)):
     require_roles(user, ["owner", "admin", "mod", "viewer"])
-    target_dir = instance_dir or resolve_instance_dir()
-    base = _resolve_bluemap_web_root(Path(target_dir))
+    target_dir = _safe_instance_dir(instance_dir)
+    base = _resolve_bluemap_web_root(target_dir)
     if base is None:
         return MapMetaResponse(source=None, tile_size=None, scale=None, origin=None, start_location=None, maps=[])
     meta = _load_bluemap_meta(base)
@@ -73,8 +81,8 @@ def map_tile(
 ):
     user = get_user_from_optional(authorization, token)
     require_roles(user, ["owner", "admin", "mod", "viewer"])
-    target_dir = instance_dir or resolve_instance_dir()
-    path = resolve_tile_path(target_dir, dimension, x, z, zoom, y)
+    safe_dir = str(_safe_instance_dir(instance_dir))
+    path = resolve_tile_path(safe_dir, dimension, x, z, zoom, y)
     if path and path.exists():
         return Response(path.read_bytes(), media_type="image/png")
 
@@ -101,8 +109,7 @@ def bluemap_web(
 ):
     user = get_user_from_optional(authorization, token)
     require_roles(user, ["owner", "admin", "mod", "viewer"])
-    target_dir = instance_dir or resolve_instance_dir()
-    base = _resolve_bluemap_web_root(Path(target_dir))
+    base = _resolve_bluemap_web_root(_safe_instance_dir(instance_dir))
     if base is None:
         raise HTTPException(status_code=404, detail="BlueMap web not found")
     safe_path = (base / path).resolve()
@@ -118,7 +125,7 @@ def bluemap_web(
 
 def _resolve_bluemap_web_root(instance_dir: Path) -> Path | None:
     for candidate in _BLUE_MAP_WEB_CANDIDATES:
-        resolved = (instance_dir / candidate)
+        resolved = instance_child(instance_dir, *candidate.parts)
         if resolved.exists():
             return resolved
     return None
@@ -289,8 +296,8 @@ def _walk_payload(payload: dict | list):
 @router.get("/api/map/config", response_model=MapConfigResponse)
 def map_config(instance_dir: str | None = Query(None), user=Depends(get_current_user)):
     require_roles(user, ["owner", "admin", "mod", "viewer"])
-    target_dir = instance_dir or resolve_instance_dir()
-    base = Path(target_dir) / "data" / "plugins"
+    target_dir = _safe_instance_dir(instance_dir)
+    base = instance_child(target_dir, "data", "plugins")
     dynmap_dir = base / "dynmap"
     bluemap_dir = base / "BlueMap"
     files: list[MapConfigFile] = []
@@ -316,8 +323,8 @@ def _safe_plugin_path(base: Path, relative: str) -> Path:
 @router.put("/api/map/config", response_model=MapConfigResponse)
 def update_map_config(payload: MapConfigUpdateRequest, user=Depends(get_current_user)):
     require_roles(user, ["owner", "admin"])
-    target_dir = payload.instance_dir or resolve_instance_dir()
-    base = Path(target_dir) / "data" / "plugins"
+    target_dir = _safe_instance_dir(payload.instance_dir)
+    base = instance_child(target_dir, "data", "plugins")
     plugin = payload.plugin
     if plugin == "dynmap":
         config_dir = base / "dynmap"
@@ -365,8 +372,8 @@ def _collect_config_files(base_dir: Path) -> list[MapConfigFile]:
 @router.post("/api/map/reload", response_model=MapReloadResponse)
 def reload_map(instance_dir: str | None = Query(None), user=Depends(get_current_user)):
     require_roles(user, ["owner", "admin"])
-    target_dir = instance_dir or resolve_instance_dir()
-    base = Path(target_dir) / "data" / "plugins"
+    target_dir = _safe_instance_dir(instance_dir)
+    base = instance_child(target_dir, "data", "plugins")
     plugin = None
     command = None
     if (base / "dynmap" / "configuration.txt").exists():
@@ -379,7 +386,7 @@ def reload_map(instance_dir: str | None = Query(None), user=Depends(get_current_
     if not command:
         raise HTTPException(status_code=404, detail="No map plugin config found")
 
-    client = RCONClient.from_instance_dir(target_dir)
+    client = RCONClient.from_instance_dir(str(target_dir))
     response = client.execute(command)
     log_action(user.username, "map_reload", plugin or "unknown")
     return MapReloadResponse(plugin=plugin, status=response)

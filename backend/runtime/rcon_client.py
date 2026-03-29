@@ -11,6 +11,7 @@ from typing import List
 import re
 
 from backend.runtime.ansi import strip_ansi
+from backend.runtime.instance_paths import instance_child, normalize_instance_dir
 from backend.runtime.server_properties import read_server_properties
 
 @dataclass
@@ -109,7 +110,7 @@ class RCONClient:
 
     @classmethod
     def from_instance_dir(cls, instance_dir: str) -> "RCONClient":
-        base_dir = Path(instance_dir)
+        base_dir = normalize_instance_dir(instance_dir)
         props = read_server_properties(base_dir)
         enabled = props.get("enable-rcon", "false").lower() == "true"
         host = "127.0.0.1"
@@ -171,7 +172,7 @@ def _parse_player_list(response: str) -> List[str]:
 
 
 def _read_instance_config(instance_dir: Path) -> dict:
-    path = instance_dir / "config.json"
+    path = instance_child(instance_dir, "config.json")
     if not path.exists():
         return {}
     try:
@@ -181,7 +182,7 @@ def _read_instance_config(instance_dir: Path) -> dict:
 
 
 def _read_compose_rcon_port(instance_dir: Path) -> int | None:
-    path = instance_dir / "docker-compose.yml"
+    path = instance_child(instance_dir, "docker-compose.yml")
     if not path.exists():
         return None
     pattern = re.compile(r'^\s*-\s*"?(?:[^":]+:)?(\d+):25575"?')

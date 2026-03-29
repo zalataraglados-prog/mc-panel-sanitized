@@ -3,9 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from backend.runtime.instance_paths import instance_child
 
 def _owners_path(instance_dir: str) -> Path:
-    return Path(instance_dir) / "owners.json"
+    return instance_child(instance_dir, "owners.json")
 
 
 def read_owners(instance_dir: str) -> list[str]:

@@ -61,6 +61,8 @@ class Composer:
         else:
             rcon_mapping = f'{rcon_bind}:{network["rcon_port"]}:25575'
         rcon_password = str(security.get("rcon_password", "") or "").strip()
+        if rcon_password:
+            os.environ.setdefault("MC_PANEL_RCON_PASSWORD", rcon_password)
 
         env_extra = self._generate_env_block(docker.get("extra_env", {}))
         vol_extra = self._generate_volumes_block(docker.get("volumes", {}))
@@ -81,7 +83,7 @@ services:
       - VERSION={minecraft["version"]}
       - MEMORY={minecraft["jvm"]["memory"]}
       - ENABLE_RCON=TRUE
-      - RCON_PASSWORD={rcon_password}
+      - RCON_PASSWORD=${{MC_PANEL_RCON_PASSWORD}}
       - RCON_PORT={network["rcon_port"]}
  {env_extra}
     volumes:

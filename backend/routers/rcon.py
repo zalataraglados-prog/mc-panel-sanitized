@@ -1,10 +1,10 @@
 import json
-from pathlib import Path
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from backend.auth import get_current_user, require_roles
 from backend.logging import log_action
 from backend.models import CommandRequest, RconHealthResponse
+from backend.runtime.instance_paths import instance_child, normalize_instance_dir
 from backend.runtime.rcon_client import RCONClient
 from backend.routers.instances import resolve_instance_dir
 
@@ -15,7 +15,7 @@ _OP_LEVEL_MAX = 4
 
 
 def _usercache_uuid(instance_dir: str, name: str) -> str | None:
-    cache_path = Path(instance_dir) / "data" / "usercache.json"
+    cache_path = instance_child(instance_dir, "data", "usercache.json")
     if not cache_path.exists():
         return None
     try:
@@ -33,7 +33,7 @@ def _update_ops(instance_dir: str, name: str, level: int | None, enabled: bool) 
     uuid = _usercache_uuid(instance_dir, name)
     if not uuid:
         return "UUID not found for player (usercache.json missing or player never joined)"
-    ops_path = Path(instance_dir) / "data" / "ops.json"
+    ops_path = instance_child(instance_dir, "data", "ops.json")
     entries = []
     if ops_path.exists():
         try:
@@ -66,12 +66,22 @@ def _parse_op_with_level(command: str) -> tuple[str, int] | None:
     return None
 
 
+def _safe_instance_dir(value: str | None) -> str:
+    try:
+        return str(normalize_instance_dir(value or resolve_instance_dir()))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid instance dir") from exc
+
+
 @router.post("/api/rcon")
 def rcon_endpoint(payload: CommandRequest, user=Depends(get_current_user)):
     require_roles(user, ["owner", "admin"])
-    instance_dir = payload.instance_dir or resolve_instance_dir()
+    instance_dir = _safe_instance_dir(payload.instance_dir)
     log_action(user.username, "rcon", payload.command)
-    client = RCONClient.from_instance_dir(instance_dir)
+    try:
+        client = RCONClient.from_instance_dir(instance_dir)
+    except Exception:
+        return {"response": "RCON init failed", "ok": False, "error": "rcon_init_failed"}
     parsed = _parse_op_with_level(payload.command)
     if parsed:
         name, level = parsed
@@ -107,8 +117,11 @@ def rcon_endpoint(payload: CommandRequest, user=Depends(get_current_user)):
 @router.get("/api/rcon/health", response_model=RconHealthResponse)
 def rcon_health(instance_dir: str | None = None, user=Depends(get_current_user)):
     require_roles(user, ["owner", "admin", "mod", "viewer"])
-    resolved = instance_dir or resolve_instance_dir()
-    client = RCONClient.from_instance_dir(resolved)
+    resolved = _safe_instance_dir(instance_dir)
+    try:
+        client = RCONClient.from_instance_dir(resolved)
+    except Exception:
+        return RconHealthResponse(ok=False, message="RCON init failed", instance_dir=resolved)
     if not client.enabled:
         return RconHealthResponse(ok=False, message="RCON disabled", instance_dir=resolved)
     response = client.execute("list")
