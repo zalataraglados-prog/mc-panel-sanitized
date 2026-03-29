@@ -18,9 +18,19 @@ def _normalize_token(value: str) -> str:
     return value.replace("\\", "/").rstrip("/")
 
 
-def _list_known_instances() -> list[dict]:
+def _list_known_instances(base_dir: str | None = None) -> list[dict]:
     inspector = HostInspector()
-    result = inspector.list_instances()
+    previous = os.environ.get("MC_PANEL_BASE_DIR")
+    if base_dir:
+        os.environ["MC_PANEL_BASE_DIR"] = base_dir
+    try:
+        result = inspector.list_instances()
+    finally:
+        if base_dir:
+            if previous is None:
+                os.environ.pop("MC_PANEL_BASE_DIR", None)
+            else:
+                os.environ["MC_PANEL_BASE_DIR"] = previous
     if not result.get("ok"):
         return []
     return result.get("instances", [])
@@ -36,7 +46,7 @@ def resolve_instance_dir(base_dir: str = DEFAULT_BASE_DIR) -> str:
     base_dir = os.environ.get("MC_PANEL_BASE_DIR", base_dir)
     if not Path(base_dir).exists():
         return base_dir
-    instances = _list_known_instances()
+    instances = _list_known_instances(base_dir)
     if instances:
         return instances[0]["path"]
     return base_dir
@@ -46,7 +56,8 @@ def select_instance_dir(requested: str | None) -> str:
     default_dir = resolve_instance_dir()
     if not requested:
         return default_dir
-    token = _normalize_token(str(requested).strip())
+    raw = str(requested).strip()
+    token = _normalize_token(raw)
     if not token:
         return default_dir
     token_name = os.path.basename(token)
@@ -56,17 +67,17 @@ def select_instance_dir(requested: str | None) -> str:
         norm_path = _normalize_token(path)
         if token == norm_path or token == name or token_name == name:
             return path
-    return default_dir
+    # Keep previous behavior: unknown token still uses caller-supplied path.
+    return raw
 
 
 @router.get("/api/instances", response_model=InstancesResponse)
 def instances_endpoint(base_dir: str = DEFAULT_BASE_DIR, user=Depends(get_current_user)):
-    _ = base_dir
-    base_dir = os.environ.get("MC_PANEL_BASE_DIR", DEFAULT_BASE_DIR)
+    base_dir = os.environ.get("MC_PANEL_BASE_DIR", base_dir)
     cache_key = base_dir
     cached = _INSTANCES_CACHE.get(cache_key)
     if cached:
         return InstancesResponse(instances=cached)
-    instances = _list_known_instances()
+    instances = _list_known_instances(base_dir)
     _INSTANCES_CACHE.set(cache_key, instances)
     return InstancesResponse(instances=instances)

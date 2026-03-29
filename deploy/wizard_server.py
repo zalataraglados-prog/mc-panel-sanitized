@@ -32,12 +32,6 @@ TOKEN_LOCK = threading.Lock()
 NONCE_TTL_SECONDS = 120
 NONCE_LOCK = threading.Lock()
 NONCE_STORE = {}
-_ALLOWED_IMPORT_ROOTS = (
-    Path("/opt/mc-instances").resolve(),
-    Path("/tmp").resolve(),
-    Path(tempfile.gettempdir()).resolve(),
-    ROOT.resolve(),
-)
 
 os.environ.setdefault("PYTHONUTF8", "1")
 os.environ.setdefault("LANG", "C.UTF-8")
@@ -120,7 +114,7 @@ def _check_ports(ports):
             import socket
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.bind(("127.0.0.1", port))
+            s.bind(("0.0.0.0", port))
             results[str(port)] = {"free": True}
         except Exception as exc:
             results[str(port)] = {"free": False, "reason": str(exc)}
@@ -149,39 +143,15 @@ def _build_claims(state):
         return import_value
     if mode == "file" and import_value:
         try:
-            return _safe_import_file(import_value).read_text(encoding="utf-8").strip()
+            return Path(import_value).read_text(encoding="utf-8").strip()
         except Exception:
             pass
     return encode_claims(params)
 
 
-def _safe_import_file(value: str) -> Path:
-    raw = (value or "").strip()
-    path = os.path.realpath(os.path.expanduser(raw))
-    allowed = False
-    for root in _ALLOWED_IMPORT_ROOTS:
-        try:
-            if os.path.commonpath([path, os.path.realpath(str(root))]) == os.path.realpath(str(root)):
-                allowed = True
-                break
-        except Exception:
-            continue
-    candidate = Path(path)
-    if not allowed or not candidate.is_file():
-        raise ValueError("invalid import file")
-    if candidate.stat().st_size > 1024 * 1024:
-        raise ValueError("import file too large")
-    return candidate
-
-
 def _safe_version(value: str | None) -> str:
     version = (value or "1.21.11").strip()
-    parts = version.split(".")
-    if len(parts) not in (2, 3):
-        return "1.21.11"
-    if any((not part.isdigit()) for part in parts):
-        return "1.21.11"
-    return version
+    return version or "1.21.11"
 
 
 def _safe_profile(value: str | None) -> str:
@@ -821,7 +791,7 @@ def main():
     _write_pid()
     rotator = threading.Thread(target=_rotate_token_loop, daemon=True)
     rotator.start()
-    host = os.environ.get("MC_PANEL_WIZARD_HOST", "127.0.0.1").strip() or "127.0.0.1"
+    host = os.environ.get("MC_PANEL_WIZARD_HOST", "0.0.0.0").strip() or "0.0.0.0"
     server = HTTPServer((host, port), Handler)
     try:
         server.serve_forever()

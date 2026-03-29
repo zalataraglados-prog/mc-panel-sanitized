@@ -176,7 +176,7 @@ def _build_ports_block(params: dict, ports: Dict[str, int]) -> str:
     return "\n".join(lines)
 
 
-def _is_port_free(port: int, host: str = "127.0.0.1") -> bool:
+def _is_port_free(port: int, host: str = "0.0.0.0") -> bool:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         sock.bind((host, port))

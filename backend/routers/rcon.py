@@ -1,10 +1,10 @@
 import json
+from pathlib import Path
 from fastapi import APIRouter, Depends
 
 from backend.auth import get_current_user, require_roles
 from backend.logging import log_action
 from backend.models import CommandRequest, RconHealthResponse
-from backend.runtime.instance_paths import instance_child
 from backend.runtime.rcon_client import RCONClient
 from backend.routers.instances import select_instance_dir
 
@@ -13,21 +13,8 @@ router = APIRouter()
 _OP_LEVEL_MIN = 1
 _OP_LEVEL_MAX = 4
 
-
-def _rcon_public_error(response: str) -> str:
-    text = (response or "").strip()
-    if text.startswith("RCON "):
-        return "RCON command failed"
-    return text or "RCON command failed"
-
-def _public_response(response: str) -> str:
-    if (response or "").startswith("RCON "):
-        return "RCON command failed"
-    return response
-
-
 def _usercache_uuid(instance_dir: str, name: str) -> str | None:
-    cache_path = instance_child(instance_dir, "data", "usercache.json")
+    cache_path = Path(instance_dir) / "data" / "usercache.json"
     if not cache_path.exists():
         return None
     try:
@@ -45,7 +32,7 @@ def _update_ops(instance_dir: str, name: str, level: int | None, enabled: bool) 
     uuid = _usercache_uuid(instance_dir, name)
     if not uuid:
         return "UUID not found for player (usercache.json missing or player never joined)"
-    ops_path = instance_child(instance_dir, "data", "ops.json")
+    ops_path = Path(instance_dir) / "data" / "ops.json"
     entries = []
     if ops_path.exists():
         try:
@@ -87,10 +74,7 @@ def rcon_endpoint(payload: CommandRequest, user=Depends(get_current_user)):
     require_roles(user, ["owner", "admin"])
     instance_dir = _safe_instance_dir(payload.instance_dir)
     log_action(user.username, "rcon", payload.command)
-    try:
-        client = RCONClient.from_instance_dir(instance_dir)
-    except Exception:
-        return {"response": "RCON init failed", "ok": False, "error": "rcon_init_failed"}
+    client = RCONClient.from_instance_dir(instance_dir)
     parsed = _parse_op_with_level(payload.command)
     if parsed:
         name, level = parsed
@@ -102,12 +86,12 @@ def rcon_endpoint(payload: CommandRequest, user=Depends(get_current_user)):
             }
         response = client.execute(f"op {name}")
         if response.startswith("RCON "):
-            return {"response": _public_response(response), "ok": False, "error": _rcon_public_error(response)}
+            return {"response": response, "ok": False, "error": response}
         error = _update_ops(instance_dir, name, level, True)
         if error:
-            return {"response": "Failed to update ops", "ok": False, "error": "ops_update_failed"}
+            return {"response": error, "ok": False, "error": error}
         return {
-            "response": f"OP level set to {level}",
+            "response": f"{response} (OP level set to {level})",
             "ok": True,
             "error": None,
         }
@@ -117,23 +101,19 @@ def rcon_endpoint(payload: CommandRequest, user=Depends(get_current_user)):
         if not response.startswith("RCON "):
             _update_ops(instance_dir, name, None, False)
         error = response.startswith("RCON ")
-        return {"response": _public_response(response), "ok": not error, "error": _rcon_public_error(response) if error else None}
+        return {"response": response, "ok": not error, "error": response if error else None}
     response = client.execute(payload.command)
     error = response.startswith("RCON ")
-    return {"response": _public_response(response), "ok": not error, "error": _rcon_public_error(response) if error else None}
+    return {"response": response, "ok": not error, "error": response if error else None}
 
 
 @router.get("/api/rcon/health", response_model=RconHealthResponse)
 def rcon_health(instance_dir: str | None = None, user=Depends(get_current_user)):
     require_roles(user, ["owner", "admin", "mod", "viewer"])
     resolved = _safe_instance_dir(instance_dir)
-    try:
-        client = RCONClient.from_instance_dir(resolved)
-    except Exception:
-        return RconHealthResponse(ok=False, message="RCON init failed", instance_dir=resolved)
+    client = RCONClient.from_instance_dir(resolved)
     if not client.enabled:
         return RconHealthResponse(ok=False, message="RCON disabled", instance_dir=resolved)
     response = client.execute("list")
     ok = bool(response) and not response.startswith("RCON ")
-    message = _public_response(response) if ok else _rcon_public_error(response)
-    return RconHealthResponse(ok=ok, message=message, instance_dir=resolved)
+    return RconHealthResponse(ok=ok, message=response, instance_dir=resolved)

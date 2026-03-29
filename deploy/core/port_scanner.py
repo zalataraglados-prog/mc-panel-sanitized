@@ -9,7 +9,7 @@ class PortScanner:
     """
 
     @staticmethod
-    def is_free(port, host="127.0.0.1"):
+    def is_free(port, host="0.0.0.0"):
         """
         检查端口是否可用：
         - 尝试绑定 TCP
@@ -25,7 +25,7 @@ class PortScanner:
             return False
 
     @staticmethod
-    def find_free(start_port=25565, max_tries=200, host="127.0.0.1"):
+    def find_free(start_port=25565, max_tries=200, host="0.0.0.0"):
         """
         从 start_port 开始向上寻找可用端口
         默认检查 200 个，够你疯狂部署 200 条实例不撞车。
