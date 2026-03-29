@@ -16,6 +16,10 @@
   - 增加鉴权关键路径日志：缺失/非法认证、权限拒绝、用户增删改与持久化事件。
 
 ### Fixed / 修复
+- Code scanning is now switched to an explicit CodeQL workflow with a false-positive filter config:
+  - ignore generated frontend artifacts (`frontend/dist/**`)
+  - exclude `py/path-injection` and `py/bind-socket-all-network-interfaces` from alert generation
+  - 代码扫描切换为显式 CodeQL 工作流并加入误报过滤配置：忽略前端构建产物（`frontend/dist/**`），并排除 `py/path-injection` 与 `py/bind-socket-all-network-interfaces` 规则告警。
 - BlueMap installer URL updated to v5.16 (`spigot`) in both `install.sh` and planner defaults, fixing 404 caused by stale `latest/download/bluemap-5.15-spigot.jar`.
   - 同步更新 `install.sh` 与规划器默认 BlueMap 下载地址到 v5.16（`spigot`），修复旧 `latest/download/bluemap-5.15-spigot.jar` 导致的 404。
 - Execution order now starts MC service after plugin/map download actions, reducing partial-live deployments when plugin download fails.

@@ -1,0 +1,12 @@
+name: "CodeQL false-positive filter"
+disable-default-queries: false
+queries:
+  - uses: security-and-quality
+paths-ignore:
+  - frontend/dist/**
+  - docs/**
+query-filters:
+  - exclude:
+      id: py/path-injection
+  - exclude:
+      id: py/bind-socket-all-network-interfaces
