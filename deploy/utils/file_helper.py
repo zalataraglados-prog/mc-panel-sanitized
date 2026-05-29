@@ -40,8 +40,8 @@ class FileHelper:
         try:
             with open(tmp_path, "w") as f:
                 f.write(content)
-        except Exception:
-            log_error(f"写入临时文件失败：{tmp_path}")
+        except Exception as exc:
+            log_error(f"写入临时文件失败：{tmp_path}, error: {exc!r}")
             raise
 
         # 覆盖移动到真正文件（原子操作）
