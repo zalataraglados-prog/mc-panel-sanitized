@@ -47,7 +47,7 @@
 | 问题 | 位置 | 说明 |
 |------|------|------|
 | 使用 `os.system()` 执行系统命令 | `deploy/core/deployer.py` | 无法捕获 stdout/stderr，且存在命令注入风险（如 `instance_name` 含特殊字符时）；应改用 `subprocess.run()`。 |
-| 文件读写未统一指定 `encoding` | `deploy/core/config_model.py` L27 | `open(self.path, "r")` 未指定 `encoding="utf-8"`，在非 UTF-8 环境中可能乱码。 |
+| 文件读写未统一指定 `encoding` | `deploy/core/config_model.py` | `open(self.path, "r")` 未指定 `encoding="utf-8"`，在非 UTF-8 环境中可能乱码。 |
 | `backend/logging.py` 遮蔽标准库 | `backend/logging.py` | 文件名与 Python 标准库 `logging` 同名，可能在某些导入路径下引发遮蔽（shadowing）。 |
 | 部分 Markdown 文件含 BOM | `README.md`、`CHANGELOG.md` 等 | 文件首字节为 `\xef\xbb\xbf`（UTF-8 BOM），部分工具处理时可能出现多余字符。 |
 | `config_model.py` 中混用中文注释 | 全文 | 生产级开源项目建议统一为英文注释或中英双语，纯中文注释对国际协作不友好。 |
